@@ -18,6 +18,9 @@ TOKEN = config.DISCORD_TOKEN
 if not TOKEN:
     raise ValueError("DISCORD_TOKEN not found in config.py.")
 
+# Get the absolute path to the bot directory
+BOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -44,7 +47,7 @@ last_interaction = {
 
 def get_history_file(channel_id: str) -> str:
     """Get the history file path for a channel"""
-    history_dir = 'history'
+    history_dir = os.path.join(BOT_DIR, 'history')
     if not os.path.exists(history_dir):
         os.makedirs(history_dir)
     return os.path.join(history_dir, f'history_{channel_id}.json')
@@ -136,8 +139,9 @@ async def load_channel_history(channel_id: str, channel):
 async def load_context_settings():
     """Load saved context window settings"""
     try:
-        if os.path.exists('context_windows.json'):
-            with open('context_windows.json', 'r') as f:
+        settings_file = os.path.join(BOT_DIR, 'context_windows.json')
+        if os.path.exists(settings_file):
+            with open(settings_file, 'r') as f:
                 settings = json.load(f)
                 config.CONTEXT_WINDOWS.update(settings)
                 logging.info("Loaded context window settings")
@@ -179,7 +183,8 @@ async def setup_cogs():
         logging.warning("Vision processing capabilities will be unavailable")
 
     # Then load all other cogs
-    for filename in os.listdir('./cogs'):
+    cogs_dir = os.path.join(BOT_DIR, 'cogs')
+    for filename in os.listdir(cogs_dir):
         if filename.endswith('_cog.py') and filename not in ['base_cog.py', 'llama32_11b_cog.py'] + [f"{cog}.py" for cog in core_cogs]:
             try:
                 await bot.load_extension(f'cogs.{filename[:-3]}')
