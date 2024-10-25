@@ -199,20 +199,19 @@ async def setup_cogs():
                 await bot.load_extension(f'cogs.{module_name}')
                 
                 # Get the actual cog instance
-                cog_name = module_name.replace('_', ' ').title()
                 cog = None
+                cog_class_name = module_name.split('_')[0].capitalize()
                 
-                # Try to find the cog by its qualified_name or name attribute
+                # Try to find the cog by checking each loaded cog
                 for loaded_cog in bot.cogs.values():
-                    if (hasattr(loaded_cog, 'qualified_name') and loaded_cog.qualified_name == cog_name) or \
-                       (hasattr(loaded_cog, 'name') and loaded_cog.name == cog_name):
+                    if (hasattr(loaded_cog, 'name') and loaded_cog.name == cog_class_name):
                         cog = loaded_cog
                         break
                 
                 if cog:
                     loaded_cogs.append(cog)
-                    logging.info(f"Loaded cog: {getattr(cog, 'name', cog_name)}")
-                    logging.debug(f"Added {getattr(cog, 'name', cog_name)} to loaded_cogs list")
+                    logging.info(f"Loaded cog: {getattr(cog, 'name', cog_class_name)}")
+                    logging.debug(f"Added {getattr(cog, 'name', cog_class_name)} to loaded_cogs list")
                 else:
                     logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
