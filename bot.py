@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import logging
 import os
 import config
@@ -35,12 +35,56 @@ loaded_cogs = []
 # Store message history
 message_history = {}
 
+# Track bot statistics
+start_time = None
+last_interaction = {
+    'user': None,
+    'time': None
+}
+
 def get_history_file(channel_id: str) -> str:
     """Get the history file path for a channel"""
     history_dir = 'history'
     if not os.path.exists(history_dir):
         os.makedirs(history_dir)
     return os.path.join(history_dir, f'history_{channel_id}.json')
+
+def get_uptime():
+    """Get bot uptime as a formatted string"""
+    if start_time is None:
+        return "Unknown"
+    uptime = datetime.utcnow() - start_time
+    days = uptime.days
+    hours, remainder = divmod(uptime.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
+
+def get_last_interaction():
+    """Get last interaction as a formatted string"""
+    if last_interaction['user'] is None:
+        return "No interactions yet"
+    time_diff = datetime.utcnow() - last_interaction['time']
+    minutes = int(time_diff.total_seconds() / 60)
+    if minutes < 1:
+        return f"Just now with {last_interaction['user']}"
+    elif minutes < 60:
+        return f"{minutes}m ago with {last_interaction['user']}"
+    else:
+        hours = minutes // 60
+        if hours < 24:
+            return f"{hours}h ago with {last_interaction['user']}"
+        else:
+            days = hours // 24
+            return f"{days}d ago with {last_interaction['user']}"
 
 async def save_channel_history(channel_id: str):
     """Save message history for a specific channel"""
@@ -162,8 +206,25 @@ async def get_random_cog():
     logging.warning("No cogs available for random selection")
     return None
 
+@tasks.loop(seconds=60)  # Discord rate limit is 5 requests per minute
+async def rotate_status():
+    """Rotate bot status message"""
+    if not bot.is_ready():
+        return
+
+    status_messages = [
+        lambda: discord.Game(name=f"Up for {get_uptime()}"),
+        lambda: discord.Activity(type=discord.ActivityType.watching, name=get_last_interaction()),
+        lambda: discord.Game(name=f"with {random.choice(loaded_cogs).name}")
+    ]
+
+    current_status = random.choice(status_messages)
+    await bot.change_presence(activity=current_status())
+
 @bot.event
 async def on_ready():
+    global start_time
+    start_time = datetime.utcnow()
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
     
     # Load history for all channels
@@ -178,11 +239,19 @@ async def on_ready():
         await load_channel_history(channel_id, dm_channel)
     
     await setup_cogs()
+    
+    # Start status rotation
+    if not rotate_status.is_running():
+        rotate_status.start()
 
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
+
+    # Update last interaction
+    last_interaction['user'] = message.author.display_name
+    last_interaction['time'] = datetime.utcnow()
 
     # Add message to history
     channel_id = str(message.channel.id)

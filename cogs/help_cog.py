@@ -27,8 +27,10 @@ class HelpCog(commands.Cog):
     @commands.command(name='splintertree_help')
     async def splintertree_help(self, ctx):
         """Comprehensive help command showing all features, models, and commands"""
-        # Create main embed
-        embed = discord.Embed(
+        embeds = []
+
+        # Main Features Embed
+        main_embed = discord.Embed(
             title="🌳 Splintertree Help",
             description="Complete guide to Splintertree's features and capabilities",
             color=discord.Color.green()
@@ -36,68 +38,110 @@ class HelpCog(commands.Cog):
 
         # Add Administrative Commands section
         admin_commands = """
+        `!splintertree_help` - Show this help message
         `!toggle_shared_history` - Toggle shared message history for the channel
         `!toggle_image_processing` - Toggle image processing for the channel
+        `!contact` - Show contact information
         """
-        embed.add_field(name="👑 Administrative Commands", value=admin_commands.strip(), inline=False)
+        main_embed.add_field(name="👑 Administrative Commands", value=admin_commands.strip(), inline=False)
 
-        # Add Features section
+        # Add Core Features section
         features = """
         • **Shared Message History** - Agents remember conversation context
         • **Image Processing** - Automatic image description using vision models
         • **File Handling** - Support for text files and images
         • **Response Reroll** - Button to generate alternative responses
         • **Emotion Analysis** - Reactions based on message sentiment
+        • **Status Updates** - Rotating status showing uptime, last interaction, and current model
         """
-        embed.add_field(name="✨ Features", value=features.strip(), inline=False)
+        main_embed.add_field(name="✨ Core Features", value=features.strip(), inline=False)
+
+        # Add Basic Usage section
+        usage = """
+        • **Direct Mention** - @Splintertree for random model response
+        • **Keyword Trigger** - Use "splintertree" in message for random model
+        • **Model Selection** - Use specific model triggers (listed below)
+        • **Image Analysis** - Simply attach an image with your message
+        • **File Processing** - Attach .txt or .md files with your message
+        """
+        main_embed.add_field(name="📝 Basic Usage", value=usage.strip(), inline=False)
+        embeds.append(main_embed)
+
+        # Models Embed
+        models_embed = discord.Embed(
+            title="🤖 Available Models",
+            description="List of all available AI models and their trigger words",
+            color=discord.Color.blue()
+        )
 
         # Get all available models and their capabilities
         models_info = {}
         vision_models = []
         
         for cog in self.bot.cogs.values():
-            if hasattr(cog, 'name') and hasattr(cog, 'provider') and hasattr(cog, 'supports_vision'):
+            if hasattr(cog, 'name') and hasattr(cog, 'provider') and hasattr(cog, 'trigger_words'):
                 provider = "OpenRouter" if cog.provider == "openrouter" else "OpenPipe"
-                model_info = f"Provider: {provider}"
-                if cog.supports_vision:
-                    model_info += " | Supports Vision"
+                capabilities = []
+                
+                if hasattr(cog, 'supports_vision') and cog.supports_vision:
+                    capabilities.append("Vision")
                     vision_models.append(cog.name)
                 
-                trigger_examples = ", ".join([f"`{trigger}`" for trigger in cog.trigger_words[:3]])
-                if len(cog.trigger_words) > 3:
-                    trigger_examples += ", ..."
+                capabilities.append(provider)
+                capabilities_str = " | ".join(capabilities)
                 
-                models_info[cog.name] = {
-                    "info": model_info,
-                    "triggers": trigger_examples
-                }
+                trigger_words = [f"`{word}`" for word in cog.trigger_words]
+                trigger_str = ", ".join(trigger_words)
+                
+                models_info[cog.name] = f"**Capabilities:** {capabilities_str}\n**Triggers:** {trigger_str}"
 
-        # Add Models section
-        models_text = ""
-        for name, info in models_info.items():
-            models_text += f"**{name}**\n{info['info']}\nTriggers: {info['triggers']}\n\n"
+        # Sort models by name and add to embed
+        for name in sorted(models_info.keys()):
+            models_embed.add_field(name=name, value=models_info[name], inline=False)
+
+        embeds.append(models_embed)
+
+        # Special Features Embed
+        special_embed = discord.Embed(
+            title="🎯 Special Features",
+            description="Detailed information about special features and capabilities",
+            color=discord.Color.gold()
+        )
+
+        # Add Vision Processing section
+        vision_info = f"""
+        The following models support direct image analysis:
+        {', '.join(vision_models)}
         
-        if len(models_text) > 1024:
-            # Split into multiple fields if too long
-            chunks = [models_text[i:i+1024] for i in range(0, len(models_text), 1024)]
-            for i, chunk in enumerate(chunks):
-                embed.add_field(name=f"🤖 Available Models {i+1}/{len(chunks)}", value=chunk, inline=False)
-        else:
-            embed.add_field(name="🤖 Available Models", value=models_text, inline=False)
-
-        # Add Usage Examples section
-        examples = f"""
-        • Text message: Just mention the model's trigger word
-        • Image analysis: Send an image with your message (supported by: {', '.join(vision_models)})
-        • Text files: Attach .txt or .md files with your message
-        • Reroll: Click the 🎲 button on any response to get an alternative
+        Other models will receive text descriptions of images processed by Llama.
+        Simply attach an image to your message or reference a recent image.
         """
-        embed.add_field(name="📝 Usage Examples", value=examples.strip(), inline=False)
+        special_embed.add_field(name="👁️ Vision Processing", value=vision_info.strip(), inline=False)
 
-        # Add footer with version info
-        embed.set_footer(text="Splintertree Bot | Use model trigger words or reply to start a conversation")
+        # Add Context Management section
+        context_info = """
+        • Message history is maintained per channel
+        • Default context window: 10 messages
+        • Adjustable using admin commands
+        • Shared across all models in channel
+        • Persists between bot restarts
+        """
+        special_embed.add_field(name="🧠 Context Management", value=context_info.strip(), inline=False)
 
-        await ctx.send(embed=embed)
+        # Add File Processing section
+        file_info = """
+        • Supports .txt and .md files
+        • Automatic content extraction
+        • Can be combined with image processing
+        • Content included in model context
+        """
+        special_embed.add_field(name="📄 File Processing", value=file_info.strip(), inline=False)
+
+        embeds.append(special_embed)
+
+        # Send all embeds
+        for embed in embeds:
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
