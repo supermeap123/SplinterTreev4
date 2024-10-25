@@ -10,8 +10,8 @@ class NemotronCog(BaseCog):
             bot=bot,
             name="Nemotron",
             nickname="Nemotron",
-            trigger_words=['nemotron'],
-            model="teknium/nemotron-3-8b-chat:free",
+            trigger_words=['nemotron', 'nvidia'],
+            model="nvidia/llama-3.1-nemotron-70b-instruct",
             provider="openrouter",
             prompt_file="nemotron",
             supports_vision=False

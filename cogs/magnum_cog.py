@@ -10,8 +10,8 @@ class MagnumCog(BaseCog):
             bot=bot,
             name="Magnum",
             nickname="Magnum",
-            trigger_words=['magnum'],
-            model="anthropic/claude-3-opus:free",
+            trigger_words=['magnum', 'fakeopus'],
+            model="anthracite-org/magnum-v4-72b",
             provider="openrouter",
             prompt_file="magnum",
             supports_vision=False

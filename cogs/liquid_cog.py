@@ -11,7 +11,7 @@ class LiquidCog(BaseCog):
             name="Liquid",
             nickname="Liquid",
             trigger_words=['liquid'],
-            model="migtissera/Liquid-10B:free",
+            model="liquid/lfm-40b:free",
             provider="openrouter",
             prompt_file="liquid",
             supports_vision=False

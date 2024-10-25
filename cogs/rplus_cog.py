@@ -11,7 +11,7 @@ class RPlusCog(BaseCog):
             name="R-Plus",
             nickname="RPlus",
             trigger_words=['rplus', 'r plus', 'r+'],
-            model="recursal/recursalai:free",
+            model="cohere/command-r-plus",
             provider="openrouter",
             prompt_file="rplus",
             supports_vision=False
