@@ -209,17 +209,33 @@ async def get_random_cog():
 @tasks.loop(seconds=60)  # Discord rate limit is 5 requests per minute
 async def rotate_status():
     """Rotate bot status message"""
-    if not bot.is_ready():
-        return
+    try:
+        if not bot.is_ready():
+            return
 
-    status_messages = [
-        lambda: discord.Game(name=f"Up for {get_uptime()}"),
-        lambda: discord.Activity(type=discord.ActivityType.watching, name=get_last_interaction()),
-        lambda: discord.Game(name=f"with {random.choice(loaded_cogs).name}")
-    ]
+        status_type = random.randint(0, 2)
+        
+        if status_type == 0:
+            # Uptime status
+            activity = discord.Game(name=f"Up for {get_uptime()}")
+        elif status_type == 1:
+            # Last interaction status
+            activity = discord.Activity(
+                type=discord.ActivityType.watching,
+                name=get_last_interaction()
+            )
+        else:
+            # Random cog status
+            if loaded_cogs:
+                cog = random.choice(loaded_cogs)
+                activity = discord.Game(name=f"with {getattr(cog, 'name', 'Unknown')}")
+            else:
+                activity = discord.Game(name="Loading...")
 
-    current_status = random.choice(status_messages)
-    await bot.change_presence(activity=current_status())
+        await bot.change_presence(activity=activity)
+        logging.debug(f"Updated status to: {activity.name}")
+    except Exception as e:
+        logging.error(f"Error in rotate_status: {str(e)}")
 
 @bot.event
 async def on_ready():
@@ -243,6 +259,10 @@ async def on_ready():
     # Start status rotation
     if not rotate_status.is_running():
         rotate_status.start()
+        logging.info("Started status rotation task")
+
+    # Set initial status
+    await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
 
 @bot.event
 async def on_message(message):
@@ -276,18 +296,48 @@ async def on_message(message):
 
     # Check for bot mention or keywords
     msg_content = message.content.lower()
-    is_pinged = bot.user.mentioned_in(message)
+    is_pinged = False
+    
+    # Check for direct mention
+    for mention in message.mentions:
+        if mention.id == bot.user.id:
+            is_pinged = True
+            break
+            
+    # Check for role mention
+    if message.role_mentions:
+        for role in message.role_mentions:
+            if bot.user in role.members:
+                is_pinged = True
+                break
+                
+    # Check for @everyone and @here if bot can see them
+    if (message.mention_everyone and 
+        message.channel.permissions_for(message.guild.me).read_messages):
+        is_pinged = True
+
     has_keyword = "splintertree" in msg_content
 
-    if is_pinged or has_keyword:
-        # Get a random cog if no specific model was triggered
+    # Check for specific model triggers first
+    specific_model_triggered = False
+    for cog in bot.cogs.values():
+        if hasattr(cog, 'trigger_words'):
+            if any(word in msg_content for word in cog.trigger_words):
+                logging.debug(f"Specific model {cog.name} triggered")
+                await cog.on_message(message)
+                specific_model_triggered = True
+                break
+
+    # If no specific model was triggered, use random cog for mentions/keywords
+    if not specific_model_triggered and (is_pinged or has_keyword):
+        logging.info(f"Bot triggered by {'mention' if is_pinged else 'keyword'} from {message.author.display_name}")
         cog = await get_random_cog()
         if cog:
             logging.debug(f"Using random cog {cog.name} to handle message")
-            # Let the random cog handle the message
             await cog.on_message(message)
         else:
             logging.warning("No cog available to handle message")
+            await message.channel.send("Sorry, no models are currently available to handle your request.")
 
     # Save history for this channel
     await save_channel_history(channel_id)

@@ -19,6 +19,37 @@ from config import (
     IMAGE_PROCESSING_ENABLED
 )
 
+class RerollView(discord.ui.View):
+    def __init__(self, cog, message, original_response):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.cog = cog
+        self.message = message
+        self.original_response = original_response
+
+    @discord.ui.button(label="🎲 Reroll Response", style=discord.ButtonStyle.secondary)
+    async def reroll(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer()
+            async with interaction.channel.typing():
+                # Process message again for new response
+                new_response = await self.cog.process_message(self.message)
+                if new_response:
+                    # Format response with model name
+                    prefixed_response = f"[{self.cog.name}] {new_response}"
+                    
+                    # Edit the original response
+                    await interaction.message.edit(content=prefixed_response, view=self)
+                    
+                    # Add emotion reaction
+                    emotion = analyze_emotion(new_response)
+                    if emotion:
+                        await interaction.message.add_reaction(emotion)
+                else:
+                    await interaction.followup.send("Failed to generate a new response. Please try again.", ephemeral=True)
+        except Exception as e:
+            logging.error(f"Error in reroll button: {str(e)}")
+            await interaction.followup.send("An error occurred while generating a new response.", ephemeral=True)
+
 class BaseCog(commands.Cog):
     def __init__(self, bot, name, nickname, trigger_words, model, provider="openrouter", prompt_file=None, supports_vision=False):
         self.bot = bot
@@ -196,13 +227,22 @@ class BaseCog(commands.Cog):
             # Format response with model name
             prefixed_response = f"[{self.name}] {response_text}"
             
+            # Create reroll view
+            view = RerollView(self, message, response_text)
+            
             # Send reply in chunks if too long
             if len(prefixed_response) > 2000:
                 chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                for chunk in chunks:
-                    await message.reply(chunk)
+                sent_messages = []
+                for i, chunk in enumerate(chunks):
+                    # Only add view to last chunk
+                    if i == len(chunks) - 1:
+                        sent_message = await message.reply(chunk, view=view)
+                    else:
+                        sent_message = await message.reply(chunk)
+                    sent_messages.append(sent_message)
             else:
-                await message.reply(prefixed_response)
+                sent_message = await message.reply(prefixed_response, view=view)
 
             # Add reaction based on emotion analysis
             try:
