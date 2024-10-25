@@ -11,7 +11,14 @@ import json
 from datetime import datetime, timedelta
 
 # Configure logging
-logging.basicConfig(level=config.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=config.LOG_LEVEL, 
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('bot.log')
+    ]
+)
 
 # Set up bot
 TOKEN = config.DISCORD_TOKEN
@@ -151,6 +158,7 @@ async def load_context_settings():
 async def setup_cogs():
     """Load all cogs"""
     global loaded_cogs
+    loaded_cogs = []  # Reset loaded cogs list
 
     # Load context settings
     await load_context_settings()
@@ -162,7 +170,7 @@ async def setup_cogs():
             await bot.load_extension(f'cogs.{cog}')
             logging.info(f"Loaded core cog: {cog}")
         except Exception as e:
-            logging.error(f"Failed to load core cog {cog}: {str(e)}")
+            logging.error(f"Failed to load core cog {cog}: {str(e)}", exc_info=True)
 
     # Then load the Llama 11B cog for vision capabilities
     try:
@@ -179,7 +187,7 @@ async def setup_cogs():
         else:
             logging.warning("Llama 11B cog not found in loaded cogs - vision processing may be unavailable")
     except Exception as e:
-        logging.error(f"Failed to load Llama 11B cog: {str(e)}")
+        logging.error(f"Failed to load Llama 11B cog: {str(e)}", exc_info=True)
         logging.warning("Vision processing capabilities will be unavailable")
 
     # Then load all other cogs
@@ -187,15 +195,28 @@ async def setup_cogs():
     for filename in os.listdir(cogs_dir):
         if filename.endswith('_cog.py') and filename not in ['base_cog.py', 'llama32_11b_cog.py'] + [f"{cog}.py" for cog in core_cogs]:
             try:
-                await bot.load_extension(f'cogs.{filename[:-3]}')
-                cog_name = filename[:-3].replace('_', ' ').title()
-                logging.info(f"Loaded cog: {cog_name}")
-                # Track loaded cogs for random selection
-                if cog := bot.get_cog(cog_name):
+                module_name = filename[:-3]  # Remove .py
+                await bot.load_extension(f'cogs.{module_name}')
+                
+                # Get the actual cog instance
+                cog_name = module_name.replace('_', ' ').title()
+                cog = None
+                
+                # Try to find the cog by its qualified_name or name attribute
+                for loaded_cog in bot.cogs.values():
+                    if (hasattr(loaded_cog, 'qualified_name') and loaded_cog.qualified_name == cog_name) or \
+                       (hasattr(loaded_cog, 'name') and loaded_cog.name == cog_name):
+                        cog = loaded_cog
+                        break
+                
+                if cog:
                     loaded_cogs.append(cog)
-                    logging.debug(f"Added {cog_name} to loaded_cogs list")
+                    logging.info(f"Loaded cog: {getattr(cog, 'name', cog_name)}")
+                    logging.debug(f"Added {getattr(cog, 'name', cog_name)} to loaded_cogs list")
+                else:
+                    logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
-                logging.error(f"Failed to load cog {filename}: {str(e)}")
+                logging.error(f"Failed to load cog {filename}: {str(e)}", exc_info=True)
 
     logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
     for cog in loaded_cogs:
@@ -248,6 +269,9 @@ async def on_ready():
     start_time = datetime.utcnow()
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
     
+    # Set initial "Booting..." status
+    await bot.change_presence(activity=discord.Game(name="Booting..."))
+    
     # Load history for all channels
     for guild in bot.guilds:
         for channel in guild.text_channels:
@@ -266,7 +290,7 @@ async def on_ready():
         rotate_status.start()
         logging.info("Started status rotation task")
 
-    # Set initial status
+    # Set initial uptime status after loading
     await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
 
 @bot.event
@@ -288,9 +312,6 @@ async def on_message(message):
     window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
     if len(message_history[channel_id]) > window_size:
         message_history[channel_id] = message_history[channel_id][-window_size:]
-
-    # Process commands first to handle help and context management
-    await bot.process_commands(message)
 
     # Debug logging for message content and attachments
     logging.debug(f"Received message in channel {channel_id}: {message.content}")
@@ -323,23 +344,32 @@ async def on_message(message):
 
     has_keyword = "splintertree" in msg_content
 
-    # Check for specific model triggers first
-    specific_model_triggered = False
+    # Process commands first to handle help and context management
+    await bot.process_commands(message)
+
+    # Then check for specific model triggers
+    specific_trigger = False
     for cog in bot.cogs.values():
         if hasattr(cog, 'trigger_words'):
             if any(word in msg_content for word in cog.trigger_words):
                 logging.debug(f"Specific model {cog.name} triggered")
-                await cog.on_message(message)
-                specific_model_triggered = True
-                break
+                try:
+                    await cog.on_message(message)
+                    specific_trigger = True
+                    break
+                except Exception as e:
+                    logging.error(f"Error in cog {cog.name} message handling: {str(e)}", exc_info=True)
 
-    # If no specific model was triggered, use random cog for mentions/keywords
-    if not specific_model_triggered and (is_pinged or has_keyword):
+    # If no specific trigger, use random cog for mentions/keywords
+    if not specific_trigger and (is_pinged or has_keyword):
         logging.info(f"Bot triggered by {'mention' if is_pinged else 'keyword'} from {message.author.display_name}")
         cog = await get_random_cog()
         if cog:
             logging.debug(f"Using random cog {cog.name} to handle message")
-            await cog.on_message(message)
+            try:
+                await cog.on_message(message)
+            except Exception as e:
+                logging.error(f"Error in random cog {cog.name} message handling: {str(e)}", exc_info=True)
         else:
             logging.warning("No cog available to handle message")
             await message.channel.send("Sorry, no models are currently available to handle your request.")
@@ -355,7 +385,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.MissingPermissions):
         await ctx.reply("❌ You don't have permission to use this command.")
     else:
-        logging.error(f"Command error: {str(error)}")
+        logging.error(f"Command error: {str(error)}", exc_info=True)
         await ctx.reply("❌ An error occurred while executing the command.")
 
 # Run bot

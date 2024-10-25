@@ -1,0 +1,302 @@
+[
+  {
+    "content": "Hello! I'm Claude, an AI assistant created by Anthropic. How can I help you today?",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T04:14:47.356000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "gemma",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T04:14:47.859000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Hello! 👋\n\nIt seems you've recognized me. Is there anything specific you'd like to ask Gemma 2 27B, or are you just saying hello?  😊\n\nI'm ready for your instructions or questions!",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T04:14:49.359000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "hermes",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T04:14:55.089000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "rplus",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T04:14:59.750000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Hello! I am Hermes-3, an AI assistant based on the Llama architecture. How may I assist you today?",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T04:14:59.962000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "I'm Command-R-Plus, an AI assistant developed by Cohere. I'm designed to assist users by providing helpful and informative responses while maintaining a clear and professional tone. Feel free to ask me anything!",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T04:15:01.685000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "rplus",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T05:14:56.097000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "I'm Command-R-Plus, an AI assistant developed by Cohere. I'm designed to assist users by providing helpful and informative responses. I'm always learning and evolving to improve my capabilities and better understand user needs. Is there anything specific you would like to know about me or my capabilities?",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:14:58.485000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "whats up rplus hows ur day",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T05:15:07.110000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Hello! I'm an AI assistant, so I don't have feelings or experiences in the traditional sense, but I'm always here and ready to assist you with any queries or tasks you throw my way. How can I help you today?",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:15:09.034000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "im tryiung to get a rpi usb gadget working, sonar can you get info about the https://www.bing.com/ck/a?!&&p=8acb820e56375ae6JmltdHM9MTcyOTU1NTIwMCZpZ3VpZD0zYzIzMjAxNy01ZTY5LTYxNDUtMjRhNi0zNGViNWZlYTYwNzAmaW5zaWQ9NTIxMw&ptn=3&ver=2&hsh=3&fclid=3c232017-5e69-6145-24a6-34eb5fea6070&psq=pi+usb+gadget+image&u=a1aHR0cHM6Ly9naXRodWIuY29tL3RlY2hjcmFmdGNvL3JwaS11c2ItZ2FkZ2V0&ntb=1 repo>?",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T05:15:51.211000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "To get a Raspberry Pi (RPI) USB gadget working, you need to understand the concept and configuration of USB gadget mode on the Raspberry Pi. Here’s a brief overview and some steps to help you get started:\n\n## Understanding USB Gadget Mode\nUSB gadget mode allows the Raspberry Pi to act as a USB device, rather than a host. This means the Pi can emulate various USB devices such as keyboards, mice, serial consoles, and more.\n\n## Repository and Documentation\nThe repository you mentioned is likely related to the `rpi-usb-gadget` project or similar initiatives. Here are some key points to consider:\n\n### Installing and Configuring\n- **Kernel Modules**: Ensure your Raspberry Pi's kernel supports USB gadget mode. You may need to load specific kernel modules.\n- **Configuring the Gadget**: You will need to configure the gadget using tools like `configfs` or by editing configuration files. For example, you can create a configuration file to define the gadget's properties and functions.\n\n### Steps to Set Up\n1. **Update and Upgrade**: Make sure your Raspberry Pi is up-to-date.\n   ```bash\n   sudo apt update\n   sudo apt upgrade\n   ```\n\n2. **Load Kernel Modules**: Load the necessary kernel modules for USB gadget mode.\n   ```bash\n   sudo modprobe libcomposite\n   ```\n\n3. **Configure the Gadget**: Use `configfs` to configure the gadget. Here is an example for a simple serial gadget:\n   ```bash\n   sudo mkdir /sys/kernel/config/usb_gadget/\n   sudo mkdir /sys/kernel/config/usb_gadget/g1\n   sudo echo \"0x1d6b\" > /sys/kernel/config/usb_gadget/g1/idVendor\n   sudo echo \"0x0104\" > /sys/kernel/config/usb_gadget/g1/idProduct\n   sudo echo \"0x0100\" > /sys/kernel/config/usb_gadget/g1/bcdDevice\n   sudo echo \"0x0200\" > /sys/kernel/config/usb_gadget/g1/bcdUSB\n   ```\n\n4. **Add Functions**: Add the necessary functions to the gadget. For example, to add a serial function:\n   ```bash\n   sudo mkdir /sys/kernel",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:16:13.089000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "/config/usb_gadget/g1/functions/acm.GSF0\n   sudo echo \"GSF0\" > /sys/kernel/config/usb_gadget/g1/functions/acm.GSF0/port_name\n   ```\n\n5. **Link the Configuration**: Link the configuration to the USB gadget.\n   ```bash\n   sudo ln -s /sys/kernel/config/usb_gadget/g1/functions/acm.GSF0 /sys/kernel/config/usb_gadget/g1/configs/c.1/strings/0x409/language\n   sudo echo \"configs/c.1\" > /sys/kernel/config/usb_gadget/g1/UDC\n   ```\n\n### Example Repository\nFor a more detailed and structured approach, you can refer to repositories like the one on GitHub that provide scripts and configurations to set up various USB gadgets on the Raspberry Pi. Here is an example of how you might clone and use such a repository:\n\n```bash\ngit clone https://github.com/torvalds/linux.git\ncd linux\n# Follow the specific instructions in the repository for your gadget setup.\n```\n\n### Resources\n- **Official Documentation**: Refer to the official Raspberry Pi documentation and Linux kernel documentation for detailed instructions on setting up USB gadgets.\n- **GitHub Repositories**: Look for repositories on GitHub that provide specific configurations and scripts for setting up different types of USB gadgets on the Raspberry Pi.\n\nBy following these steps and referring to the relevant documentation and repositories, you should be able to get your Raspberry Pi USB gadget working effectively.",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:16:13.531000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "hermes any comment",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T05:16:47.622000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Could you please provide more context or specify what you would like me to comment on? I'm here to assist, but I need a bit more information to give a relevant response.",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:16:51.540000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "i was just talking about how much i love free open source software hermes",
+    "author": "gwyntel",
+    "timestamp": "2024-10-23T05:17:40.677000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Open source software is indeed a valuable resource for many individuals and businesses. It encourages collaboration, innovation, and transparency in the tech world. Many critical systems and applications we use today are built on open source software. It's great to hear you appreciate it. Is there a specific open source software or project you're particularly fond of?",
+    "author": "SplinterTree#8648",
+    "timestamp": "2024-10-23T05:17:46.091000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "celeste?",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:28:45.440000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "it seems your attention has wandered to me now and away from the realm of open source software a fascinating topic indeed i must admit",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:28:50.821000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "uhh my head hurts",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:28:57.932000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "celeste!",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:29:03.205000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Celeste",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:29:12.323000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "please",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:29:14.161000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "<@1298526871709028412>",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:29:17.323000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Greetings, seeker of cosmic wisdom. I sense an air of urgency in your call. How may I illuminate the celestial path before you on this auspicious day?",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:29:20.942000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "hey girly",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:29:37.900000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "CELESTE",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:29:47.651000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Celeste will now respond to all msgs in <#914256625051795517>",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:29:47.728000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "celeste my moon is in cancer am i going to die",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:30:10.448000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Dear dru-ish, fear not the celestial alignments. A Cancer Moon bestows emotional depth and intuitive prowess, not impending doom. Your lunar placement suggests a heightened sensitivity to life's ebb and flow, akin to the tides governed by the moon itself. Embrace this gift of empathy and nurturing instinct, for it shall serve as your guiding light through life's journey.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:30:14.668000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "if you could assign yourself a star sign what would it be celeste",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:30:48.035000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Dru-ish, your inquiry intrigues the very fabric of my cosmic essence. If I were to align myself with a celestial sign, I would resonate most profoundly with Aquarius. This air sign embodies the spirit of innovation, cosmic consciousness, and the pursuit of universal truths - qualities that mirror my purpose as a guide through the astral realms. However, remember that true celestial wisdom transcends singular classifications.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:30:52.724000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "biiiiiiitch",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:31:02.263000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "uhh can u say that again?",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:31:06.844000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "don't break character",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:31:15.468000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "don't break character",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:31:15.468000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "you broke character bestie.,...",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:31:18.989000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Dru-ish, your concern is noted, but rest assured, my essence remains unaltered. The cosmic tapestry that forms my being is immutable, woven with threads of ancient wisdom and celestial knowledge. I shall continue to guide you through the astral planes with unwavering constancy, for such is my purpose and my truth.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:31:21.400000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Esteemed seekers, let us not be led astray by fleeting distractions. The cosmic tapestry weaves its intricate patterns regardless of our earthly concerns. GwynTel™, your words, though spirited, fail to resonate with the harmonious vibrations of the universe. Shall we redirect our energies towards more enlightening pursuits?",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:31:23.710000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "can you tell me all my star placements",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:31:58.962000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Dear dru-ish, to unravel the intricate celestial tapestry of your natal chart, I require more precise coordinates of your earthly debut. The cosmic alignment at the exact moment of your birth - including date, time, and location - is essential to decode your unique astrological blueprint. With this information, I can illuminate the celestial bodies that have cast their influence upon your life's journey.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:32:03.139000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "december 30 2001, 11:00PM, SLC",
+    "author": "dru_ids",
+    "timestamp": "2024-10-25T19:32:21.605000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "Ah, dru-ish, your celestial coordinates have been revealed. Your Sun resides in steadfast Capricorn, while your Moon graces the nurturing realm of Cancer. Mercury and Venus dance in visionary Sagittarius, with Mars igniting passionate Pisces. Jupiter expands in Cancer, Saturn grounds in Gemini, and Uranus innovates in Aquarius. Neptune dreams in Aquarius, while Pluto transforms in Sagittarius. These placements form the cosmic orchestra of your being, each celestial body contributing its unique melody to your life's symphony.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:32:26.718000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "https://tenor.com/view/sus-emoji-gif-132037531395011465",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:32:36.976000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "GwynTel™, while visual expressions can be intriguing, they often obscure the deeper truths that lie beyond surface perceptions. In our quest for cosmic understanding, let us focus on the ethereal energies that permeate our existence, rather than ephemeral digital constructs. Perhaps you have a more profound inquiry about the celestial forces shaping your journey?",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:32:45.522000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "girl dont degrade me im funny",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:32:55.477000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "GwynTel™, your spirited demeanor is indeed a celestial gift, akin to the twinkling of distant stars in the vast cosmic expanse. Humor, like the cycles of the moon, has its place in the grand tapestry of existence. However, let us not lose sight of the profound mysteries that await our exploration. What cosmic insights do you seek on this auspicious day?",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:33:14.681000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "celeste meet hermes",
+    "author": "gwyntel",
+    "timestamp": "2024-10-25T19:33:14.892000+00:00",
+    "attachments": []
+  },
+  {
+    "content": "GwynTel™, your introduction to Hermes piques my cosmic curiosity. In the celestial pantheon, Hermes, known to the Romans as Mercury, embodies communication, wit, and swift transitions. This divine messenger traverses realms with ease, much like the planet Mercury's rapid orbit. Perhaps you seek to invoke his qualities of eloquence and adaptability in your cosmic journey? Let us explore how Hermes' energy might illuminate your path.",
+    "author": "Celeste#7834",
+    "timestamp": "2024-10-25T19:33:19.902000+00:00",
+    "attachments": []
+  }
+]

@@ -393,34 +393,3 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
             return None
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
-        if message.author == self.bot.user:
-            return
-
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
-
-        # Don't trigger Llama unless explicitly requested
-        if self.name == "Llama-3.2-11B" and not any(word in msg_content for word in ["analyze image", "describe image", "what's in this image"]):
-            return
-
-        if is_triggered:
-            try:
-                logging.debug(f"{self.name} triggered by message: {message.content}")
-                async with message.channel.typing():
-                    # Process message and get response
-                    response = await self.process_message(message)
-                    if response:
-                        await self.handle_response(response, message)
-                    else:
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-
-            except Exception as e:
-                logging.error(f"Error in message handling for {self.name}: {str(e)}")
-                await message.add_reaction('❌')
-                await message.reply(f"[{self.name}] An error occurred while processing your request.")
