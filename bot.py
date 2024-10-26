@@ -223,7 +223,7 @@ async def setup_cogs():
 
 async def get_random_cog():
     """Get a random cog from loaded cogs, excluding Llama 11B"""
-    cogs = [cog for cog in loaded_cogs if not isinstance(cog, importlib.import_module('cogs.llama32_11b_cog').Llama3211bCog)]
+    cogs = [cog for cog in loaded_cogs if getattr(cog, 'random_enabled', True)]
     if cogs:
         selected = random.choice(cogs)
         logging.debug(f"Selected random cog: {selected.name}")
@@ -322,20 +322,20 @@ async def on_message(message):
     # Check for bot mention or keywords
     msg_content = message.content.lower()
     is_pinged = False
-    
+
     # Check for direct mention
     for mention in message.mentions:
         if mention.id == bot.user.id:
             is_pinged = True
             break
-            
+
     # Check for role mention
     if message.role_mentions:
         for role in message.role_mentions:
             if bot.user in role.members:
                 is_pinged = True
                 break
-                
+
     # Check for @everyone and @here if bot can see them
     if (message.mention_everyone and 
         message.channel.permissions_for(message.guild.me).read_messages):
