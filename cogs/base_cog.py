@@ -134,15 +134,36 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
-            if dynamic_prompt:
-                logging.debug(f"[{self.name}] Added dynamic prompt: {dynamic_prompt}")
+            # Get conversation history
+            channel_id = str(message.channel.id)
+            if hasattr(self.bot, 'message_history') and channel_id in self.bot.message_history:
+                history = self.bot.message_history[channel_id]
+                # Convert history messages to API format
+                for hist_msg in history[:-1]:  # Exclude current message
+                    if hist_msg.author == self.bot.user:
+                        # Extract the actual response content by removing the model name prefix
+                        content = hist_msg.content
+                        if content.startswith('[') and ']' in content:
+                            content = content[content.index(']')+1:].strip()
+                        messages.append({
+                            "role": "assistant",
+                            "content": content
+                        })
+                    else:
+                        messages.append({
+                            "role": "user",
+                            "content": hist_msg.content
+                        })
 
-            # Add user message
+            # Add current user message
             messages.append({
                 "role": "user",
                 "content": message.content
             })
+
+            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
+            if dynamic_prompt:
+                logging.debug(f"[{self.name}] Added dynamic prompt: {dynamic_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature(self.name)
