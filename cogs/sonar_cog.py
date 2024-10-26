@@ -41,13 +41,9 @@ class SonarCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Sonar] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response, emotion = await self.handle_message(message)
                     
                     if response:
-                        logging.debug(f"[Sonar] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
                         # Log interaction
                         try:
                             log_interaction(
@@ -61,23 +57,9 @@ class SonarCog(BaseCog):
                             logging.debug(f"[Sonar] Logged interaction for user {message.author.id}")
                         except Exception as e:
                             logging.error(f"[Sonar] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[Sonar] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
 
                 except Exception as e:
                     logging.error(f"[Sonar] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
 
 async def setup(bot):
     # Register the cog with its proper name
