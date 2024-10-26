@@ -328,20 +328,20 @@ async def on_message(message):
     # Check for bot mention or keywords
     msg_content = message.content.lower()
     is_pinged = False
-    
+
     # Check for direct mention
     for mention in message.mentions:
         if mention.id == bot.user.id:
             is_pinged = True
             break
-            
+
     # Check for role mention
     if message.role_mentions:
         for role in message.role_mentions:
             if bot.user in role.members:
                 is_pinged = True
                 break
-                
+
     # Check for @everyone and @here if bot can see them
     if (message.mention_everyone and 
         message.channel.permissions_for(message.guild.me).read_messages):
@@ -356,7 +356,7 @@ async def on_message(message):
             if any(word in msg_content for word in cog.trigger_words):
                 logging.debug(f"Specific model {cog.name} triggered")
                 try:
-                    await cog.on_message(message)
+                    await cog.handle_message(message)
                     specific_trigger = True
                     break
                 except Exception as e:
@@ -369,7 +369,7 @@ async def on_message(message):
         if cog:
             logging.debug(f"Using random cog {cog.name} to handle message")
             try:
-                await cog.on_message(message)
+                await cog.handle_message(message)
             except Exception as e:
                 logging.error(f"Error in random cog {cog.name} message handling: {str(e)}", exc_info=True)
         else:
