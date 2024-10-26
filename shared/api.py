@@ -46,15 +46,7 @@ class API:
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stream=False,
-            metadata={
-                "source": "discord_bot", 
-                "api": "openrouter", 
-                "project": "eos",
-                "HTTP-Referer": "https://github.com/splintertree",
-                "X-Title": "SplinterTree Discord Bot"
-            },
-            store=True
+            stream=False
         )
 
     def _make_openpipe_request(self, messages, model, temperature=0.7):
@@ -70,9 +62,7 @@ class API:
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stream=False,
-            metadata={"source": "discord_bot", "api": "openpipe", "project": "eos"},
-            store=True
+            stream=False
         )
 
     @backoff.on_exception(

@@ -2,22 +2,10 @@ import discord
 from discord.ext import commands
 import json
 import logging
-import random
 import os
-import base64
-import aiohttp
-import io
-import re
 from datetime import datetime
 from shared.utils import analyze_emotion
-from shared.api import api, time
-from config import (
-    DEFAULT_CONTEXT_WINDOW, 
-    MAX_CONTEXT_WINDOW, 
-    CONTEXT_WINDOWS,
-    SHARED_HISTORY_ENABLED,
-    IMAGE_PROCESSING_ENABLED
-)
+from shared.api import api
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
