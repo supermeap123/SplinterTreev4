@@ -25,8 +25,7 @@ class MinistralCog(BaseCog):
         """Override qualified_name to match the expected cog name"""
         return "Ministral"
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
+    async def handle_message(self, message):
         """Handle incoming messages"""
         if message.author == self.bot.user:
             return
