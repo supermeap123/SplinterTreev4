@@ -10,8 +10,8 @@ class MinistralCog(BaseCog):
             bot=bot,
             name="Ministral",
             nickname="Ministral",
-            trigger_words=['ministral'],
-            model="mistralai/mistral-7b-instruct:free",
+            trigger_words=['ministral', "mistral", "8b"],
+            model="mistralai/ministral-8b",
             provider="openrouter",
             prompt_file="ministral",
             supports_vision=False
