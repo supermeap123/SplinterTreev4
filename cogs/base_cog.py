@@ -6,6 +6,9 @@ import os
 from datetime import datetime
 from shared.utils import analyze_emotion
 from shared.api import api
+import re
+import base64
+import aiohttp
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -261,25 +264,44 @@ class BaseCog(commands.Cog):
     async def handle_response(self, response_text, message, referenced_message=None):
         """Handle the response formatting and sending"""
         try:
+            # Check if the original message is spoilered
+            is_spoilered = False
+            if message.flags & discord.MessageFlags.spoiler:
+                is_spoilered = True
+
             # Format response with model name
             prefixed_response = f"[{self.name}] {response_text}"
             
             # Create reroll view
             view = RerollView(self, message, response_text)
             
-            # Send reply in chunks if too long
-            if len(prefixed_response) > 2000:
-                chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                sent_messages = []
-                for i, chunk in enumerate(chunks):
-                    # Only add view to last chunk
-                    if i == len(chunks) - 1:
-                        sent_message = await message.reply(chunk, view=view)
+            if is_spoilered:
+                # Send response as a DM to the user
+                try:
+                    user = message.author
+                    dm_channel = await user.create_dm()
+                    if len(prefixed_response) > 2000:
+                        chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
+                        for chunk in chunks:
+                            await dm_channel.send(chunk, view=view)
                     else:
-                        sent_message = await message.reply(chunk)
-                    sent_messages.append(sent_message)
+                        await dm_channel.send(prefixed_response, view=view)
+                except discord.Forbidden:
+                    logging.warning(f"Cannot send DM to user {message.author}.")
             else:
-                sent_message = await message.reply(prefixed_response, view=view)
+                # Send reply in chunks if too long
+                if len(prefixed_response) > 2000:
+                    chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
+                    sent_messages = []
+                    for i, chunk in enumerate(chunks):
+                        # Only add view to last chunk
+                        if i == len(chunks) - 1:
+                            sent_message = await message.reply(chunk, view=view)
+                        else:
+                            sent_message = await message.reply(chunk)
+                        sent_messages.append(sent_message)
+                else:
+                    sent_message = await message.reply(prefixed_response, view=view)
 
             # Add reaction based on emotion analysis
             try:
@@ -289,7 +311,7 @@ class BaseCog(commands.Cog):
             except Exception as e:
                 logging.error(f"Error adding emotion reaction: {str(e)}")
             
-            return emotion
+            return
 
         except Exception as e:
             logging.error(f"Error sending response for {self.name}: {str(e)}")
@@ -297,7 +319,7 @@ class BaseCog(commands.Cog):
                 await message.add_reaction('❌')
             except:
                 pass
-            return None
+            return
 
     async def process_message(self, message, context=None):
         """Process message and generate response"""
@@ -348,11 +370,12 @@ class BaseCog(commands.Cog):
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 response = response_data['choices'][0]['message']['content']
                 logging.debug(f"[{self.name}] Got response: {response}")
-                return response
+                await self.handle_response(response, message)
+                return
 
             logging.warning(f"[{self.name}] No valid response received from API")
-            return None
+            return
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
-            return None
+            return
