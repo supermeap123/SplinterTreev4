@@ -11,7 +11,7 @@ class Claude1_1Cog(BaseCog):
             name="Claude-1.1",
             nickname="Claude",
             trigger_words=['claude 1', 'claude1', 'claude 1.1'],
-            model="anthropic/claude-1.1",
+            model="anthropic/claude-instant-1.1",  # Fixed model name
             provider="openrouter",
             prompt_file="claude1_1",
             supports_vision=False
