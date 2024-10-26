@@ -3,7 +3,6 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion
-from config import OPENPIPE_API_KEYS
 
 class SydneyCog(BaseCog):
     def __init__(self, bot):
@@ -12,16 +11,13 @@ class SydneyCog(BaseCog):
             name="Sydney",
             nickname="Sydney", 
             trigger_words=['sydney', 'syd', 'mama kunty'],
-            model="Sydney-Court",
+            model="Sydney-Court",  # Correct model name
             provider="openpipe",
             prompt_file="sydney",
             supports_vision=False
         )
-        # Use the EOS API key for Sydney
-        self.api_key = OPENPIPE_API_KEYS['eos']
         logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Sydney] Using provider: {self.provider}")
-        logging.debug(f"[Sydney] Using API key: {self.api_key[:8]}...")
         logging.debug(f"[Sydney] Vision support: {self.supports_vision}")
 
     @property
@@ -45,7 +41,7 @@ class SydneyCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Sydney] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[Sydney] Got response: {response[:100]}...")
