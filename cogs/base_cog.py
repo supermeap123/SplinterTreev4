@@ -77,6 +77,113 @@ class BaseCog(commands.Cog):
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
 
+    def get_dynamic_prompt(self, ctx):
+        """Get dynamic prompt for channel/server if one exists"""
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        channel_id = str(ctx.channel.id)
+
+        prompts_file = "dynamic_prompts.json"
+        if not os.path.exists(prompts_file):
+            return None
+
+        try:
+            with open(prompts_file, "r") as f:
+                dynamic_prompts = json.load(f)
+
+            if guild_id in dynamic_prompts and channel_id in dynamic_prompts[guild_id]:
+                return dynamic_prompts[guild_id][channel_id]
+            elif channel_id in dynamic_prompts:
+                return dynamic_prompts[channel_id]
+            else:
+                return None
+        except Exception as e:
+            logging.error(f"Error getting dynamic prompt: {str(e)}")
+            return None
+
+    def get_temperature(self, agent_name):
+        """Get temperature for agent if one exists"""
+        temperatures_file = "temperatures.json"
+        if not os.path.exists(temperatures_file):
+            return 0.5  # default temperature
+
+        try:
+            with open(temperatures_file, "r") as f:
+                temperatures = json.load(f)
+            return temperatures.get(agent_name, 0.5)
+        except Exception as e:
+            logging.error(f"Error getting temperature: {str(e)}")
+            return 0.5
+
+    async def process_message(self, message, context=None):
+        """Process message and generate response"""
+        try:
+            # Format system prompt with dynamic variables
+            formatted_prompt = self.raw_prompt.format(
+                discord_user=message.author.display_name,
+                discord_user_id=message.author.id,
+                local_time=datetime.now().strftime("%I:%M %p"),
+                local_timezone="UTC",  # Could be made dynamic if needed
+                server_name=message.guild.name if message.guild else "Direct Message",
+                channel_name=message.channel.name if hasattr(message.channel, 'name') else "DM"
+            )
+
+            # Get dynamic prompt if one exists
+            dynamic_prompt = self.get_dynamic_prompt(message)
+            if dynamic_prompt:
+                # Add dynamic prompt as a second system message
+                messages = [
+                    {"role": "system", "content": formatted_prompt},
+                    {"role": "system", "content": dynamic_prompt}
+                ]
+            else:
+                messages = [
+                    {"role": "system", "content": formatted_prompt}
+                ]
+
+            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
+            if dynamic_prompt:
+                logging.debug(f"[{self.name}] Added dynamic prompt: {dynamic_prompt}")
+
+            # Get channel history
+            context_limit = CONTEXT_WINDOWS.get(str(message.channel.id), DEFAULT_CONTEXT_WINDOW)
+            context_limit = min(context_limit, MAX_CONTEXT_WINDOW)
+            context = await self.get_channel_history(message, limit=context_limit)
+            logging.debug(f"[{self.name}] Using channel history as context: {len(context)} messages")
+
+            # Add context messages
+            if context:
+                messages.extend(context)
+                logging.debug(f"[{self.name}] Added context: {len(context)} messages")
+
+            # Add user message
+            messages.append({
+                "role": "user",
+                "content": message.content,
+                "name": self.sanitize_username(message.author.display_name)
+            })
+
+            # Get temperature for this agent
+            temperature = self.get_temperature(self.name)
+            logging.debug(f"[{self.name}] Using temperature: {temperature}")
+
+            # Call API based on provider with temperature
+            if self.provider == "openrouter":
+                response_data = await api.call_openrouter(messages, self.model, temperature=temperature)
+            else:  # openpipe
+                response_data = await api.call_openpipe(messages, self.model, temperature=temperature)
+
+            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
+                response = response_data['choices'][0]['message']['content']
+                logging.debug(f"[{self.name}] Got response: {response}")
+                return response
+
+            logging.warning(f"[{self.name}] No valid response received from API")
+            return None
+
+        except Exception as e:
+            logging.error(f"Error processing message for {self.name}: {str(e)}")
+            return None
+
     def sanitize_username(self, username: str) -> str:
         """Sanitize username to match the pattern ^[a-zA-Z0-9_-]+$"""
         # Replace spaces and special characters with underscores
@@ -126,113 +233,6 @@ class BaseCog(commands.Cog):
             logging.error(f"Error getting channel history: {str(e)}")
             return []
 
-    async def update_context_window(self, channel_id: str, size: int):
-        """Update the context window size for a specific channel"""
-        try:
-            if size < 1 or size > MAX_CONTEXT_WINDOW:
-                logging.warning(f"[{self.name}] Invalid context window size: {size}. Using default.")
-                size = DEFAULT_CONTEXT_WINDOW
-            CONTEXT_WINDOWS[channel_id] = size
-            logging.info(f"[{self.name}] Updated context window size for channel {channel_id} to {size}")
-        except Exception as e:
-            logging.error(f"Error updating context window size: {str(e)}")
-
-    async def encode_image_to_base64(self, image_url):
-        """Convert image to base64 encoding"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(image_url) as response:
-                    if response.status == 200:
-                        image_data = await response.read()
-                        return base64.b64encode(image_data).decode('utf-8')
-            return None
-        except Exception as e:
-            logging.error(f"Error encoding image: {str(e)}")
-            return None
-
-    async def find_recent_image(self, message, limit=10):
-        """Find the most recent image in the channel"""
-        try:
-            async for msg in message.channel.history(limit=limit):
-                # Check message attachments
-                for attachment in msg.attachments:
-                    if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                        logging.debug(f"[{self.name}] Found recent image in attachment: {attachment.filename}")
-                        return attachment, msg
-
-                # Check message embeds
-                for embed in msg.embeds:
-                    if embed.image:
-                        logging.debug(f"[{self.name}] Found recent image in embed")
-                        return embed.image, msg
-            return None, None
-        except Exception as e:
-            logging.error(f"Error finding recent image: {str(e)}")
-            return None, None
-
-    async def get_image_description(self, image_url):
-        """Get image description using Llama vision model"""
-        if not IMAGE_PROCESSING_ENABLED:
-            logging.debug(f"[{self.name}] Image processing is disabled. Skipping image description.")
-            return None
-
-        try:
-            # Find Llama cog
-            llama_cog = None
-            for cog in self.bot.cogs.values():
-                if isinstance(cog, commands.Cog) and getattr(cog, 'name', '') == 'Llama-3.2-11B':
-                    llama_cog = cog
-                    break
-
-            if not llama_cog:
-                logging.error("Llama vision cog not found")
-                return None
-
-            logging.debug(f"[{self.name}] Found Llama cog for image description")
-
-            # Encode image
-            image_b64 = await self.encode_image_to_base64(image_url)
-            if not image_b64:
-                return None
-
-            # Build messages for vision analysis
-            messages = [
-                {"role": "system", "content": llama_cog.raw_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Please provide a detailed description of this image that can be used as context for other AI models."},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_b64}",
-                                "detail": "high"
-                            }
-                        }
-                    ]
-                }
-            ]
-
-            logging.debug(f"[{self.name}] Sending image analysis request to Llama")
-
-            # Call API
-            response_data = await api.call_openrouter(messages, llama_cog.model)
-            
-            if response_data and isinstance(response_data, dict) and 'choices' in response_data:
-                choices = response_data.get('choices', [])
-                if choices and len(choices) > 0:
-                    first_choice = choices[0]
-                    if isinstance(first_choice, dict) and 'message' in first_choice:
-                        description = first_choice['message'].get('content')
-                        logging.debug(f"[{self.name}] Got image description: {description}")
-                        return description
-
-            return None
-
-        except Exception as e:
-            logging.error(f"Error getting image description: {str(e)}")
-            return None
-
     async def handle_response(self, response_text, message, referenced_message=None):
         """Handle the response formatting and sending"""
         try:
@@ -272,139 +272,4 @@ class BaseCog(commands.Cog):
                 await message.add_reaction('❌')
             except:
                 pass
-            return None
-
-    async def process_message(self, message, context=None):
-        """Process message and generate response"""
-        try:
-            # Format system prompt with dynamic variables
-            formatted_prompt = self.raw_prompt.format(
-                discord_user=message.author.display_name,
-                discord_user_id=message.author.id,
-                local_time=datetime.now().strftime("%I:%M %p"),
-                local_timezone="UTC",  # Could be made dynamic if needed
-                server_name=message.guild.name if message.guild else "Direct Message",
-                channel_name=message.channel.name if hasattr(message.channel, 'name') else "DM"
-            )
-            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
-
-            # Build messages array with system prompt
-            messages = [
-                {"role": "system", "content": formatted_prompt}
-            ]
-
-            # Get channel history
-            context_limit = CONTEXT_WINDOWS.get(str(message.channel.id), DEFAULT_CONTEXT_WINDOW)
-            context_limit = min(context_limit, MAX_CONTEXT_WINDOW)
-            context = await self.get_channel_history(message, limit=context_limit)
-            logging.debug(f"[{self.name}] Using channel history as context: {len(context)} messages")
-
-            # Add context messages
-            if context:
-                messages.extend(context)
-                logging.debug(f"[{self.name}] Added context: {len(context)} messages")
-
-            # Check for images
-            has_image = False
-            image_description = None
-            
-            # First check direct attachments
-            for attachment in message.attachments:
-                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                    has_image = True
-                    logging.debug(f"[{self.name}] Found image attachment: {attachment.filename}")
-                    if not self.supports_vision:
-                        # Get image description for non-vision models
-                        image_description = await self.get_image_description(attachment.url)
-                        logging.debug(f"[{self.name}] Got image description: {image_description}")
-                    break
-
-            # If no direct attachments, look for recent images
-            if not has_image:
-                recent_image, source_message = await self.find_recent_image(message)
-                if recent_image:
-                    has_image = True
-                    logging.debug(f"[{self.name}] Found recent image")
-                    if not self.supports_vision:
-                        # Get image description for non-vision models
-                        image_description = await self.get_image_description(recent_image.url)
-                        logging.debug(f"[{self.name}] Got image description: {image_description}")
-
-            # Add message content
-            if has_image:
-                if self.supports_vision:
-                    # For vision models, add image directly
-                    image_content = []
-                    if message.attachments:
-                        for attachment in message.attachments:
-                            if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                                image_b64 = await self.encode_image_to_base64(attachment.url)
-                                if image_b64:
-                                    image_content.append({
-                                        "type": "image_url",
-                                        "image_url": {
-                                            "url": f"data:image/jpeg;base64,{image_b64}",
-                                            "detail": "high"
-                                        }
-                                    })
-                    else:
-                        recent_image, _ = await self.find_recent_image(message)
-                        if recent_image:
-                            image_b64 = await self.encode_image_to_base64(recent_image.url)
-                            if image_b64:
-                                image_content.append({
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{image_b64}",
-                                        "detail": "high"
-                                    }
-                                })
-
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": message.content},
-                            *image_content
-                        ],
-                        "name": self.sanitize_username(message.author.display_name)
-                    })
-                    logging.debug(f"[{self.name}] Added vision content to message")
-                else:
-                    # For non-vision models, add image description as context
-                    if image_description:
-                        messages.append({
-                            "role": "system",
-                            "content": f"The following message refers to an image. Here is a detailed description of the image: {image_description}"
-                        })
-                        logging.debug(f"[{self.name}] Added image description to context")
-                    messages.append({
-                        "role": "user",
-                        "content": message.content,
-                        "name": self.sanitize_username(message.author.display_name)
-                    })
-            else:
-                messages.append({
-                    "role": "user",
-                    "content": message.content,
-                    "name": self.sanitize_username(message.author.display_name)
-                })
-
-            logging.debug(f"[{self.name}] Final messages array: {messages}")
-
-            # Call API based on provider
-            if self.provider == "openrouter":
-                response_data = await api.call_openrouter(messages, self.model)
-            else:  # openpipe
-                response_data = await api.call_openpipe(messages, self.model)
-
-            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
-                response = response_data['choices'][0]['message']['content']
-                logging.debug(f"[{self.name}] Got response: {response}")
-                return response
-
-            logging.warning(f"[{self.name}] No valid response received from API")
-            return None
-
-        except Exception as e:
-            logging.error(f"Error processing message for {self.name}: {str(e)}")
             return None
