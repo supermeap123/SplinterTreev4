@@ -57,14 +57,15 @@ class API:
             store=True
         )
 
-    def _make_openpipe_request(self, messages, model):
+    def _make_openpipe_request(self, messages, model, temperature=0.7):
         """Synchronous OpenPipe API call"""
         logging.debug(f"[API] Making OpenPipe request to model: {model}")
+        logging.debug(f"[API] Using temperature: {temperature}")
         
         return self.client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=0.7,
+            temperature=temperature,
             max_tokens=1000,
             top_p=1,
             frequency_penalty=0,
@@ -80,7 +81,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str):
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None):
         try:
             # Check if any message contains vision content
             has_vision_content = any(
@@ -92,7 +93,10 @@ class API:
 
             # Configure parameters based on content type
             max_tokens = 2000 if has_vision_content else 1000
-            temperature = 0.5 if has_vision_content else 0.7
+            
+            # Use provided temperature or default based on content type
+            if temperature is None:
+                temperature = 0.5 if has_vision_content else 0.7
             logging.debug(f"[API] Using max_tokens={max_tokens}, temperature={temperature}")
 
             # Handle model name prefixing
@@ -162,7 +166,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str):
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7):
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -175,7 +179,7 @@ class API:
                 loop = asyncio.get_event_loop()
                 completion = await loop.run_in_executor(
                     None,
-                    partial(self._make_openpipe_request, messages, model)
+                    partial(self._make_openpipe_request, messages, model, temperature)
                 )
 
                 # Convert OpenAI response to dict format
