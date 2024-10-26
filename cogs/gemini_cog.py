@@ -14,7 +14,7 @@ class GeminiCog(BaseCog):
             model="google/gemini-flash-1.5",
             provider="openrouter",
             prompt_file="gemini",
-            supports_vision=False
+            supports_vision=True
         )
         logging.debug(f"[Gemini-Flash] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Gemini-Flash] Using provider: {self.provider}")
