@@ -130,7 +130,7 @@ class BaseCog(commands.Cog):
                     # Extract model name from bot responses
                     content = msg.content
                     if content.startswith('['):
-                        content = content[content.find(']')+1:].strip()
+                        content = content[msg.content.find(']')+1:].strip()
                     history.append({
                         "role": "assistant",
                         "content": content
@@ -307,7 +307,7 @@ class BaseCog(commands.Cog):
                 discord_user=message.author.display_name,
                 discord_user_id=message.author.id,
                 local_time=datetime.now().strftime("%I:%M %p"),
-                local_timezone="UTC",  # Could be made dynamic if needed
+                local_timezone="PST",  # Updated timezone
                 server_name=message.guild.name if message.guild else "Direct Message",
                 channel_name=message.channel.name if hasattr(message.channel, 'name') else "DM"
             )
