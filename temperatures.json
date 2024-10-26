@@ -1,6 +1,8 @@
 {
     "Claude-1.1": 0.7,
     "Claude-2": 0.8,
+    "Claude-3-Opus": 0.9,
+    "Claude-3.5-Sonnet": 0.85,
     "Grok": 0.9,
     "Gemini": 0.6,
     "Liquid": 0.7
