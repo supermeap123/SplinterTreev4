@@ -264,10 +264,8 @@ class BaseCog(commands.Cog):
     async def handle_response(self, response_text, message, referenced_message=None):
         """Handle the response formatting and sending"""
         try:
-            # Check if the original message is spoilered
-            is_spoilered = False
-            if message.flags & discord.MessageFlags.spoiler:
-                is_spoilered = True
+            # Check if message content is spoilered using ||content|| format
+            is_spoilered = message.content.startswith('||') and message.content.endswith('||')
 
             # Format response with model name
             prefixed_response = f"[{self.name}] {response_text}"
@@ -311,7 +309,7 @@ class BaseCog(commands.Cog):
             except Exception as e:
                 logging.error(f"Error adding emotion reaction: {str(e)}")
             
-            return
+            return emotion
 
         except Exception as e:
             logging.error(f"Error sending response for {self.name}: {str(e)}")
@@ -319,7 +317,7 @@ class BaseCog(commands.Cog):
                 await message.add_reaction('❌')
             except:
                 pass
-            return
+            return None
 
     async def process_message(self, message, context=None):
         """Process message and generate response"""
@@ -371,11 +369,11 @@ class BaseCog(commands.Cog):
                 response = response_data['choices'][0]['message']['content']
                 logging.debug(f"[{self.name}] Got response: {response}")
                 await self.handle_response(response, message)
-                return
+                return response
 
             logging.warning(f"[{self.name}] No valid response received from API")
-            return
+            return None
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
-            return
+            return None
