@@ -349,32 +349,29 @@ async def on_message(message):
 
     has_keyword = "splintertree" in msg_content
 
-    # First check for specific model triggers
-    specific_trigger = False
-    for cog in bot.cogs.values():
-        if hasattr(cog, 'trigger_words'):
-            if any(word in msg_content for word in cog.trigger_words):
-                logging.debug(f"Specific model {cog.name} triggered")
-                try:
-                    await cog.handle_message(message)
+    # Only handle mentions/keywords if no specific trigger was found
+    if (is_pinged or has_keyword):
+        # Check if any specific model was triggered
+        specific_trigger = False
+        for cog in bot.cogs.values():
+            if hasattr(cog, 'trigger_words'):
+                if any(word in msg_content for word in cog.trigger_words):
                     specific_trigger = True
                     break
-                except Exception as e:
-                    logging.error(f"Error in cog {cog.name} message handling: {str(e)}", exc_info=True)
 
-    # If no specific trigger, use random cog for mentions/keywords
-    if not specific_trigger and (is_pinged or has_keyword):
-        logging.info(f"Bot triggered by {'mention' if is_pinged else 'keyword'} from {message.author.display_name}")
-        cog = await get_random_cog()
-        if cog:
-            logging.debug(f"Using random cog {cog.name} to handle message")
-            try:
-                await cog.handle_message(message)
-            except Exception as e:
-                logging.error(f"Error in random cog {cog.name} message handling: {str(e)}", exc_info=True)
-        else:
-            logging.warning("No cog available to handle message")
-            await message.channel.send("Sorry, no models are currently available to handle your request.")
+        # Only use random cog if no specific model was triggered
+        if not specific_trigger:
+            logging.info(f"Bot triggered by {'mention' if is_pinged else 'keyword'} from {message.author.display_name}")
+            cog = await get_random_cog()
+            if cog:
+                logging.debug(f"Using random cog {cog.name} to handle message")
+                try:
+                    await cog.handle_message(message)
+                except Exception as e:
+                    logging.error(f"Error in random cog {cog.name} message handling: {str(e)}", exc_info=True)
+            else:
+                logging.warning("No cog available to handle message")
+                await message.channel.send("Sorry, no models are currently available to handle your request.")
 
     # Save history for this channel
     await save_channel_history(channel_id)
