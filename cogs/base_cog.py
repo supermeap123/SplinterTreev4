@@ -103,8 +103,8 @@ class BaseCog(commands.Cog):
                 else:
                     history.append({
                         "role": "user",
-                        "content": msg.content,
-                        "name": msg.author.display_name
+                        "content": msg.content
+                        # Removed the 'name' field to avoid API error
                     })
 
             history.reverse()  # Ensure the messages are in chronological order
@@ -147,7 +147,7 @@ class BaseCog(commands.Cog):
                     if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
                         logging.debug(f"[{self.name}] Found recent image in attachment: {attachment.filename}")
                         return attachment, msg
-                
+
                 # Check message embeds
                 for embed in msg.embeds:
                     if embed.image:
