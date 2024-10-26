@@ -41,7 +41,7 @@ class LiquidCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Liquid] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[Liquid] Got response: {response[:100]}...")

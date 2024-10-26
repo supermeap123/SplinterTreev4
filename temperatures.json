@@ -2,5 +2,6 @@
     "Claude-1.1": 0.7,
     "Claude-2": 0.8,
     "Grok": 0.9,
-    "Gemini": 0.6
+    "Gemini": 0.6,
+    "Liquid": 0.7
 }
