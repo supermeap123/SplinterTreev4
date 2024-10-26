@@ -139,9 +139,11 @@ class HelpCog(commands.Cog):
 
         embeds.append(special_embed)
 
-        # Send all embeds
-        for embed in embeds:
-            await ctx.send(embed=embed)
+        try:
+            for embed in embeds:
+                await ctx.author.send(embed=embed)
+        except discord.Forbidden:
+            await ctx.send("I couldn't send you a DM. Please check your DM settings and try again.")
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
