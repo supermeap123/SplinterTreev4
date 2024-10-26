@@ -41,7 +41,7 @@ class Claude1_1Cog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Claude-1.1] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[Claude-1.1] Got response: {response[:100]}...")

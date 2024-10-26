@@ -41,13 +41,15 @@ class Claude2Cog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Claude-2] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message, handle_response=True)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[Claude-2] Got response: {response[:100]}...")
+                        # Handle the response and get emotion
+                        emotion = await self.handle_response(response, message)
+                        
                         # Log interaction
                         try:
-                            emotion = analyze_emotion(response)
                             log_interaction(
                                 user_id=message.author.id,
                                 guild_id=message.guild.id if message.guild else None,
