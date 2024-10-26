@@ -11,7 +11,7 @@ class Claude2Cog(BaseCog):
             name="Claude-2",
             nickname="Claude",
             trigger_words=['claude 2', 'claude2'],
-            model="anthropic/claude-2:free",
+            model="anthropic/claude-2",
             provider="openrouter",
             prompt_file="claude2",
             supports_vision=False

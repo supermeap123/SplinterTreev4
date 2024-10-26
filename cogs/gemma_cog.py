@@ -10,7 +10,7 @@ class GemmaCog(BaseCog):
             bot=bot,
             name="Gemma",
             nickname="Gemma",
-            trigger_words=['gemma'],
+            trigger_words=['gemma', 'google'],
             model="google/gemma-2-27b-it",
             provider="openrouter",
             prompt_file="gemma",

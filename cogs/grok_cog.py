@@ -10,7 +10,7 @@ class GrokCog(BaseCog):
             bot=bot,
             name="Grok-Beta",
             nickname="Grok",
-            trigger_words=['grok', 'grok beta'],
+            trigger_words=['grok', 'grok beta', 'xai'],
             model="x-ai/grok-beta",
             provider="openrouter",
             prompt_file="grok",

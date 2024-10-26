@@ -11,7 +11,7 @@ class SydneyCog(BaseCog):
             bot=bot,
             name="Sydney",
             nickname="Sydney", 
-            trigger_words=['sydney', 'sydney ai'],
+            trigger_words=['sydney', 'syd', 'mama kunty'],
             model="Sydney-Court",
             provider="openpipe",
             prompt_file="sydney",

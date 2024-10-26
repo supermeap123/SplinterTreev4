@@ -10,8 +10,8 @@ class GeminiCog(BaseCog):
             bot=bot,
             name="Gemini-Flash",
             nickname="Gemini",
-            trigger_words=['gemini', 'flash'],
-            model="google/gemini-pro:free",
+            trigger_words=['gemini', 'flash', "gemini flash 1.5", "gimmi"],
+            model="google/gemini-flash-1.5",
             provider="openrouter",
             prompt_file="gemini",
             supports_vision=False
