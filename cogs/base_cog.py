@@ -77,6 +77,16 @@ class BaseCog(commands.Cog):
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
 
+    def sanitize_username(self, username: str) -> str:
+        """Sanitize username to match the pattern ^[a-zA-Z0-9_-]+$"""
+        # Replace spaces and special characters with underscores
+        sanitized = re.sub(r'[^\w\-]', '_', username)
+        # Remove consecutive underscores
+        sanitized = re.sub(r'_+', '_', sanitized)
+        # Remove leading/trailing underscores
+        sanitized = sanitized.strip('_')
+        return sanitized
+
     async def get_channel_history(self, message, limit: int = None) -> list:
         """Get message history for a channel directly from Discord"""
         try:
@@ -101,10 +111,12 @@ class BaseCog(commands.Cog):
                         "content": content
                     })
                 else:
+                    # Add sanitized username for user messages
+                    sanitized_name = self.sanitize_username(msg.author.display_name)
                     history.append({
                         "role": "user",
-                        "content": msg.content
-                        # Removed the 'name' field to avoid API error
+                        "content": msg.content,
+                        "name": sanitized_name
                     })
 
             history.reverse()  # Ensure the messages are in chronological order
@@ -353,7 +365,8 @@ class BaseCog(commands.Cog):
                         "content": [
                             {"type": "text", "text": message.content},
                             *image_content
-                        ]
+                        ],
+                        "name": self.sanitize_username(message.author.display_name)
                     })
                     logging.debug(f"[{self.name}] Added vision content to message")
                 else:
@@ -366,12 +379,14 @@ class BaseCog(commands.Cog):
                         logging.debug(f"[{self.name}] Added image description to context")
                     messages.append({
                         "role": "user",
-                        "content": message.content
+                        "content": message.content,
+                        "name": self.sanitize_username(message.author.display_name)
                     })
             else:
                 messages.append({
                     "role": "user",
-                    "content": message.content
+                    "content": message.content,
+                    "name": self.sanitize_username(message.author.display_name)
                 })
 
             logging.debug(f"[{self.name}] Final messages array: {messages}")

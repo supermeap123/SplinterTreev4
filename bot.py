@@ -200,18 +200,24 @@ async def setup_cogs():
                 
                 # Get the actual cog instance
                 cog = None
-                cog_class_name = module_name.split('_')[0].capitalize()
+                # Convert module_name to expected class name format
+                parts = module_name.split('_')
+                if len(parts) > 1:
+                    # Handle special cases like claude1_1_cog -> Claude1_1Cog
+                    class_name = ''.join(part.capitalize() for part in parts[:-1]) + 'Cog'
+                else:
+                    class_name = parts[0].capitalize() + 'Cog'
                 
                 # Try to find the cog by checking each loaded cog
                 for loaded_cog in bot.cogs.values():
-                    if (hasattr(loaded_cog, 'name') and loaded_cog.name == cog_class_name):
+                    if (hasattr(loaded_cog, 'name') and loaded_cog.name == class_name.replace('Cog', '')):
                         cog = loaded_cog
                         break
                 
                 if cog:
                     loaded_cogs.append(cog)
-                    logging.info(f"Loaded cog: {getattr(cog, 'name', cog_class_name)}")
-                    logging.debug(f"Added {getattr(cog, 'name', cog_class_name)} to loaded_cogs list")
+                    logging.info(f"Loaded cog: {getattr(cog, 'name', class_name)}")
+                    logging.debug(f"Added {getattr(cog, 'name', class_name)} to loaded_cogs list")
                 else:
                     logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
@@ -322,20 +328,20 @@ async def on_message(message):
     # Check for bot mention or keywords
     msg_content = message.content.lower()
     is_pinged = False
-
+    
     # Check for direct mention
     for mention in message.mentions:
         if mention.id == bot.user.id:
             is_pinged = True
             break
-
+            
     # Check for role mention
     if message.role_mentions:
         for role in message.role_mentions:
             if bot.user in role.members:
                 is_pinged = True
                 break
-
+                
     # Check for @everyone and @here if bot can see them
     if (message.mention_everyone and 
         message.channel.permissions_for(message.guild.me).read_messages):
@@ -343,10 +349,7 @@ async def on_message(message):
 
     has_keyword = "splintertree" in msg_content
 
-    # Process commands first to handle help and context management
-    await bot.process_commands(message)
-
-    # Then check for specific model triggers
+    # First check for specific model triggers
     specific_trigger = False
     for cog in bot.cogs.values():
         if hasattr(cog, 'trigger_words'):
