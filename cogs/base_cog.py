@@ -23,7 +23,7 @@ class RerollView(discord.ui.View):
             await interaction.response.defer()
             async with interaction.channel.typing():
                 # Process message again for new response
-                new_response = await self.cog.process_message(self.message)
+                new_response = await self.cog.process_message(self.message, handle_response=True)
                 if new_response:
                     # Format response with model name
                     prefixed_response = f"[{self.cog.name}] {new_response}"
@@ -319,7 +319,7 @@ class BaseCog(commands.Cog):
                 pass
             return None
 
-    async def process_message(self, message, context=None):
+    async def process_message(self, message, context=None, handle_response=True):
         """Process message and generate response"""
         try:
             # Format system prompt with dynamic variables
@@ -368,7 +368,10 @@ class BaseCog(commands.Cog):
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 response = response_data['choices'][0]['message']['content']
                 logging.debug(f"[{self.name}] Got response: {response}")
-                await self.handle_response(response, message)
+                
+                # Only handle response if flag is True
+                if handle_response:
+                    await self.handle_response(response, message)
                 return response
 
             logging.warning(f"[{self.name}] No valid response received from API")
