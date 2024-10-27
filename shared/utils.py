@@ -11,22 +11,28 @@ def analyze_emotion(text):
     """
     # Define emotion keywords and corresponding Discord emojis
     emotions = {
-        'joy': (['happy', 'joy', 'excited', 'great', 'wonderful', 'love', 'glad'], '😄'),
-        'sadness': (['sad', 'sorry', 'unfortunate', 'regret', 'miss', 'lonely'], '😢'),
-        'anger': (['angry', 'mad', 'furious', 'annoyed', 'frustrated'], '😠'),
-        'fear': (['afraid', 'scared', 'worried', 'nervous', 'anxious'], '😨'),
-        'surprise': (['wow', 'amazing', 'incredible', 'unexpected', 'surprised'], '😮'),
-        'neutral': (['ok', 'fine', 'alright', 'neutral'], '👍')
+        'joy': (['happy', 'joy', 'excited', 'great', 'wonderful', 'love', 'glad', 'yay', 'woohoo', 'hehe', 'haha'], '😄'),
+        'sadness': (['sad', 'sorry', 'unfortunate', 'regret', 'miss', 'lonely', 'sigh', 'alas', 'ugh'], '😢'),
+        'anger': (['angry', 'mad', 'furious', 'annoyed', 'frustrated', 'grr', 'ugh', 'argh'], '😠'),
+        'fear': (['afraid', 'scared', 'worried', 'nervous', 'anxious', 'eek', 'yikes'], '😨'),
+        'surprise': (['wow', 'amazing', 'incredible', 'unexpected', 'surprised', 'whoa', 'woah', 'omg', 'oh my'], '😮'),
+        'neutral': (['ok', 'fine', 'alright', 'neutral', 'hmm', 'mhm'], '👍'),
+        'expressive': (['*', 'moans', 'sighs', 'gasps', 'squeals', 'giggles', 'laughs', 'cries', 'screams'], '🎭')
     }
     
     # Convert text to lowercase for matching
     text = text.lower()
     
+    # First check for expressive actions (usually in asterisks or explicit actions)
+    if any(action in text for action in emotions['expressive'][0]):
+        return emotions['expressive'][1]
+    
     # Count emotion keywords
-    emotion_counts = {emotion: 0 for emotion in emotions}
+    emotion_counts = {emotion: 0 for emotion in emotions if emotion != 'expressive'}
     for emotion, (keywords, _) in emotions.items():
-        for keyword in keywords:
-            emotion_counts[emotion] += text.count(keyword)
+        if emotion != 'expressive':  # Skip expressive since we handled it above
+            for keyword in keywords:
+                emotion_counts[emotion] += text.count(keyword)
     
     # Find emotion with highest count
     max_emotion = max(emotion_counts.items(), key=lambda x: x[1])
