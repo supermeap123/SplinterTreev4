@@ -41,12 +41,10 @@ class OpenChatCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[OpenChat] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response, emotion = await self.handle_message(message)
                     
                     if response:
                         logging.debug(f"[OpenChat] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
                         
                         # Log interaction
                         try:
