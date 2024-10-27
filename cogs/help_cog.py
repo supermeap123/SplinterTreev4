@@ -25,8 +25,12 @@ class HelpCog(commands.Cog):
         await ctx.send(embed=embed, view=view)
 
     @commands.command(name='splintertree_help')
-    async def splintertree_help(self, ctx):
-        """Comprehensive help command showing all features, models, and commands"""
+    async def splintertree_help(self, ctx, mode: str = "channel"):
+        """Comprehensive help command showing all features, models, and commands
+        
+        Parameters:
+        mode: str - Where to send help info: "channel" or "dm" (default: channel)
+        """
         embeds = []
 
         # Main Features Embed
@@ -38,7 +42,7 @@ class HelpCog(commands.Cog):
 
         # Add Administrative Commands section
         admin_commands = """
-        `!splintertree_help` - Show this help message
+        `!splintertree_help [channel|dm]` - Show this help message (in channel or DM)
         `!toggle_shared_history` - Toggle shared message history for the channel
         `!toggle_image_processing` - Toggle image processing for the channel
         `!contact` - Show contact information
@@ -140,10 +144,20 @@ class HelpCog(commands.Cog):
         embeds.append(special_embed)
 
         try:
-            for embed in embeds:
-                await ctx.author.send(embed=embed)
-        except discord.Forbidden:
-            await ctx.send("I couldn't send you a DM. Please check your DM settings and try again.")
+            if mode.lower() == "dm":
+                # Try to send via DM
+                try:
+                    for embed in embeds:
+                        await ctx.author.send(embed=embed)
+                    await ctx.message.add_reaction('✅')
+                except discord.Forbidden:
+                    await ctx.send("❌ I couldn't send you a DM. Please check your DM settings or use `!splintertree_help channel` instead.")
+            else:
+                # Send in channel
+                for embed in embeds:
+                    await ctx.send(embed=embed)
+        except Exception as e:
+            await ctx.send(f"❌ An error occurred while sending help information: {str(e)}")
 
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))
