@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
+from shared.utils import log_interaction, analyze_emotion
 
 class O1MiniCog(BaseCog):
     def __init__(self, bot):
@@ -40,12 +41,24 @@ class O1MiniCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[O1-Mini] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
+                    response, emotion = await self.handle_message(message)
                     
                     if response:
                         logging.debug(f"[O1-Mini] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        await self.handle_response(response, message)
+                        
+                        # Log interaction
+                        try:
+                            log_interaction(
+                                user_id=message.author.id,
+                                guild_id=message.guild.id if message.guild else None,
+                                persona_name=self.name,
+                                user_message=message.content,
+                                assistant_reply=response,
+                                emotion=emotion
+                            )
+                            logging.debug(f"[O1-Mini] Logged interaction for user {message.author.id}")
+                        except Exception as e:
+                            logging.error(f"[O1-Mini] Failed to log interaction: {str(e)}", exc_info=True)
                     else:
                         logging.error("[O1-Mini] No response received from API")
                         await message.add_reaction('❌')
