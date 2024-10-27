@@ -98,6 +98,9 @@ def get_last_interaction():
 
 async def save_channel_history(channel_id: str):
     """Save message history for a specific channel"""
+    if not config.SHARED_HISTORY_ENABLED:
+        return
+        
     try:
         history_file = get_history_file(channel_id)
         messages = message_history.get(channel_id, [])
@@ -124,6 +127,9 @@ async def save_channel_history(channel_id: str):
 
 async def load_channel_history(channel_id: str, channel):
     """Load message history for a specific channel"""
+    if not config.SHARED_HISTORY_ENABLED:
+        return
+        
     try:
         # Get actual message history from Discord
         window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
@@ -307,23 +313,27 @@ async def on_message(message):
     last_interaction['user'] = message.author.display_name
     last_interaction['time'] = datetime.utcnow()
 
-    # Add message to history
-    channel_id = str(message.channel.id)
-    if channel_id not in message_history:
-        message_history[channel_id] = []
-    message_history[channel_id].append(message)
+    # Add message to history if shared history is enabled
+    if config.SHARED_HISTORY_ENABLED:
+        channel_id = str(message.channel.id)
+        if channel_id not in message_history:
+            message_history[channel_id] = []
+        message_history[channel_id].append(message)
 
-    # Trim history if needed
-    window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
-    if len(message_history[channel_id]) > window_size:
-        message_history[channel_id] = message_history[channel_id][-window_size:]
+        # Trim history if needed
+        window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
+        if len(message_history[channel_id]) > window_size:
+            message_history[channel_id] = message_history[channel_id][-window_size:]
 
     # Debug logging for message content and attachments
-    logging.debug(f"Received message in channel {channel_id}: {message.content}")
+    logging.debug(f"Received message in channel {message.channel.id}: {message.content}")
     if message.attachments:
         logging.debug(f"Message has {len(message.attachments)} attachments")
         for att in message.attachments:
             logging.debug(f"Attachment: {att.filename} ({att.content_type})")
+
+    # Process commands first
+    await bot.process_commands(message)
 
     # Check for bot mention or keywords
     msg_content = message.content.lower()
@@ -373,8 +383,9 @@ async def on_message(message):
                 logging.warning("No cog available to handle message")
                 await message.channel.send("Sorry, no models are currently available to handle your request.")
 
-    # Save history for this channel
-    await save_channel_history(channel_id)
+    # Save history if shared history is enabled
+    if config.SHARED_HISTORY_ENABLED:
+        await save_channel_history(str(message.channel.id))
 
 @bot.event
 async def on_command_error(ctx, error):
