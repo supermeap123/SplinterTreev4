@@ -137,8 +137,15 @@ async def load_channel_history(channel_id: str, channel):
         
         message_history[channel_id] = []
         try:
-            async for msg in channel.history(limit=window_size):
-                message_history[channel_id].append(msg)
+            # For DM channels, we need to handle them differently
+            if isinstance(channel, discord.DMChannel):
+                async for msg in channel.history(limit=window_size):
+                    # Only include messages between the bot and this user
+                    if msg.author == bot.user or msg.author == channel.recipient:
+                        message_history[channel_id].append(msg)
+            else:
+                async for msg in channel.history(limit=window_size):
+                    message_history[channel_id].append(msg)
             
             message_history[channel_id].reverse()  # Reverse to maintain chronological order
             logging.info(f"Loaded {len(message_history[channel_id])} messages for channel {channel_id}")
@@ -318,7 +325,13 @@ async def on_message(message):
         channel_id = str(message.channel.id)
         if channel_id not in message_history:
             message_history[channel_id] = []
-        message_history[channel_id].append(message)
+            
+        # For DM channels, only include messages between the bot and this user
+        if isinstance(message.channel, discord.DMChannel):
+            if message.author == bot.user or message.author == message.channel.recipient:
+                message_history[channel_id].append(message)
+        else:
+            message_history[channel_id].append(message)
 
         # Trim history if needed
         window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
