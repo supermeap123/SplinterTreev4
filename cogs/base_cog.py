@@ -4,6 +4,8 @@ import json
 import logging
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
+import time
 from shared.utils import analyze_emotion
 from shared.api import api
 import re
@@ -111,12 +113,16 @@ class BaseCog(commands.Cog):
     async def generate_response(self, message):
         """Generate a response without handling it"""
         try:
+            # Get local timezone
+            local_tz = datetime.now().astimezone().tzinfo
+            current_time = datetime.now(local_tz)
+            
             # Format system prompt with dynamic variables
             formatted_prompt = self.raw_prompt.format(
                 discord_user=message.author.display_name,
                 discord_user_id=message.author.id,
-                local_time=datetime.now().strftime("%I:%M %p"),
-                local_timezone="PST",
+                local_time=current_time.strftime("%I:%M %p"),
+                local_timezone=str(local_tz),
                 server_name=message.guild.name if message.guild else "Direct Message",
                 channel_name=message.channel.name if hasattr(message.channel, 'name') else "DM"
             )
