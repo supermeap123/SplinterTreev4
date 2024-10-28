@@ -313,31 +313,26 @@ class BaseCog(commands.Cog):
                 try:
                     user = message.author
                     dm_channel = await user.create_dm()
-                    if len(prefixed_response) > 2000:
-                        chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                        for i, chunk in enumerate(chunks):
-                            if i == len(chunks) - 1:
+                    async with message.channel.typing():
+                        if len(prefixed_response) > 2000:
+                            chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
+                            for chunk in chunks:
                                 sent_message = await dm_channel.send(chunk, view=view)
-                            else:
-                                await dm_channel.send(chunk)
-                    else:
-                        sent_message = await dm_channel.send(prefixed_response, view=view)
+                        else:
+                            sent_message = await dm_channel.send(prefixed_response, view=view)
                 except discord.Forbidden:
                     logging.warning(f"Cannot send DM to user {message.author}")
                     can_dm = False
             
             if not is_spoilered or (is_spoilered and not can_dm and can_send):
                 # Send reply in chunks if too long
-                if len(prefixed_response) > 2000:
-                    chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                    for i, chunk in enumerate(chunks):
-                        # Only add view to last chunk
-                        if i == len(chunks) - 1:
+                async with message.channel.typing():
+                    if len(prefixed_response) > 2000:
+                        chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
+                        for chunk in chunks:
                             sent_message = await message.reply(chunk, view=view)
-                        else:
-                            await message.reply(chunk)
-                else:
-                    sent_message = await message.reply(prefixed_response, view=view)
+                    else:
+                        sent_message = await message.reply(prefixed_response, view=view)
 
             # Log interaction
             try:
