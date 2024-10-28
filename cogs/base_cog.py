@@ -11,6 +11,7 @@ from shared.api import api
 import re
 import base64
 import aiohttp
+import tempfile
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -71,6 +72,119 @@ class BaseCog(commands.Cog):
         # Assign the raw prompt; substitution will occur in process_message
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
+
+    async def create_response_file(self, response_text: str, message_id: str) -> discord.File:
+        """Create a markdown file containing the response"""
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as temp_file:
+            temp_file.write(response_text)
+            temp_file_path = temp_file.name
+
+        # Create Discord File object
+        file = discord.File(
+            temp_file_path,
+            filename=f'model_response_{message_id}.md'
+        )
+        
+        # Schedule file deletion
+        async def delete_temp_file():
+            await asyncio.sleep(1)  # Wait a bit to ensure file is sent
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logging.error(f"Failed to delete temp file: {str(e)}")
+                
+        asyncio.create_task(delete_temp_file())
+        
+        return file
+
+    async def handle_response(self, response_text, message, referenced_message=None):
+        """Handle the response formatting and sending"""
+        try:
+            # Check permissions
+            permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+            can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+            can_dm = True  # Assume DMs are possible until proven otherwise
+
+            if not can_send and not can_dm:
+                logging.error(f"[{self.name}] No available method to send response")
+                return None
+
+            # Check if message content is spoilered using ||content|| format
+            is_spoilered = message.content.startswith('||') and message.content.endswith('||')
+
+            # Format response with model name
+            prefixed_response = f"[{self.name}] {response_text}"
+            
+            # Create reroll view
+            view = RerollView(self, message, response_text)
+            
+            sent_message = None
+            if is_spoilered:
+                # Send response as a DM to the user
+                try:
+                    user = message.author
+                    dm_channel = await user.create_dm()
+                    async with message.channel.typing():
+                        if len(prefixed_response) > 2000:
+                            # Create and send markdown file
+                            file = await self.create_response_file(prefixed_response, str(message.id))
+                            sent_message = await dm_channel.send(
+                                f"[{self.name}] Response was too long. Full response is in the attached file:",
+                                file=file,
+                                view=view
+                            )
+                        else:
+                            sent_message = await dm_channel.send(prefixed_response, view=view)
+                except discord.Forbidden:
+                    logging.warning(f"Cannot send DM to user {message.author}")
+                    can_dm = False
+            
+            if not is_spoilered or (is_spoilered and not can_dm and can_send):
+                async with message.channel.typing():
+                    if len(prefixed_response) > 2000:
+                        # Create and send markdown file
+                        file = await self.create_response_file(prefixed_response, str(message.id))
+                        sent_message = await message.reply(
+                            f"[{self.name}] Response was too long. Full response is in the attached file:",
+                            file=file,
+                            view=view
+                        )
+                    else:
+                        sent_message = await message.reply(prefixed_response, view=view)
+
+            # Log interaction
+            try:
+                log_interaction(
+                    user_id=message.author.id,
+                    guild_id=message.guild.id if message.guild else None,
+                    persona_name=self.name,
+                    user_message=message.content,
+                    assistant_reply=response_text,
+                    emotion=analyze_emotion(response_text)
+                )
+                logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+            except Exception as e:
+                logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
+
+            # Add reaction based on emotion analysis
+            try:
+                if permissions.add_reactions:
+                    emotion = analyze_emotion(response_text)
+                    if emotion:
+                        await message.add_reaction(emotion)
+            except Exception as e:
+                logging.error(f"Error adding emotion reaction: {str(e)}")
+            
+            return sent_message
+
+        except Exception as e:
+            logging.error(f"Error sending response for {self.name}: {str(e)}")
+            try:
+                if permissions.add_reactions:
+                    await message.add_reaction('❌')
+            except:
+                pass
+            return None
 
     async def handle_message(self, message):
         """Handle incoming messages - this is called by the bot's on_message event"""
@@ -284,86 +398,4 @@ class BaseCog(commands.Cog):
             return temperatures.get(agent_name)  # Return None if not found
         except Exception as e:
             logging.error(f"Error getting temperature: {str(e)}")
-            return None
-
-    async def handle_response(self, response_text, message, referenced_message=None):
-        """Handle the response formatting and sending"""
-        try:
-            # Check permissions
-            permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
-            can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
-            can_dm = True  # Assume DMs are possible until proven otherwise
-
-            if not can_send and not can_dm:
-                logging.error(f"[{self.name}] No available method to send response")
-                return None
-
-            # Check if message content is spoilered using ||content|| format
-            is_spoilered = message.content.startswith('||') and message.content.endswith('||')
-
-            # Format response with model name
-            prefixed_response = f"[{self.name}] {response_text}"
-            
-            # Create reroll view
-            view = RerollView(self, message, response_text)
-            
-            sent_message = None
-            if is_spoilered:
-                # Send response as a DM to the user
-                try:
-                    user = message.author
-                    dm_channel = await user.create_dm()
-                    async with message.channel.typing():
-                        if len(prefixed_response) > 2000:
-                            chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                            for chunk in chunks:
-                                sent_message = await dm_channel.send(chunk, view=view)
-                        else:
-                            sent_message = await dm_channel.send(prefixed_response, view=view)
-                except discord.Forbidden:
-                    logging.warning(f"Cannot send DM to user {message.author}")
-                    can_dm = False
-            
-            if not is_spoilered or (is_spoilered and not can_dm and can_send):
-                # Send reply in chunks if too long
-                async with message.channel.typing():
-                    if len(prefixed_response) > 2000:
-                        chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                        for chunk in chunks:
-                            sent_message = await message.reply(chunk, view=view)
-                    else:
-                        sent_message = await message.reply(prefixed_response, view=view)
-
-            # Log interaction
-            try:
-                log_interaction(
-                    user_id=message.author.id,
-                    guild_id=message.guild.id if message.guild else None,
-                    persona_name=self.name,
-                    user_message=message.content,
-                    assistant_reply=response_text,
-                    emotion=analyze_emotion(response_text)
-                )
-                logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
-            except Exception as e:
-                logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
-
-            # Add reaction based on emotion analysis
-            try:
-                if permissions.add_reactions:
-                    emotion = analyze_emotion(response_text)
-                    if emotion:
-                        await message.add_reaction(emotion)
-            except Exception as e:
-                logging.error(f"Error adding emotion reaction: {str(e)}")
-            
-            return sent_message
-
-        except Exception as e:
-            logging.error(f"Error sending response for {self.name}: {str(e)}")
-            try:
-                if permissions.add_reactions:
-                    await message.add_reaction('❌')
-            except:
-                pass
             return None
