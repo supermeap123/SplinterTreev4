@@ -27,7 +27,7 @@ class API:
         )
         
         # Initialize OpenPipe client
-        self.client = OpenAI(api_key=OPENPIPE_API_KEY)
+        self.client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
@@ -152,17 +152,14 @@ class API:
             try:
                 # Run API call
                 completion = self.client.chat.completions.create(
-                    model=f"openpipe:{model}",
+                    model=model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=1000,
                     top_p=1,
                     frequency_penalty=0,
                     presence_penalty=0,
-                    stream=False,
-                    headers={"op-log-request": "true"},
-                    store=True,
-                    metadata={"prompt_id": "unique_identifier"}
+                    stream=False
                 )
 
                 # Convert OpenAI response to dict format
