@@ -6,12 +6,11 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
-from shared.utils import analyze_emotion
+from shared.utils import analyze_emotion, get_message_history
 from shared.api import api
 import re
 import base64
 import aiohttp
-import tempfile
 import asyncio
 
 class RerollView(discord.ui.View):
@@ -161,7 +160,8 @@ class BaseCog(commands.Cog):
                     persona_name=self.name,
                     user_message=message.content,
                     assistant_reply=response_text,
-                    emotion=analyze_emotion(response_text)
+                    emotion=analyze_emotion(response_text),
+                    channel_id=str(message.channel.id)  # Add channel_id to logging
                 )
                 logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
             except Exception as e:
@@ -215,20 +215,6 @@ class BaseCog(commands.Cog):
                     # Send the response and add to history
                     sent_message = await self.handle_response(response, message)
                     if sent_message:
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=analyze_emotion(response)
-                            )
-                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
-
                         # Add the sent message to history
                         channel_id = str(message.channel.id)
                         if hasattr(self.bot, 'message_history'):
@@ -294,32 +280,10 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Get conversation history
+            # Get last 50 messages from database
             channel_id = str(message.channel.id)
-            if hasattr(self.bot, 'message_history') and channel_id in self.bot.message_history:
-                history = self.bot.message_history[channel_id]
-                logging.debug(f"[{self.name}] Processing history for channel {channel_id}, {len(history)} messages")
-                
-                # Convert history messages to API format
-                for hist_msg in history:
-                    if hist_msg.author == self.bot.user:
-                        # Extract the actual response content by removing the model name prefix
-                        content = hist_msg.content
-                        if content.startswith('[') and ']' in content:
-                            # Extract model name and content
-                            model_name = content[1:content.index(']')]
-                            content = content[content.index(']')+1:].strip()
-                            logging.debug(f"[{self.name}] Processing bot message from {model_name}: {content[:50]}...")
-                        messages.append({
-                            "role": "assistant",
-                            "content": content
-                        })
-                    else:
-                        logging.debug(f"[{self.name}] Processing user message: {hist_msg.content[:50]}...")
-                        messages.append({
-                            "role": "user",
-                            "content": hist_msg.content
-                        })
+            history_messages = get_message_history(channel_id, limit=50)
+            messages.extend(history_messages)
 
             # Process current message and any attachments
             user_message_content = []

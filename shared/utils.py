@@ -2,7 +2,7 @@ import json
 import logging
 import sqlite3
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 
 def analyze_emotion(text):
     """
@@ -39,6 +39,49 @@ def analyze_emotion(text):
     
     # Return corresponding emoji, default to neutral
     return emotions[max_emotion[0]][1] if max_emotion[1] > 0 else emotions['neutral'][1]
+
+def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
+    """
+    Fetch the last N messages from the database for a given channel
+    Returns list of messages in API format (role, content)
+    """
+    try:
+        db_path = 'databases/interaction_logs.db'
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Get last N messages ordered by timestamp
+            cursor.execute("""
+                SELECT content, is_assistant, persona_name
+                FROM messages 
+                WHERE channel_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+            """, (channel_id, limit))
+            
+            messages = []
+            for content, is_assistant, persona_name in cursor.fetchall():
+                if is_assistant:
+                    # Remove model name prefix if present
+                    if content.startswith('[') and ']' in content:
+                        content = content[content.index(']')+1:].strip()
+                    messages.append({
+                        "role": "assistant",
+                        "content": content
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": content
+                    })
+            
+            # Reverse to get chronological order
+            messages.reverse()
+            return messages
+            
+    except Exception as e:
+        logging.error(f"Failed to fetch message history: {str(e)}")
+        return []
 
 def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str, 
                    user_message: str, assistant_reply: str, emotion: Optional[str] = None,
