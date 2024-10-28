@@ -37,37 +37,40 @@ class SydneyCog(BaseCog):
 
         if is_triggered:
             logging.debug(f"[Sydney] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Process message and get response
-                    logging.debug(f"[Sydney] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
+            try:
+                # Process message and get response
+                logging.debug(f"[Sydney] Processing message with provider: {self.provider}, model: {self.model}")
+                response = await self.generate_response(message)
+                
+                if response:
+                    logging.debug(f"[Sydney] Got response: {response[:100]}...")
+                    # Handle the response and get emotion
+                    emotion = await self.handle_response(response, message)
                     
-                    if response:
-                        logging.debug(f"[Sydney] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=emotion
-                            )
-                            logging.debug(f"[Sydney] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[Sydney] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[Sydney] No response received from API")
+                    # Log interaction
+                    try:
+                        log_interaction(
+                            user_id=message.author.id,
+                            guild_id=message.guild.id if message.guild else None,
+                            persona_name=self.name,
+                            user_message=message.content,
+                            assistant_reply=response,
+                            emotion=emotion
+                        )
+                        logging.debug(f"[Sydney] Logged interaction for user {message.author.id}")
+                    except Exception as e:
+                        logging.error(f"[Sydney] Failed to log interaction: {str(e)}", exc_info=True)
+                else:
+                    logging.error("[Sydney] No response received from API")
+                    try:
                         await message.add_reaction('❌')
                         await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
+                    except discord.errors.Forbidden:
+                        logging.error(f"[Sydney] Missing permissions to send message or add reaction")
 
-                except Exception as e:
-                    logging.error(f"[Sydney] Error in message handling: {str(e)}", exc_info=True)
+            except Exception as e:
+                logging.error(f"[Sydney] Error in message handling: {str(e)}", exc_info=True)
+                try:
                     await message.add_reaction('❌')
                     error_msg = str(e)
                     if "insufficient_quota" in error_msg.lower():
@@ -78,6 +81,8 @@ class SydneyCog(BaseCog):
                         await message.reply("⏳ Rate limit exceeded. Please try again later.")
                     else:
                         await message.reply(f"[{self.name}] An error occurred while processing your request.")
+                except discord.errors.Forbidden:
+                    logging.error(f"[Sydney] Missing permissions to send error message")
 
 async def setup(bot):
     # Register the cog with its proper name
