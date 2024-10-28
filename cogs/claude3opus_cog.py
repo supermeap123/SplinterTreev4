@@ -8,22 +8,23 @@ class Claude3OpusCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Claude-3-Opus",
-            nickname="Opus",
-            trigger_words=['opus', 'claude 3', 'claude3', 'claude-3-opus', 'claude3opus'],
+            name="Claude-3 Opus",
+            nickname="Claude",
+            trigger_words=['claude 3', 'claude3', 'opus'],
             model="anthropic/claude-3-opus:beta",
             provider="openrouter",
             prompt_file="claude3opus",
             supports_vision=True
         )
-        logging.debug(f"[Claude-3-Opus] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Claude-3-Opus] Using provider: {self.provider}")
-        logging.debug(f"[Claude-3-Opus] Vision support: {self.supports_vision}")
+        self.context_cog = bot.get_cog('ContextCog')
+        logging.debug(f"[Claude-3 Opus] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Claude-3 Opus] Using provider: {self.provider}")
+        logging.debug(f"[Claude-3 Opus] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Claude-3-Opus"
+        return "Claude-3 Opus"
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -35,16 +36,28 @@ class Claude3OpusCog(BaseCog):
         msg_content = message.content.lower()
         is_triggered = any(word in msg_content for word in self.trigger_words)
 
+        # Add message to context before processing
+        if self.context_cog:
+            channel_id = str(message.channel.id)
+            guild_id = str(message.guild.id) if message.guild else None
+            user_id = str(message.author.id)
+            content = message.content
+            is_assistant = False
+            persona_name = self.name
+            emotion = None
+
+            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
+
         if is_triggered:
-            logging.debug(f"[Claude-3-Opus] Triggered by message: {message.content}")
+            logging.debug(f"[Claude-3 Opus] Triggered by message: {message.content}")
             async with message.channel.typing():
                 try:
                     # Process message and get response
-                    logging.debug(f"[Claude-3-Opus] Processing message with provider: {self.provider}, model: {self.model}")
+                    logging.debug(f"[Claude-3 Opus] Processing message with provider: {self.provider}, model: {self.model}")
                     response = await self.generate_response(message)
                     
                     if response:
-                        logging.debug(f"[Claude-3-Opus] Got response: {response[:100]}...")
+                        logging.debug(f"[Claude-3 Opus] Got response: {response[:100]}...")
                         # Handle the response and get emotion
                         emotion = await self.handle_response(response, message)
                         
@@ -58,16 +71,28 @@ class Claude3OpusCog(BaseCog):
                                 assistant_reply=response,
                                 emotion=emotion
                             )
-                            logging.debug(f"[Claude-3-Opus] Logged interaction for user {message.author.id}")
+                            logging.debug(f"[Claude-3 Opus] Logged interaction for user {message.author.id}")
+
+                            # Add bot's response to context
+                            if self.context_cog:
+                                await self.context_cog.add_message_to_context(
+                                    channel_id=str(message.channel.id),
+                                    guild_id=str(message.guild.id) if message.guild else None,
+                                    user_id=str(self.bot.user.id),
+                                    content=response,
+                                    is_assistant=True,
+                                    persona_name=self.name,
+                                    emotion=emotion
+                                )
                         except Exception as e:
-                            logging.error(f"[Claude-3-Opus] Failed to log interaction: {str(e)}", exc_info=True)
+                            logging.error(f"[Claude-3 Opus] Failed to log interaction: {str(e)}", exc_info=True)
                     else:
-                        logging.error("[Claude-3-Opus] No response received from API")
+                        logging.error("[Claude-3 Opus] No response received from API")
                         await message.add_reaction('❌')
                         await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
 
                 except Exception as e:
-                    logging.error(f"[Claude-3-Opus] Error in message handling: {str(e)}", exc_info=True)
+                    logging.error(f"[Claude-3 Opus] Error in message handling: {str(e)}", exc_info=True)
                     await message.add_reaction('❌')
                     error_msg = str(e)
                     if "insufficient_quota" in error_msg.lower():
@@ -84,8 +109,8 @@ async def setup(bot):
     try:
         cog = Claude3OpusCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Claude-3-Opus] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Claude-3 Opus] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Claude-3-Opus] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Claude-3 Opus] Failed to register cog: {str(e)}", exc_info=True)
         raise
