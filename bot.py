@@ -383,6 +383,13 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
+        # Add bot's own messages to history
+        if config.SHARED_HISTORY_ENABLED:
+            channel_id = str(message.channel.id)
+            if channel_id in message_history:
+                message_history[channel_id].append(message)
+                logging.debug(f"Added bot message to history for channel {channel_id}")
+                await save_channel_history(channel_id)
         return
 
     # Update last interaction
@@ -403,10 +410,21 @@ async def on_message(message):
         else:
             message_history[channel_id].append(message)
 
-        # Trim history if needed
+        # Trim history if needed, keeping pairs of messages together
         window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
         if len(message_history[channel_id]) > window_size:
-            message_history[channel_id] = message_history[channel_id][-window_size:]
+            # Find the last bot message index
+            last_bot_idx = -1
+            for i, msg in enumerate(message_history[channel_id]):
+                if msg.author == bot.user:
+                    last_bot_idx = i
+            
+            # Keep the conversation flow by including the message before the last bot message
+            if last_bot_idx > 0:
+                start_idx = max(last_bot_idx - 1, len(message_history[channel_id]) - window_size)
+                message_history[channel_id] = message_history[channel_id][start_idx:]
+            else:
+                message_history[channel_id] = message_history[channel_id][-window_size:]
 
         # Save history after each message
         await save_channel_history(channel_id)
