@@ -13,7 +13,7 @@ class SydneyCog(BaseCog):
             trigger_words=['sydney', 'syd', 'mama kunty'],
             model="Sydney-Court",  # Correct model name
             provider="openpipe",
-            prompt_file="sydney",
+            prompt_file="sydney_prompts",
             supports_vision=False
         )
         logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
