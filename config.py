@@ -13,7 +13,7 @@ OPENROUTER_API_KEY = "sk-or-v1-7f88350cb529252ca94779cb6bf2a6d4f9d755bce3682c35c
 # OpenPipe Configuration for different projects
 OPENPIPE_API_URL = "https://api.openpipe.ai/api/v1"
 OPENPIPE_API_KEYS = {
-    'eos': "opk_1242d45081f88a13687f4fed09b3e5b8c1fb14c9a1",
+    'eos': "opk_1242d45081f88a13687f4fed09b3e5b8c1fb14c8a1",
     'legacy': "opk_a59a567efec81c09db82543eb9be72b5ca41504cba"  # Renamed from 'sydney' to 'legacy'
 }
 OPENPIPE_API_KEY = OPENPIPE_API_KEYS['eos']  # Default to EOS key
@@ -85,6 +85,7 @@ BLOCKED_KEYWORDS = [
     # Specific blocked terms
     "pig42",
     "pig 42",
+    "pig420377",
     "robespeeair",
     "robespeair",
     "robespear",
@@ -92,4 +93,7 @@ BLOCKED_KEYWORDS = [
     "androgynous",
     "shitpostew",
     "shitposter",
+    "cutedeity",
+    "anstarmus",
+    "foss home lab lord",
 ]
