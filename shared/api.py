@@ -5,7 +5,7 @@ import json
 import asyncio
 import sqlite3
 from typing import Dict, Any, List, Union
-from openpipe import OpenAI, OpenPipe
+from openpipe import OpenAI
 import backoff
 import httpx
 from functools import partial
@@ -27,11 +27,7 @@ class API:
         )
         
         # Initialize OpenPipe client
-        self.client = OpenPipe(
-            api_key=OPENPIPE_API_KEY,
-            base_url=OPENPIPE_API_URL,
-            timeout=self.timeout
-        )
+        self.client = OpenAI(api_key=OPENPIPE_API_KEY)
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
@@ -52,23 +48,6 @@ class API:
             frequency_penalty=0,
             presence_penalty=0,
             stream=False
-        )
-
-    def _make_openpipe_request(self, messages, model, temperature=0.7):
-        """Synchronous OpenPipe API call"""
-        logging.debug(f"[API] Making OpenPipe request to model: {model}")
-        logging.debug(f"[API] Using temperature: {temperature}")
-        
-        return self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=1000,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stream=False,
-            headers={"op-log-request": "true"}
         )
 
     @backoff.on_exception(
@@ -173,7 +152,7 @@ class API:
             try:
                 # Run API call
                 completion = self.client.chat.completions.create(
-                    model=model,
+                    model=f"openpipe:{model}",
                     messages=messages,
                     temperature=temperature,
                     max_tokens=1000,
@@ -181,7 +160,9 @@ class API:
                     frequency_penalty=0,
                     presence_penalty=0,
                     stream=False,
-                    headers={"op-log-request": "true"}
+                    headers={"op-log-request": "true"},
+                    store=True,
+                    metadata={"prompt_id": "unique_identifier"}
                 )
 
                 # Convert OpenAI response to dict format
