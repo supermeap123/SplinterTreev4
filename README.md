@@ -1,12 +1,12 @@
 # 🌳 Splintertree v4
 
-A powerful Discord bot that provides access to multiple AI language models with advanced features like conversation memory, image processing, and dynamic prompting.
+A powerful Discord bot that provides access to multiple AI language models with advanced features like shared conversation context, image processing, and dynamic prompting.
 
 ## ✨ Features
 
 ### Core Features
 - **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
-- **Shared Message History**: Models maintain conversation context within channels
+- **Shared Context Database**: SQLite-based persistent conversation history shared between all models
 - **Image Processing**: Automatic image description and analysis
 - **File Handling**: Support for text files and images
 - **Response Reroll**: Button to generate alternative responses
@@ -16,6 +16,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
 - **Context Management**: Per-channel message history with configurable window size
+- **Cross-Model Context**: Models can see and reference each other's responses
 - **File Processing**: Automatic content extraction from text files
 - **Dynamic Prompting**: Customizable system prompts per channel/server
 
@@ -44,6 +45,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - Discord Bot Token
 - OpenRouter API Key
 - OpenPipe API Key
+- SQLite3
 
 ### Installation
 1. Clone the repository:
@@ -61,7 +63,12 @@ pip install -r requirements.txt
 - Copy `.env.example` to `.env`
 - Add your API keys and configuration
 
-4. Run the bot:
+4. Initialize database:
+```bash
+sqlite3 databases/interaction_logs.db < databases/schema.sql
+```
+
+5. Run the bot:
 ```bash
 python bot.py
 ```
@@ -77,14 +84,16 @@ python bot.py
 - `config.py`: Main configuration settings
 - `temperatures.json`: Model temperature settings
 - `dynamic_prompts.json`: Custom prompts per channel
-- `context_windows.json`: Context window sizes
+- `databases/interaction_logs.db`: SQLite database for conversation history
 
 ## 📝 Usage
 
 ### Basic Commands
 - `!splintertree_help [channel|dm]`: Show help information
-- `!toggle_shared_history`: Toggle shared message history
-- `!toggle_image_processing`: Toggle image processing
+- `!setcontext <size>`: Set context window size
+- `!getcontext`: Show current context window size
+- `!resetcontext`: Reset to default context window
+- `!clearcontext [hours]`: Clear conversation history
 - `!contact`: Show contact information
 
 ### Triggering Models
@@ -99,13 +108,15 @@ python bot.py
 splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
+!setcontext 20  # Set context window to 20 messages
+!clearcontext 24  # Clear messages older than 24 hours
 ```
 
 ## 🏗️ Architecture
 
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
-- **Context Management**: Handles conversation history
+- **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections
 - **File Processing**: Handles various file types
 - **Image Processing**: Vision model integration
@@ -117,10 +128,13 @@ SplinterTreev4/
 ├── config.py           # Configuration settings
 ├── cogs/               # Model-specific implementations
 │   ├── base_cog.py    # Base cog implementation
+│   ├── context_cog.py # Context management
 │   └── [model]_cog.py # Individual model cogs
+├── databases/          # SQLite database
+│   ├── schema.sql     # Database schema
+│   └── interaction_logs.db # Conversation history
 ├── prompts/            # System prompts
-├── shared/            # Shared utilities
-└── history/           # Conversation history storage
+└── shared/            # Shared utilities
 ```
 
 ## 🔧 Development
@@ -140,6 +154,11 @@ Create channel-specific prompts in `dynamic_prompts.json`:
   }
 }
 ```
+
+### Database Schema
+The SQLite database includes tables for:
+- `messages`: Stores all conversation messages
+- `context_windows`: Stores per-channel context settings
 
 ## 📄 License
 

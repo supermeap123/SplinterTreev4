@@ -43,15 +43,17 @@ class HelpCog(commands.Cog):
         # Add Administrative Commands section
         admin_commands = """
         `!splintertree_help [channel|dm]` - Show this help message (in channel or DM)
-        `!toggle_shared_history` - Toggle shared message history for the channel
-        `!toggle_image_processing` - Toggle image processing for the channel
+        `!setcontext <size>` - Set context window size for the channel
+        `!getcontext` - Show current context window size
+        `!resetcontext` - Reset context window to default
+        `!clearcontext [hours]` - Clear conversation history (optionally specify hours)
         `!contact` - Show contact information
         """
         main_embed.add_field(name="👑 Administrative Commands", value=admin_commands.strip(), inline=False)
 
         # Add Core Features section
         features = """
-        • **Shared Message History** - Agents remember conversation context
+        • **Shared Context Database** - Persistent conversation history shared between agents
         • **Image Processing** - Automatic image description using vision models
         • **File Handling** - Support for text files and images
         • **Response Reroll** - Button to generate alternative responses
@@ -67,6 +69,7 @@ class HelpCog(commands.Cog):
         • **Model Selection** - Use specific model triggers (listed below)
         • **Image Analysis** - Simply attach an image with your message
         • **File Processing** - Attach .txt or .md files with your message
+        • **Context Management** - Use context commands to control conversation history
         """
         main_embed.add_field(name="📝 Basic Usage", value=usage.strip(), inline=False)
         embeds.append(main_embed)
@@ -124,11 +127,11 @@ class HelpCog(commands.Cog):
 
         # Add Context Management section
         context_info = """
-        • Message history is maintained per channel
-        • Default context window: 10 messages
-        • Adjustable using admin commands
-        • Shared across all models in channel
-        • Persists between bot restarts
+        • **Persistent Storage**: SQLite database for reliable context storage
+        • **Shared Context**: All models can see and reference each other's responses
+        • **Flexible Management**: Adjustable context window per channel
+        • **History Control**: Clear old context with customizable timeframe
+        • **Cross-Session**: Context persists between bot restarts
         """
         special_embed.add_field(name="🧠 Context Management", value=context_info.strip(), inline=False)
 
