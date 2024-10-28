@@ -96,6 +96,25 @@ def get_last_interaction():
             days = hours // 24
             return f"{days}d ago with {last_interaction['user']}"
 
+def check_blocked_keywords(channel_id: str) -> tuple[bool, str]:
+    """
+    Check if any blocked keywords are present in the channel history
+    Returns (is_blocked, matching_keyword)
+    """
+    if channel_id not in message_history:
+        return False, ""
+        
+    # Get all message content from history
+    history_content = " ".join(msg.content.lower() for msg in message_history[channel_id])
+    
+    # Check for blocked keywords
+    for keyword in config.BLOCKED_KEYWORDS:
+        if keyword in history_content:
+            logging.warning(f"Blocked keyword '{keyword}' found in channel {channel_id}")
+            return True, keyword
+            
+    return False, ""
+
 async def save_channel_history(channel_id: str):
     """Save message history for a specific channel"""
     if not config.SHARED_HISTORY_ENABLED:
@@ -428,6 +447,12 @@ async def on_message(message):
 
     # Only handle mentions/keywords if no specific trigger was found
     if (is_pinged or has_keyword):
+        # Check for blocked keywords in history
+        is_blocked, blocked_keyword = check_blocked_keywords(str(message.channel.id))
+        if is_blocked:
+            logging.warning(f"Blocked interaction in channel {message.channel.id} due to keyword: {blocked_keyword}")
+            return
+
         # Check if any specific model was triggered
         specific_trigger = False
         for cog in bot.cogs.values():

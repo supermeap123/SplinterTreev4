@@ -41,3 +41,43 @@ ERROR_MESSAGES = {
     'unknown_error': "❌ An error occurred. Please try again later.",
     'reporting_error': "📝 Unable to log interaction, but response was successful."
 }
+
+# Keyword Blocklist
+# If any of these keywords are found in the conversation history,
+# the bot will not engage with that conversation
+BLOCKED_KEYWORDS = [
+    "nsfw",
+    "porn",
+    "hentai",
+    "sex",
+    "nude",
+    "explicit",
+    "adult",
+    "xxx",
+    "r18",
+    "erotic",
+    "lewd",
+    "gore",
+    "violence",
+    "death",
+    "suicide",
+    "kill",
+    "murder",
+    "blood",
+    "torture",
+    "abuse",
+    "rape",
+    "drugs",
+    "cocaine",
+    "heroin",
+    "meth",
+    "illegal",
+    "hack",
+    "crack",
+    "pirate",
+    "torrent",
+    "warez",
+    "stolen",
+    "leak",
+    "exploit",
+]
