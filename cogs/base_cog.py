@@ -100,6 +100,20 @@ class BaseCog(commands.Cog):
                     # Send the response and add to history
                     sent_message = await self.handle_response(response, message)
                     if sent_message:
+                        # Log interaction
+                        try:
+                            log_interaction(
+                                user_id=message.author.id,
+                                guild_id=message.guild.id if message.guild else None,
+                                persona_name=self.name,
+                                user_message=message.content,
+                                assistant_reply=response,
+                                emotion=analyze_emotion(response)
+                            )
+                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+                        except Exception as e:
+                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
+
                         # Add the sent message to history
                         channel_id = str(message.channel.id)
                         if hasattr(self.bot, 'message_history'):
@@ -324,6 +338,20 @@ class BaseCog(commands.Cog):
                             await message.reply(chunk)
                 else:
                     sent_message = await message.reply(prefixed_response, view=view)
+
+            # Log interaction
+            try:
+                log_interaction(
+                    user_id=message.author.id,
+                    guild_id=message.guild.id if message.guild else None,
+                    persona_name=self.name,
+                    user_message=message.content,
+                    assistant_reply=response_text,
+                    emotion=analyze_emotion(response_text)
+                )
+                logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+            except Exception as e:
+                logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
 
             # Add reaction based on emotion analysis
             try:
