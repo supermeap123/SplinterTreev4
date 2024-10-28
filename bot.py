@@ -115,6 +115,11 @@ def check_blocked_keywords(channel_id: str) -> tuple[bool, str]:
             
     return False, ""
 
+def contains_blocked_words(text: str) -> bool:
+    """Check if text contains any blocked keywords"""
+    text = text.lower()
+    return any(keyword in text for keyword in config.BLOCKED_KEYWORDS)
+
 async def save_channel_history(channel_id: str):
     """Save message history for a specific channel"""
     if not config.SHARED_HISTORY_ENABLED:
@@ -327,23 +332,32 @@ async def rotate_status():
             return
 
         status_type = random.randint(0, 2)
+        activity = None
         
         if status_type == 0:
             # Uptime status
-            activity = discord.Game(name=f"Up for {get_uptime()}")
+            status_text = f"Up for {get_uptime()}"
+            if not contains_blocked_words(status_text):
+                activity = discord.Game(name=status_text)
         elif status_type == 1:
             # Last interaction status
-            activity = discord.Activity(
-                type=discord.ActivityType.watching,
-                name=get_last_interaction()
-            )
+            status_text = get_last_interaction()
+            if not contains_blocked_words(status_text):
+                activity = discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name=status_text
+                )
         else:
             # Random cog status
             if loaded_cogs:
                 cog = random.choice(loaded_cogs)
-                activity = discord.Game(name=f"with {getattr(cog, 'name', 'Unknown')}")
-            else:
-                activity = discord.Game(name="Loading...")
+                status_text = f"with {getattr(cog, 'name', 'Unknown')}"
+                if not contains_blocked_words(status_text):
+                    activity = discord.Game(name=status_text)
+
+        # If no valid status was set, use a default
+        if activity is None:
+            activity = discord.Game(name="Online")
 
         await bot.change_presence(activity=activity)
         logging.debug(f"Updated status to: {activity.name}")
