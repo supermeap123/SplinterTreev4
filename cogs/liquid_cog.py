@@ -16,6 +16,7 @@ class LiquidCog(BaseCog):
             prompt_file="liquid",
             supports_vision=False
         )
+        self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Liquid] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Liquid] Using provider: {self.provider}")
         logging.debug(f"[Liquid] Vision support: {self.supports_vision}")
@@ -34,6 +35,18 @@ class LiquidCog(BaseCog):
         # Check if message triggers this cog
         msg_content = message.content.lower()
         is_triggered = any(word in msg_content for word in self.trigger_words)
+
+        # Add message to context before processing
+        if self.context_cog:
+            channel_id = str(message.channel.id)
+            guild_id = str(message.guild.id) if message.guild else None
+            user_id = str(message.author.id)
+            content = message.content
+            is_assistant = False
+            persona_name = self.name
+            emotion = None
+
+            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
 
         if is_triggered:
             logging.debug(f"[Liquid] Triggered by message: {message.content}")
@@ -59,6 +72,18 @@ class LiquidCog(BaseCog):
                                 emotion=emotion
                             )
                             logging.debug(f"[Liquid] Logged interaction for user {message.author.id}")
+
+                            # Add bot's response to context
+                            if self.context_cog:
+                                await self.context_cog.add_message_to_context(
+                                    channel_id=str(message.channel.id),
+                                    guild_id=str(message.guild.id) if message.guild else None,
+                                    user_id=str(self.bot.user.id),
+                                    content=response,
+                                    is_assistant=True,
+                                    persona_name=self.name,
+                                    emotion=emotion
+                                )
                         except Exception as e:
                             logging.error(f"[Liquid] Failed to log interaction: {str(e)}", exc_info=True)
                     else:

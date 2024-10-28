@@ -16,6 +16,7 @@ class Claude1_1Cog(BaseCog):
             prompt_file="claude1_1",
             supports_vision=False
         )
+        self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Claude-1.1] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Claude-1.1] Using provider: {self.provider}")
         logging.debug(f"[Claude-1.1] Vision support: {self.supports_vision}")
@@ -78,6 +79,18 @@ class Claude1_1Cog(BaseCog):
                         await message.reply("⏳ Rate limit exceeded. Please try again later.")
                     else:
                         await message.reply(f"[{self.name}] An error occurred while processing your request.")
+
+        # Add message to context
+        if self.context_cog:
+            channel_id = str(message.channel.id)
+            guild_id = str(message.guild.id) if message.guild else None
+            user_id = str(message.author.id)
+            content = message.content
+            is_assistant = False
+            persona_name = self.name
+            emotion = None
+
+            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
 
 async def setup(bot):
     # Register the cog with its proper name

@@ -16,6 +16,7 @@ class RPlusCog(BaseCog):
             prompt_file="rplus",
             supports_vision=False
         )
+        self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[R-Plus] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[R-Plus] Using provider: {self.provider}")
         logging.debug(f"[R-Plus] Vision support: {self.supports_vision}")
@@ -35,16 +36,30 @@ class RPlusCog(BaseCog):
         msg_content = message.content.lower()
         is_triggered = any(word in msg_content for word in self.trigger_words)
 
+        # Add message to context before processing
+        if self.context_cog:
+            channel_id = str(message.channel.id)
+            guild_id = str(message.guild.id) if message.guild else None
+            user_id = str(message.author.id)
+            content = message.content
+            is_assistant = False
+            persona_name = self.name
+            emotion = None
+
+            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
+
         if is_triggered:
             logging.debug(f"[R-Plus] Triggered by message: {message.content}")
             async with message.channel.typing():
                 try:
                     # Process message and get response
                     logging.debug(f"[R-Plus] Processing message with provider: {self.provider}, model: {self.model}")
-                    response, emotion = await self.handle_message(message)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[R-Plus] Got response: {response[:100]}...")
+                        # Handle the response and get emotion
+                        emotion = await self.handle_response(response, message)
                         
                         # Log interaction
                         try:
@@ -57,6 +72,18 @@ class RPlusCog(BaseCog):
                                 emotion=emotion
                             )
                             logging.debug(f"[R-Plus] Logged interaction for user {message.author.id}")
+
+                            # Add bot's response to context
+                            if self.context_cog:
+                                await self.context_cog.add_message_to_context(
+                                    channel_id=str(message.channel.id),
+                                    guild_id=str(message.guild.id) if message.guild else None,
+                                    user_id=str(self.bot.user.id),
+                                    content=response,
+                                    is_assistant=True,
+                                    persona_name=self.name,
+                                    emotion=emotion
+                                )
                         except Exception as e:
                             logging.error(f"[R-Plus] Failed to log interaction: {str(e)}", exc_info=True)
                     else:
