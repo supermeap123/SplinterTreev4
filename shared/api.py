@@ -4,7 +4,7 @@ import time
 import json
 import asyncio
 from typing import Dict, Any, List, Union
-from openpipe import OpenAI
+from openpipe import OpenAI, OpenPipe
 import backoff
 import httpx
 from functools import partial
@@ -25,8 +25,8 @@ class API:
             keepalive_expiry=30.0
         )
         
-        # Initialize OpenAI client
-        self.client = OpenAI(
+        # Initialize OpenPipe client
+        self.client = OpenPipe(
             api_key=OPENPIPE_API_KEY,
             base_url=OPENPIPE_API_URL,
             timeout=self.timeout
@@ -166,11 +166,17 @@ class API:
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
             try:
-                # Run API call in thread pool
-                loop = asyncio.get_event_loop()
-                completion = await loop.run_in_executor(
-                    None,
-                    partial(self._make_openpipe_request, messages, model, temperature)
+                # Run API call
+                completion = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=1000,
+                    top_p=1,
+                    frequency_penalty=0,
+                    presence_penalty=0,
+                    stream=False,
+                    headers={"op-log-request": "true"}
                 )
 
                 # Convert OpenAI response to dict format
