@@ -2,7 +2,7 @@ import json
 import logging
 import sqlite3
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any, Union
 
 def analyze_emotion(text):
     """
@@ -52,15 +52,23 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
             
             # Get last N messages ordered by timestamp
             cursor.execute("""
-                SELECT content, is_assistant, persona_name
+                SELECT DISTINCT content, is_assistant, persona_name, timestamp
                 FROM messages 
                 WHERE channel_id = ?
+                GROUP BY content
                 ORDER BY timestamp DESC
                 LIMIT ?
-            """, (channel_id, limit))
+            """, (str(channel_id), limit))
             
             messages = []
-            for content, is_assistant, persona_name in cursor.fetchall():
+            seen_content = set()
+            
+            for content, is_assistant, persona_name, timestamp in cursor.fetchall():
+                # Skip if we've seen this content before
+                if content in seen_content:
+                    continue
+                seen_content.add(content)
+                
                 if is_assistant:
                     # Remove model name prefix if present
                     if content.startswith('[') and ']' in content:
@@ -75,17 +83,17 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
                         "content": content
                     })
             
-            # Reverse to get chronological order
+            # Reverse to get chronological order and limit to last N messages
             messages.reverse()
-            return messages
+            return messages[-limit:]
             
     except Exception as e:
         logging.error(f"Failed to fetch message history: {str(e)}")
         return []
 
-def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str, 
-                   user_message: str, assistant_reply: str, emotion: Optional[str] = None,
-                   channel_id: Optional[str] = None):
+def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]], 
+                   persona_name: str, user_message: str, assistant_reply: str, 
+                   emotion: Optional[str] = None, channel_id: Optional[Union[int, str]] = None):
     """
     Log interaction details to SQLite database
     """
@@ -94,13 +102,23 @@ def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str,
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             
+            # Convert all values to strings to prevent type issues
+            channel_id = str(channel_id) if channel_id else None
+            guild_id = str(guild_id) if guild_id else None
+            user_id = str(user_id)
+            persona_name = str(persona_name)
+            user_message = str(user_message)
+            assistant_reply = str(assistant_reply)
+            emotion = str(emotion) if emotion else None
+            timestamp = datetime.now().isoformat()
+            
             # Log user message
             cursor.execute("""
                 INSERT INTO messages (
                     channel_id, guild_id, user_id, content, 
-                    is_assistant, emotion
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """, (channel_id, guild_id, user_id, user_message, False, None))
+                    is_assistant, emotion, timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (channel_id, guild_id, user_id, user_message, False, None, timestamp))
             
             user_message_id = cursor.lastrowid
             
@@ -108,12 +126,14 @@ def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str,
             cursor.execute("""
                 INSERT INTO messages (
                     channel_id, guild_id, user_id, persona_name,
-                    content, is_assistant, emotion, parent_message_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    content, is_assistant, emotion, parent_message_id,
+                    timestamp
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (channel_id, guild_id, user_id, persona_name,
-                 assistant_reply, True, emotion, user_message_id))
+                 assistant_reply, True, emotion, user_message_id, timestamp))
             
             conn.commit()
+            logging.debug(f"Successfully logged interaction for user {user_id}")
             
     except Exception as e:
         logging.error(f"Failed to log interaction: {str(e)}")
@@ -124,10 +144,10 @@ def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str,
                 'user_id': str(user_id),
                 'guild_id': str(guild_id) if guild_id else None,
                 'channel_id': str(channel_id) if channel_id else None,
-                'persona': persona_name,
-                'user_message': user_message,
-                'assistant_reply': assistant_reply,
-                'emotion': emotion
+                'persona': str(persona_name),
+                'user_message': str(user_message),
+                'assistant_reply': str(assistant_reply),
+                'emotion': str(emotion) if emotion else None
             }
             
             with open('interaction_logs.jsonl', 'a', encoding='utf-8') as f:

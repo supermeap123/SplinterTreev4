@@ -154,7 +154,7 @@ class API:
                 if temperature is None:
                     temperature = 0.7
 
-                # Run API call with store=true and metadata
+                # Run API call
                 completion = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -164,10 +164,9 @@ class API:
                     frequency_penalty=0,
                     presence_penalty=0,
                     stream=False,
-                    store=True,  # Enable request logging
                     metadata={
                         "model": model,
-                        "temperature": temperature,  # Now temperature will never be None
+                        "temperature": temperature,
                         "source": "SplinterTree"
                     }
                 )

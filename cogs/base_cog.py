@@ -6,12 +6,13 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
-from shared.utils import analyze_emotion, get_message_history
+from shared.utils import analyze_emotion, log_interaction, get_message_history
 from shared.api import api
 import re
 import base64
 import aiohttp
 import asyncio
+import tempfile
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -152,21 +153,6 @@ class BaseCog(commands.Cog):
                     else:
                         sent_message = await message.reply(prefixed_response, view=view)
 
-            # Log interaction
-            try:
-                log_interaction(
-                    user_id=message.author.id,
-                    guild_id=message.guild.id if message.guild else None,
-                    persona_name=self.name,
-                    user_message=message.content,
-                    assistant_reply=response_text,
-                    emotion=analyze_emotion(response_text),
-                    channel_id=str(message.channel.id)  # Add channel_id to logging
-                )
-                logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
-            except Exception as e:
-                logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
-
             # Add reaction based on emotion analysis
             try:
                 if permissions.add_reactions:
@@ -212,16 +198,23 @@ class BaseCog(commands.Cog):
                 response = await self.generate_response(message)
                 
                 if response:
-                    # Send the response and add to history
+                    # Send the response
                     sent_message = await self.handle_response(response, message)
                     if sent_message:
-                        # Add the sent message to history
-                        channel_id = str(message.channel.id)
-                        if hasattr(self.bot, 'message_history'):
-                            if channel_id not in self.bot.message_history:
-                                self.bot.message_history[channel_id] = []
-                            self.bot.message_history[channel_id].append(sent_message)
-                            logging.debug(f"[{self.name}] Added response to history for channel {channel_id}")
+                        # Log interaction
+                        try:
+                            log_interaction(
+                                user_id=message.author.id,
+                                guild_id=message.guild.id if message.guild else None,
+                                persona_name=self.name,
+                                user_message=message.content,
+                                assistant_reply=response,
+                                emotion=analyze_emotion(response),
+                                channel_id=str(message.channel.id)
+                            )
+                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+                        except Exception as e:
+                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
                         return response, None
                     else:
                         logging.error(f"[{self.name}] No response received from API")
@@ -285,15 +278,11 @@ class BaseCog(commands.Cog):
             history_messages = get_message_history(channel_id, limit=50)
             messages.extend(history_messages)
 
-            # Process current message and any attachments
-            user_message_content = []
-            
-            # Add text content if present
-            if message.content:
-                user_message_content.append({
-                    "type": "text",
-                    "text": message.content
-                })
+            # Add current message
+            messages.append({
+                "role": "user",
+                "content": message.content
+            })
 
             # Process image attachments if vision is supported
             if self.supports_vision and message.attachments:
@@ -303,30 +292,16 @@ class BaseCog(commands.Cog):
                             async with aiohttp.ClientSession() as session:
                                 async with session.get(attachment.url) as response:
                                     if response.status == 200:
-                                        user_message_content.append({
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": attachment.url
+                                        messages[-1]["content"] = [
+                                            {"type": "text", "text": message.content},
+                                            {
+                                                "type": "image_url",
+                                                "image_url": {"url": attachment.url}
                                             }
-                                        })
+                                        ]
                                         logging.debug(f"[{self.name}] Added image attachment to message")
                         except Exception as e:
                             logging.error(f"[{self.name}] Failed to process image attachment: {str(e)}")
-
-            # Add the processed user message
-            if user_message_content:
-                if len(user_message_content) == 1 and "text" in user_message_content[0]:
-                    # If only text content, use simple format
-                    messages.append({
-                        "role": "user",
-                        "content": user_message_content[0]["text"]
-                    })
-                else:
-                    # If multiple content parts or images, use array format
-                    messages.append({
-                        "role": "user",
-                        "content": user_message_content
-                    })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
