@@ -1,0 +1,36 @@
+{
+  "channel_id": "1299046380379177031",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:32:18.923479",
+  "messages": [
+    {
+      "content": "hi grok",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:27:14.648000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Grok-Beta] Hey there, @gwynedc! How can I assist you today? Remember, I'm Grok - I've got the wit and knowledge to handle just about anything you throw my way!",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-24T16:27:16.687000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "Grok what does this picture look like",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-24T23:54:20.837000+00:00",
+      "attachments": [
+        {
+          "url": "https://cdn.discordapp.com/attachments/1299046380379177031/1299159075329937408/IMG_20241024_165334734_HDR_AE.jpg?ex=6720242c&is=671ed2ac&hm=86caae64cb0dab3692db52fea35c648a0278d2046a5aff3384279fce5446f800&",
+          "filename": "IMG_20241024_165334734_HDR_AE.jpg"
+        }
+      ],
+      "is_bot": false
+    }
+  ]
+}

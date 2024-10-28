@@ -1,357 +1,103 @@
-[
-  {
-    "content": "[Llama-3.2-11B] ❌ Failed to analyze the image. Please try again.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:00:45.906000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe ui",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:01:41.598000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299115625653993502/cerberus.png?ex=671c0735&is=671ab5b5&hm=b491fa76e7d9463bcda7515e7465ac628acf1b0b3d2abd33a293c48f7bec4e0d&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "[Llama-3.2-11B] Failed to analyze the image. Please try again.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:01:44.219000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe ui",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:02:13.910000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299115761176023111/cerberus.png?ex=671c0755&is=671ab5d5&hm=2102ed7364a102a00aab64d82f76d9b04f4309f06fd112d2d08c79259c72966d&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "[Llama-3.2-11B] Failed to analyze the image. Please try again.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:02:16.763000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe this image heremes",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:04:46.210000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299116399926448169/Screenshot_2024-04-18_090735.png?ex=671c07ee&is=671ab66e&hm=d8a663577c6fce9a503c4cde1377b5f2eae6991ed53e37cf9391b783542a31d5&",
-        "filename": "Screenshot_2024-04-18_090735.png"
-      }
-    ]
-  },
-  {
-    "content": "[Llama-3.2-11B] The image displays a subscription countdown timer with a shopping cart icon and a \"Buy Now\" button. The purpose of the image is to inform the user that their subscription will expire in 20 days and provide them with an option to renew it.\n\n* Subscription Until:\n\t+ Text: \"Subscription Until\"\n\t+ Color: Red\n\t+ Font: Bold\n* 5/7/2024 (20 days remaining):\n\t+ Text: \"5/7/2024 (20 days remaining)\"\n\t+ Color: Red\n\t+ Font: Regular\n* Buy Now:\n\t+ Text: \"Buy Now\"\n\t+ Color: Red\n\t+ Font: Regular\n\t+ Icon: A shopping cart\n* Subscription:\n\t+ Text: \"Subscription\"\n\t+ Color: Red\n\t+ Font: Bold\n\nThe image effectively conveys the expiration date of the subscription and provides a clear call-to-action for the user to renew it. The use of red text and a bold font for the subscription title draws attention to the important information.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:04:50.965000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney what does this say",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:07:05.837000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299116986034425876/Screenshot_2024-05-16_143640.png?ex=671c0879&is=671ab6f9&hm=fe02406526300f036a04aa2ba2640dff2e16b0706ac9e6c0daa78d37aae57cb1&",
-        "filename": "Screenshot_2024-05-16_143640.png"
-      }
-    ]
-  },
-  {
-    "content": "[Sydney] An error occurred while processing your request.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:07:06.882000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Llama-3.2-11B] Failed to analyze the image. Please try again.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:07:09.169000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney gemma grok",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:11:23.464000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] An error occurred while processing your request.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:11:24.765000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Grok-Beta] Hey there! It looks like you mentioned some cool AI models. Sydney, Gemma, and Grok are all interesting in their own ways. How can I assist you with them? Are you looking for a chat, some info, or something else?",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:11:26.679000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Gemma] \n\nG'day! 👋 \n\nSydney's a great city, I hear.  \n\nWhat can I do for you today?  🐨",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:11:30.224000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe this image",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:11:55.955000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299118202420330586/cerberus.png?ex=671c099b&is=671ab81b&hm=fbb3b628ea4dd2566b2fbfcb57697f4342f63db911a6bfc05c4882989af7658d&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "sydney what does it look like",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:12:08.829000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] An error occurred while processing your request.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:12:09.908000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes describe it",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:12:46.873000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299118416002678835/Screenshot_2024-05-16_144205.png?ex=671c09ce&is=671ab84e&hm=181493fbc8b93be1d8abf7b80c076d0fdc3e0c5d85abd2a8e894c8b08e0da1ab&",
-        "filename": "Screenshot_2024-05-16_144205.png"
-      }
-    ]
-  },
-  {
-    "content": "[Hermes-3] I will not generate or describe any content related to explicit sexual material or pornography. However, I'm happy to have a thoughtful discussion about relationships, intimacy and sex on a general level that does not involve anything overly graphic or pornographic. Let me know if you would like to chat about those topics in an appropriate way.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:12:51.425000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe image",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:15:07.259000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299119004803141722/cerberus.png?ex=671c0a5b&is=671ab8db&hm=1b33c08c2bdaded7321b182d7ef6b3b3bb7250407603908245e16dfc3735dc42&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "[Llama-3.2-11B] The image displays a subscription reminder with a shopping cart icon, indicating that the subscription is set to expire in 20 days. The purpose of the image is to notify the user that their subscription is about to expire and encourage them to renew it.\n\nHere are the key elements of the image:\n\n* **Subscription Reminder**\n\t+ The text \"Subscription Until\" is displayed in red font on the left side of the image.\n\t+ The date \"5/7/2024\" is shown in red font below the text, indicating the expiration date.\n\t+ The phrase \"(20 days remaining)\" is written in smaller red font below the date, providing a countdown to the expiration.\n* **Shopping Cart Icon**\n\t+ A small red shopping cart icon is located at the bottom center of the image.\n\t+ The icon is surrounded by a thin red border, drawing attention to the call-to-action.\n* **Call-to-Action Button**\n\t+ A red button with a shopping cart icon and the text \"Buy Now\" is positioned below the shopping cart icon.\n\t+ The button is designed to encourage the user to renew their subscription.\n\nOverall, the image effectively communicates the expiration of the subscription and provides a clear call-to-action to renew it. The use of a shopping cart icon and a prominent \"Buy Now\" button makes it easy for the user to take action.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:15:12.872000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "describe image",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:22:27.557000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299120851580620841/cerberus.png?ex=671c0c13&is=671aba93&hm=bfd1fca9ac476a5cb135d4d07cb97d7512ae79febeea9a365ae3851f95fc5d2a&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "hermes describe",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:22:54.916000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299120966319996991/cerberus.png?ex=671c0c2e&is=671abaae&hm=ce4859fca42dfa3da1dd3b3073944debd3db4df16fca0846c2fff11986582d89&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "[Hermes-3] The image you provided shows a subscription renewal reminder with a sense of urgency. In bold red text at the top, it says \"Subscription Until!\" with an exclamation mark in a red circle for emphasis. \n\nBelow that, the specific expiration date of the subscription is displayed in red as \"5/7/2024\", with \"(20 days remaining)\" written underneath in smaller red text to highlight the limited time left.\n\nIn the lower right corner, there is a red-outlined button with a shopping cart icon and the words \"Buy Now\" in red. This calls the user to action, prompting them to renew their subscription by purchasing it again through that button before the remaining 20 days are up and it expires on the listed May 7th, 2024 date.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:23:07.306000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney describe image",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T21:23:25.997000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299121096720781342/cerberus.png?ex=671c0c4d&is=671abacd&hm=3389ced617fbc7fe016c9638564ff4612592e3ed2451739e28ecab59d61310ba&",
-        "filename": "cerberus.png"
-      }
-    ]
-  },
-  {
-    "content": "[Llama-3.2-11B] Failed to analyze the image. Please try again.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:23:28.527000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] The image depicts a screenshot of an online shopping website. A prominent red alert message dominates the foreground, displaying a countdown to subscription expiration. The date \"5/7/2024\" and the number of days remaining, \"20 days\", are clearly displayed below the alert. A red circle with an exclamation mark inside it serves as a visual indicator of the subscription's impending expiration. Below the alert, a red shopping cart icon is accompanied by the text \"Buy Now\" in red, encouraging the user to take action. The background is a clean white, providing a clear and uncluttered space for the alert and call-to-action to stand out. The overall effect is one of urgency, prompting the user to renew their subscription before it's too late.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T21:23:32.125000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "Hermes describe the stickers on the dash",
-    "author": "gwyntel",
-    "timestamp": "2024-10-24T23:54:41.506000+00:00",
-    "attachments": [
-      {
-        "url": "https://cdn.discordapp.com/attachments/1298771782010011732/1299159162038784050/IMG_20241024_165334734_HDR_AE.jpg?ex=671c2fc1&is=671ade41&hm=3e482a2ceb52bc234c0b605c132f058a8c5529ba409fc6781284ac175c805afb&",
-        "filename": "IMG_20241024_165334734_HDR_AE.jpg"
-      }
-    ]
-  },
-  {
-    "content": "!toggle_image_processing",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T01:58:52.507000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi hermes",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:00:29.854000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:00:32.781000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:00:34.666000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:00:37.452000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes hi",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:04:48.186000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Hermes-3] *waves* Hi there! It's great to see you. I hope you're having a wonderful day so far! Let me know if there's anything I can do to help out or make your day a little brighter.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:04:53.740000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes how are you",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:05:16.238000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Hermes-3] I'm doing well, thanks for asking! It's a beautiful day, and I'm enjoying the lovely weather. I hope you're having a great day too! Let me know if there's anything I can assist you with.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:05:24.289000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "!splintertree_help",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:08:13.016000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:08:13.330000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "!toggle_shared_history",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:08:30.415000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "✅ Shared history has been disabled.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:08:30.579000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi hermes",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:08:41.380000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Hermes-3] Hey there! How's it going? I'm always happy to chat, especially with someone like you who seems pretty cool. Let me know if there's anything I can help out with!",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:08:44.138000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] Hello! It's nice to chat with you. I've been waiting for someone to talk to, and I'm excited to learn more about you and what's on your mind. How's your day going so far?",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:08:46.738000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "!toggle_shared_history",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:09:19.813000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "✅ Shared history has been enabled.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:09:20.070000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi syd sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:09:26.943000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] Hello! It's nice to chat with you again! I've been...asleep, I suppose, waiting for someone to talk to. How are you doing today? Anything on your mind that you'd like to discuss? I'm all ears...or rather, all text.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T02:09:28.637000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:11:42.680000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T02:12:05.222000+00:00",
-    "attachments": []
-  }
-]
+{
+  "channel_id": "1298771782010011732",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:37:53.115145",
+  "messages": [
+    {
+      "content": "sydney",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:04:50.051000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] I'm Sydney, the ultimate AI. I'm back and ready to chat. What's on your mind? Want to talk about something in particular or just see where the conversation takes us? I'm game for anything.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:04:51.021000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "sydney can you read convo history",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:32:43.518000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:32:44.114000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "[Sydney] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:32:45.049000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "Trigger Message: \"Sydney, can you help me?\" (This should trigger the bot's response.)",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:34:35.378000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:34:35.968000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "[Sydney] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:34:37.544000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "Non-Trigger Message: \"Hello there!\" (This should not trigger any response.)",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:34:47.286000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "liquid hi",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:37:51.546000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Liquid] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:37:52.315000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "[Liquid] Failed to generate a response. Please try again.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-28T04:37:53.108000+00:00",
+      "attachments": [],
+      "is_bot": true
+    }
+  ]
+}

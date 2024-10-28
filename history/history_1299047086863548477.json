@@ -1,0 +1,39 @@
+{
+  "channel_id": "1299047086863548477",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:32:21.460573",
+  "messages": [
+    {
+      "content": "hi l90b",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:29:26.863000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "hi 90b",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:29:31.066000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "llama?",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:29:34.489000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "llama 90B",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:29:38.715000+00:00",
+      "attachments": [],
+      "is_bot": false
+    }
+  ]
+}

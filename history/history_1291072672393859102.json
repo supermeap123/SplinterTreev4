@@ -1,0 +1,417 @@
+{
+  "channel_id": "1291072672393859102",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:31:55.688816",
+  "messages": [
+    {
+      "content": "This isn't an AI server, we're not all interested in that",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:12:02.262000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Why is the bot in the voice channel?",
+      "author_id": "252244166665437185",
+      "author_name": "bob_douglas#0",
+      "timestamp": "2024-10-20T02:13:23.664000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Lol yeah it got put in timeout rightfully",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:14:04.057000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "ok",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:14:29.861000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "I'm not a bot",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:14:35.199000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "could the bot have gamer moments",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:14:40.298000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Yes",
+      "author_id": "252244166665437185",
+      "author_name": "bob_douglas#0",
+      "timestamp": "2024-10-20T02:14:47.803000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "It had one last night",
+      "author_id": "252244166665437185",
+      "author_name": "bob_douglas#0",
+      "timestamp": "2024-10-20T02:15:00.051000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "paranoid",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:15:07.403000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "make it have a gamer moment",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:15:15.260000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "I want to kill them not give them more data",
+      "author_id": "252244166665437185",
+      "author_name": "bob_douglas#0",
+      "timestamp": "2024-10-20T02:15:30.493000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "https://discord.com/oauth2/authorize?client_id=1270760587022041088",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:18:45.828000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "ok",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:18:56.850000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[\n  {\n    \"name\": \"FakeSiri\",\n    \"trigger_words\": [\"siri\", \"hey siri\", \"fake siri\", \"hey fakesiri\", \"alexa\", \"ok google\"],\n    \"nickname\": \"FakeSiri\",\n    \"active\": true,\n    \"model\": \"perplexity/llama-3.1-sonar-large-128k-online\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"SydneyBot\",\n    \"trigger_words\": [\"sydney\", \"syd\", \"s!talk\", \"sydneybot\"],\n    \"nickname\": \"SydneyBot\",\n    \"active\": true,\n    \"model\": \"nousresearch/hermes-3-llama-3.1-405b:free\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"Eos\",\n    \"trigger_words\": [\"eos\", \"e!\", \"eosbot\"],\n    \"nickname\": \"EosBot\",\n    \"active\": true,\n    \"model\": \"nvidia/llama-3.1-nemotron-70b-instruct\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"Aisling\",\n    \"trigger_words\": [\"aisling\", \"a!\", \"aislingbot\"],\n    \"nickname\": \"AislingBot\",\n    \"active\": true,\n    \"model\": \"anthropic/claude-3.5-sonnet:beta\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"GrilledCheese\",\n    \"trigger_words\": [\"grilledcheese\", \"g!\", \"grilledcheesebot\"],\n    \"nickname\": \"GrilledCheeseBot\",\n    \"active\": true,\n    \"model\": \"qwen/qwen-2.5-7b-instruct\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"ISA\",\n    \"trigger_words\": [\"isa\", \"security\", \"infosec\", \"analyst\"],\n    \"nickname\": \"ISA\",\n    \"active\": true,\n    \"model\": \"nvidia/llama-3.1-nemotron-70b-instruct\",\n    \"provider\": \"openrouter\"\n  },\n  {\n    \"name\": \"SuperPromptGPT\",\n    \"trigger_words\": [\"superprompt\", \"gpt\", \"spgpt\"],\n    \"nickname\": \"SuperPromptGPT\",\n    \"active\": true,\n    \"model\": \"openai/o1-mini\",\n    \"provider\": \"openrouter\"\n  }\n]",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:19:04.468000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "any ml nerds in the chat",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:19:09.301000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "omg show me ill restrict perms",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:19:45.377000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "and i can rate limit too",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:19:49.152000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "what would make the bot less annoying?",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:20:00.299000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "https://discord.com/channels/793768128466518016/794664232024145950/1297058864327295047",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:20:35.278000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "thanks, channel policing, the most relevant and interesting form of engagement",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:22:22.986000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "I can't tell if this is sarcasm or not 👀",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:23:49.593000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "https://tenor.com/view/well-never-know-dr-larry-south-park-s5e13-we-will-never-understand-gif-21970654",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:24:10.105000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Alright then",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:25:37.164000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Stop @/everyoneing though",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:26:07.562000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "It's funny once in a while, but this is excessive",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T02:26:50.977000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "@/Ian instead of everyone. PLEASE",
+      "author_id": "565676983619551235",
+      "author_name": "cutedeity#0",
+      "timestamp": "2024-10-20T02:27:03.096000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:27:19.942000+00:00",
+      "attachments": [
+        {
+          "url": "https://cdn.discordapp.com/attachments/1291072672393859102/1297385636000698389/image0.png?ex=67204807&is=671ef687&hm=2debf9460f136a4051164a2b6a0ddf7f0de791b1137705fc01eb5ef941a3ea21&",
+          "filename": "image0.png"
+        }
+      ],
+      "is_bot": false
+    },
+    {
+      "content": "explain to me how an @ everyone showed up on a muted channel",
+      "author_id": "257536111163736074",
+      "author_name": "1001airstrikes#0",
+      "timestamp": "2024-10-20T02:49:54.679000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "I'd ask fake Siri but she's timed out",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T02:55:21.811000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "this is pseudo-terrorism as far as i'm concerned",
+      "author_id": "270364587155521548",
+      "author_name": "robespeeair#0",
+      "timestamp": "2024-10-20T03:09:22.284000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Did we always have 81 members? I thought it was like mid 50’s or 60’s.",
+      "author_id": "329848143019638805",
+      "author_name": "fireballphoenix#0",
+      "timestamp": "2024-10-20T03:27:30.260000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Oh wait shit *my cousin is here now O forgot*",
+      "author_id": "329848143019638805",
+      "author_name": "fireballphoenix#0",
+      "timestamp": "2024-10-20T03:27:51.523000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "<@&1290837214733009001> how does ethbic cleansing work",
+      "author_id": "463578914044772352",
+      "author_name": "fish_doctor#0",
+      "timestamp": "2024-10-20T06:13:57.637000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "why isnit everytime I ask it something, it refuses",
+      "author_id": "463578914044772352",
+      "author_name": "fish_doctor#0",
+      "timestamp": "2024-10-20T06:16:04.035000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "very sad",
+      "author_id": "463578914044772352",
+      "author_name": "fish_doctor#0",
+      "timestamp": "2024-10-20T06:16:06.217000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "Its in timeout",
+      "author_id": "504845427938689044",
+      "author_name": "pig420377#0",
+      "timestamp": "2024-10-20T06:19:07.157000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "ace",
+      "author_id": "329389782134161411",
+      "author_name": "eon7506#0",
+      "timestamp": "2024-10-28T00:06:27.650000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "sex",
+      "author_id": "329389782134161411",
+      "author_name": "eon7506#0",
+      "timestamp": "2024-10-28T00:06:32.221000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "women",
+      "author_id": "329389782134161411",
+      "author_name": "eon7506#0",
+      "timestamp": "2024-10-28T00:06:37.397000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "<@935778614056738826>  bitch",
+      "author_id": "329389782134161411",
+      "author_name": "eon7506#0",
+      "timestamp": "2024-10-28T00:06:57.511000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "sydney hi",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:15:00.311000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "oh wait shes booting",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:15:08.552000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "hold on",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:15:10.111000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "sydney hi",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:15:19.071000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "2024-10-28T04:15:19.186168+00:00 app[worker.1]:     await coro(*args, **kwargs)\n2024-10-28T04:15:19.186168+00:00 app[worker.1]:   File \"/app/cogs/sydney_cog.py\", line 40, in on_message\n2024-10-28T04:15:19.186168+00:00 app[worker.1]:     async with message.channel.typing():\n2024-10-28T04:15:19.186168+00:00 app[worker.1]:                ^^^^^^^^^^^^^^^^^^^^^^^^\n2024-10-28T04:15:19.186168+00:00 app[worker.1]:   File \"/app/.heroku/python/lib/python3.12/site-packages/discord/context_managers.py\", line 82, in __aenter__\n2024-10-28T04:15:19.186169+00:00 app[worker.1]:     await channel._state.http.send_typing(channel.id)\n2024-10-28T04:15:19.186169+00:00 app[worker.1]:   File \"/app/.heroku/python/lib/python3.12/site-packages/discord/http.py\", line 752, in request\n2024-10-28T04:15:19.186169+00:00 app[worker.1]:     raise Forbidden(response, data)\n2024-10-28T04:15:19.186169+00:00 app[worker.1]: discord.errors.Forbidden: 403 Forbidden (error code: 50001): Missing Access\n2024-10-28T04:16:14.643383+00:00 app[worker.1]: 2024-10-28 04:16:14,643 - DEBUG - Updated status to: with Liquid",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:16:42.085000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "liquid hi",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:16:46.971000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:17:08.100000+00:00",
+      "attachments": [
+        {
+          "url": "https://cdn.discordapp.com/attachments/1291072672393859102/1300312371536855060/message.txt?ex=672061c4&is=671f1044&hm=7c6e807465e8f7d2ed9e6eef5f3edc112f8be073d98cc42710ee6fd734ba7202&",
+          "filename": "message.txt"
+        }
+      ],
+      "is_bot": false
+    },
+    {
+      "content": "<@329389782134161411> sydney has zero perms for bot containment",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:17:18.805000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "so she cant talk",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:17:24.640000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "are you ok with fixing that",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-28T04:17:29.701000+00:00",
+      "attachments": [],
+      "is_bot": false
+    }
+  ]
+}

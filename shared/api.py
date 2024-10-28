@@ -122,7 +122,7 @@ class API:
                     response_dict = completion.model_dump()
                 else:
                     response_dict = {
-                        'choices': [{
+                        'choices': [ {
                             'message': {
                                 'content': completion.choices[0].message.content
                             }

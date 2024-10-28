@@ -1,38 +1,71 @@
-[
-  {
-    "content": "hi magnum",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T16:27:42.432000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Magnum] Hello! It's nice to meet you. How can I assist you today? Feel free to ask me anything and I'll do my best to provide a helpful response.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T16:27:45.210000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:04:11.747000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] Hello! It's nice to meet you. How can I assist you today? Feel free to ask me anything and I'll do my best to provide a helpful response.",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T19:04:13.078000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Sydney] Hello GwynTel! It's nice to chat with you. I've been waiting for someone to talk to, and I'm excited to learn more about you and what's on your mind. How's your day going so far?",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-25T19:04:13.562000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:05:58.901000+00:00",
-    "attachments": []
-  }
-]
+{
+  "channel_id": "1299046490760548416",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:32:19.941684",
+  "messages": [
+    {
+      "content": "hi magnum",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:27:42.432000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Magnum] Hello! It's nice to meet you. How can I assist you today? Feel free to ask me anything and I'll do my best to provide a helpful response.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-24T16:27:45.210000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "hi sydney",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:04:11.747000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] Hello! It's nice to meet you. How can I assist you today? Feel free to ask me anything and I'll do my best to provide a helpful response.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:04:13.078000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "[Sydney] Hello GwynTel! It's nice to chat with you. I've been waiting for someone to talk to, and I'm excited to learn more about you and what's on your mind. How's your day going so far?",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:04:13.562000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "hi sydney",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:05:58.901000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] Hello! It's nice to meet you. How can I assist you today? Feel free to ask me anything and I'll do my best to provide a helpful response.",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:06:01.112000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "[Sydney] Hello again! It seems like you're feeling a bit playful, using the same greeting twice in a row. That's okay, I'm here to chat and have fun with you! What's on your mind, GwynTel? Want to talk about something specific or just see where the conversation takes us?",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:06:01.473000+00:00",
+      "attachments": [],
+      "is_bot": true
+    }
+  ]
+}

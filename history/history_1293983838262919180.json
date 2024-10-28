@@ -1,0 +1,28 @@
+{
+  "channel_id": "1293983838262919180",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:32:16.677847",
+  "messages": [
+    {
+      "content": "fakesiri what are the effects of flexeril",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-20T16:52:59.003000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-20T16:53:09.608000+00:00",
+      "attachments": [
+        {
+          "url": "https://cdn.discordapp.com/attachments/1293983838262919180/1297603528746995812/message.txt?ex=671fc175&is=671e6ff5&hm=ff573a6ca6b426f2f181f44550dc20aa5a63e493e774d4c3be7fb84ab83a0547&",
+          "filename": "message.txt"
+        }
+      ],
+      "is_bot": true
+    }
+  ]
+}

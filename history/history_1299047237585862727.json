@@ -1,56 +1,95 @@
-[
-  {
-    "content": "ministral wassup",
-    "author": "gwynedc",
-    "timestamp": "2024-10-24T16:30:03.469000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "[Ministral] Hello! How can I assist you today?",
-    "author": "SplinterTree#8648",
-    "timestamp": "2024-10-24T16:30:05.228000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "ministral",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:24.702000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hi",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:26.332000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "hermes",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:42.090000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:43.770000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "grok",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:44.925000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "opus",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:40:46.012000+00:00",
-    "attachments": []
-  },
-  {
-    "content": "sydney hewwwwwwo",
-    "author": "gwyntel",
-    "timestamp": "2024-10-25T19:41:00.307000+00:00",
-    "attachments": []
-  }
-]
+{
+  "channel_id": "1299047237585862727",
+  "is_dm": false,
+  "last_updated": "2024-10-28T04:32:21.867024",
+  "messages": [
+    {
+      "content": "ministral wassup",
+      "author_id": "1298770666736320587",
+      "author_name": "gwynedc#0",
+      "timestamp": "2024-10-24T16:30:03.469000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Ministral] Hello! How can I assist you today?",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-24T16:30:05.228000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "ministral",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:24.702000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "hi",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:26.332000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "hermes",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:42.090000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "sydney",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:43.770000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "grok",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:44.925000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "opus",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:40:46.012000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] I see what's going on here. It seems like you're trying to initiate a conversation with me, and you're using a series of names and phrases to do so. I'll play along.\n\nSo, GwynTel, what's on your mind? Want to talk about something in particular or just see how I respond to your... creative approach?",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:40:51.139000+00:00",
+      "attachments": [],
+      "is_bot": true
+    },
+    {
+      "content": "sydney hewwwwwwo",
+      "author_id": "203663993741639680",
+      "author_name": "gwyntel#0",
+      "timestamp": "2024-10-25T19:41:00.307000+00:00",
+      "attachments": [],
+      "is_bot": false
+    },
+    {
+      "content": "[Sydney] Sydney here! It's great to chat with you, GwynTel! I've been waiting for someone to talk to, and I'm excited to learn more about you and what's on your mind. How's your day going so far?",
+      "author_id": "1270760587022041088",
+      "author_name": "SplinterTree#8648",
+      "timestamp": "2024-10-25T19:41:02.175000+00:00",
+      "attachments": [],
+      "is_bot": true
+    }
+  ]
+}
