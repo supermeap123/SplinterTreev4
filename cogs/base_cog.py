@@ -12,6 +12,7 @@ import re
 import base64
 import aiohttp
 import tempfile
+import asyncio
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -320,11 +321,48 @@ class BaseCog(commands.Cog):
                             "content": hist_msg.content
                         })
 
-            # Add current user message
-            messages.append({
-                "role": "user",
-                "content": message.content
-            })
+            # Process current message and any attachments
+            user_message_content = []
+            
+            # Add text content if present
+            if message.content:
+                user_message_content.append({
+                    "type": "text",
+                    "text": message.content
+                })
+
+            # Process image attachments if vision is supported
+            if self.supports_vision and message.attachments:
+                for attachment in message.attachments:
+                    if attachment.content_type and attachment.content_type.startswith('image/'):
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(attachment.url) as response:
+                                    if response.status == 200:
+                                        user_message_content.append({
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": attachment.url
+                                            }
+                                        })
+                                        logging.debug(f"[{self.name}] Added image attachment to message")
+                        except Exception as e:
+                            logging.error(f"[{self.name}] Failed to process image attachment: {str(e)}")
+
+            # Add the processed user message
+            if user_message_content:
+                if len(user_message_content) == 1 and "text" in user_message_content[0]:
+                    # If only text content, use simple format
+                    messages.append({
+                        "role": "user",
+                        "content": user_message_content[0]["text"]
+                    })
+                else:
+                    # If multiple content parts or images, use array format
+                    messages.append({
+                        "role": "user",
+                        "content": user_message_content
+                    })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
