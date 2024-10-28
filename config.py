@@ -46,6 +46,7 @@ ERROR_MESSAGES = {
 # If any of these keywords are found in the conversation history,
 # the bot will not engage with that conversation
 BLOCKED_KEYWORDS = [
+    # Content warnings
     "nsfw",
     "porn",
     "hentai",
@@ -80,4 +81,15 @@ BLOCKED_KEYWORDS = [
     "stolen",
     "leak",
     "exploit",
+    
+    # Specific blocked terms
+    "pig42",
+    "pig 42",
+    "robespeeair",
+    "robespeair",
+    "robespear",
+    "andwogynous",
+    "androgynous",
+    "shitpostew",
+    "shitposter",
 ]
