@@ -23,22 +23,24 @@ class RerollView(discord.ui.View):
     async def reroll(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             await interaction.response.defer()
-            async with interaction.channel.typing():
-                # Process message again for new response
-                new_response = await self.cog.generate_response(self.message)
-                if new_response:
-                    # Format response with model name
-                    prefixed_response = f"[{self.cog.name}] {new_response}"
-                    
-                    # Edit the original response
-                    await interaction.message.edit(content=prefixed_response, view=self)
-                    
-                    # Add emotion reaction
-                    emotion = analyze_emotion(new_response)
-                    if emotion:
+            # Process message again for new response
+            new_response = await self.cog.generate_response(self.message)
+            if new_response:
+                # Format response with model name
+                prefixed_response = f"[{self.cog.name}] {new_response}"
+                
+                # Edit the original response
+                await interaction.message.edit(content=prefixed_response, view=self)
+                
+                # Add emotion reaction
+                emotion = analyze_emotion(new_response)
+                if emotion:
+                    try:
                         await interaction.message.add_reaction(emotion)
-                else:
-                    await interaction.followup.send("Failed to generate a new response. Please try again.", ephemeral=True)
+                    except discord.errors.Forbidden:
+                        logging.warning(f"[{self.cog.name}] Missing permission to add reaction")
+            else:
+                await interaction.followup.send("Failed to generate a new response. Please try again.", ephemeral=True)
         except Exception as e:
             logging.error(f"Error in reroll button: {str(e)}")
             await interaction.followup.send("An error occurred while generating a new response.", ephemeral=True)
@@ -81,34 +83,57 @@ class BaseCog(commands.Cog):
 
         if is_triggered:
             logging.debug(f"[{self.name}] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Generate response
-                    response = await self.generate_response(message)
-                    
-                    if response:
-                        # Send the response
-                        emotion = await self.handle_response(response, message)
-                        return response, emotion
+            try:
+                # Check permissions
+                permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+                can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+                can_add_reactions = permissions.add_reactions if hasattr(permissions, 'add_reactions') else True
+
+                if not can_send:
+                    logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
+                    return
+
+                # Generate response
+                response = await self.generate_response(message)
+                
+                if response:
+                    # Send the response and add to history
+                    sent_message = await self.handle_response(response, message)
+                    if sent_message:
+                        # Add the sent message to history
+                        channel_id = str(message.channel.id)
+                        if hasattr(self.bot, 'message_history'):
+                            if channel_id not in self.bot.message_history:
+                                self.bot.message_history[channel_id] = []
+                            self.bot.message_history[channel_id].append(sent_message)
+                            logging.debug(f"[{self.name}] Added response to history for channel {channel_id}")
+                        return response, None
                     else:
                         logging.error(f"[{self.name}] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
+                        if can_add_reactions:
+                            await message.add_reaction('❌')
+                        if can_send:
+                            await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
                         return None, None
 
-                except Exception as e:
-                    logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
-                    return None, None
+            except Exception as e:
+                logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
+                try:
+                    if can_add_reactions:
+                        await message.add_reaction('❌')
+                    if can_send:
+                        error_msg = str(e)
+                        if "insufficient_quota" in error_msg.lower():
+                            await message.reply("⚠️ API quota exceeded. Please try again later.")
+                        elif "invalid_api_key" in error_msg.lower():
+                            await message.reply("🔑 API configuration error. Please contact the bot administrator.")
+                        elif "rate_limit_exceeded" in error_msg.lower():
+                            await message.reply("⏳ Rate limit exceeded. Please try again later.")
+                        else:
+                            await message.reply(f"[{self.name}] An error occurred while processing your request.")
+                except discord.errors.Forbidden:
+                    logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
+                return None, None
 
     async def generate_response(self, message):
         """Generate a response without handling it"""
@@ -144,18 +169,24 @@ class BaseCog(commands.Cog):
             channel_id = str(message.channel.id)
             if hasattr(self.bot, 'message_history') and channel_id in self.bot.message_history:
                 history = self.bot.message_history[channel_id]
+                logging.debug(f"[{self.name}] Processing history for channel {channel_id}, {len(history)} messages")
+                
                 # Convert history messages to API format
-                for hist_msg in history[:-1]:  # Exclude current message
+                for hist_msg in history:
                     if hist_msg.author == self.bot.user:
                         # Extract the actual response content by removing the model name prefix
                         content = hist_msg.content
                         if content.startswith('[') and ']' in content:
+                            # Extract model name and content
+                            model_name = content[1:content.index(']')]
                             content = content[content.index(']')+1:].strip()
+                            logging.debug(f"[{self.name}] Processing bot message from {model_name}: {content[:50]}...")
                         messages.append({
                             "role": "assistant",
                             "content": content
                         })
                     else:
+                        logging.debug(f"[{self.name}] Processing user message: {hist_msg.content[:50]}...")
                         messages.append({
                             "role": "user",
                             "content": hist_msg.content
@@ -167,6 +198,7 @@ class BaseCog(commands.Cog):
                 "content": message.content
             })
 
+            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
             if dynamic_prompt:
                 logging.debug(f"[{self.name}] Added dynamic prompt: {dynamic_prompt}")
@@ -243,6 +275,15 @@ class BaseCog(commands.Cog):
     async def handle_response(self, response_text, message, referenced_message=None):
         """Handle the response formatting and sending"""
         try:
+            # Check permissions
+            permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+            can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+            can_dm = True  # Assume DMs are possible until proven otherwise
+
+            if not can_send and not can_dm:
+                logging.error(f"[{self.name}] No available method to send response")
+                return None
+
             # Check if message content is spoilered using ||content|| format
             is_spoilered = message.content.startswith('||') and message.content.endswith('||')
 
@@ -252,6 +293,7 @@ class BaseCog(commands.Cog):
             # Create reroll view
             view = RerollView(self, message, response_text)
             
+            sent_message = None
             if is_spoilered:
                 # Send response as a DM to the user
                 try:
@@ -259,41 +301,46 @@ class BaseCog(commands.Cog):
                     dm_channel = await user.create_dm()
                     if len(prefixed_response) > 2000:
                         chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                        for chunk in chunks:
-                            await dm_channel.send(chunk, view=view)
+                        for i, chunk in enumerate(chunks):
+                            if i == len(chunks) - 1:
+                                sent_message = await dm_channel.send(chunk, view=view)
+                            else:
+                                await dm_channel.send(chunk)
                     else:
-                        await dm_channel.send(prefixed_response, view=view)
+                        sent_message = await dm_channel.send(prefixed_response, view=view)
                 except discord.Forbidden:
-                    logging.warning(f"Cannot send DM to user {message.author}.")
-            else:
+                    logging.warning(f"Cannot send DM to user {message.author}")
+                    can_dm = False
+            
+            if not is_spoilered or (is_spoilered and not can_dm and can_send):
                 # Send reply in chunks if too long
                 if len(prefixed_response) > 2000:
                     chunks = [prefixed_response[i:i+1900] for i in range(0, len(prefixed_response), 1900)]
-                    sent_messages = []
                     for i, chunk in enumerate(chunks):
                         # Only add view to last chunk
                         if i == len(chunks) - 1:
                             sent_message = await message.reply(chunk, view=view)
                         else:
-                            sent_message = await message.reply(chunk)
-                        sent_messages.append(sent_message)
+                            await message.reply(chunk)
                 else:
                     sent_message = await message.reply(prefixed_response, view=view)
 
             # Add reaction based on emotion analysis
             try:
-                emotion = analyze_emotion(response_text)
-                if emotion:
-                    await message.add_reaction(emotion)
+                if permissions.add_reactions:
+                    emotion = analyze_emotion(response_text)
+                    if emotion:
+                        await message.add_reaction(emotion)
             except Exception as e:
                 logging.error(f"Error adding emotion reaction: {str(e)}")
             
-            return emotion
+            return sent_message
 
         except Exception as e:
             logging.error(f"Error sending response for {self.name}: {str(e)}")
             try:
-                await message.add_reaction('❌')
+                if permissions.add_reactions:
+                    await message.add_reaction('❌')
             except:
                 pass
             return None
