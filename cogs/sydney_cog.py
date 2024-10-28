@@ -68,7 +68,8 @@ class SydneyCog(BaseCog):
                             persona_name=self.name,
                             user_message=message.content,
                             assistant_reply=response,
-                            emotion=emotion
+                            emotion=emotion,
+                            channel_id=message.channel.id
                         )
                         logging.debug(f"[Sydney] Logged interaction for user {message.author.id}")
 

@@ -150,7 +150,7 @@ class API:
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
             try:
-                # Run API call
+                # Run API call with store=true and metadata
                 completion = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -159,7 +159,13 @@ class API:
                     top_p=1,
                     frequency_penalty=0,
                     presence_penalty=0,
-                    stream=False
+                    stream=False,
+                    store=True,  # Enable request logging
+                    metadata={
+                        "model": model,
+                        "temperature": temperature,
+                        "source": "SplinterTree"
+                    }
                 )
 
                 # Convert OpenAI response to dict format

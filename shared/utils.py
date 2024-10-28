@@ -41,7 +41,8 @@ def analyze_emotion(text):
     return emotions[max_emotion[0]][1] if max_emotion[1] > 0 else emotions['neutral'][1]
 
 def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str, 
-                   user_message: str, assistant_reply: str, emotion: Optional[str] = None):
+                   user_message: str, assistant_reply: str, emotion: Optional[str] = None,
+                   channel_id: Optional[str] = None):
     """
     Log interaction details to SQLite database
     """
@@ -79,6 +80,7 @@ def log_interaction(user_id: str, guild_id: Optional[str], persona_name: str,
                 'timestamp': datetime.now().isoformat(),
                 'user_id': str(user_id),
                 'guild_id': str(guild_id) if guild_id else None,
+                'channel_id': str(channel_id) if channel_id else None,
                 'persona': persona_name,
                 'user_message': user_message,
                 'assistant_reply': assistant_reply,
