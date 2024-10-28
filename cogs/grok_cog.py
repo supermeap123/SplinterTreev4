@@ -14,7 +14,7 @@ class GrokCog(BaseCog):
             model="x-ai/grok-beta",
             provider="openrouter",
             prompt_file="grok",
-            supports_vision=False
+            supports_vision=True  # Enable vision support
         )
         logging.debug(f"[Grok-Beta] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Grok-Beta] Using provider: {self.provider}")
