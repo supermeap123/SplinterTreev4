@@ -3,6 +3,7 @@ import logging
 import time
 import json
 import asyncio
+import sqlite3
 from typing import Dict, Any, List, Union
 from openpipe import OpenAI, OpenPipe
 import backoff
@@ -32,6 +33,10 @@ class API:
             timeout=self.timeout
         )
         logging.info("[API] Initialized with OpenPipe configuration")
+
+        # Connect to SQLite database
+        self.db_conn = sqlite3.connect('databases/interaction_logs.db')
+        self.db_cursor = self.db_conn.cursor()
 
     def _make_openrouter_request(self, messages, model, temperature, max_tokens):
         """Synchronous OpenRouter API call"""
@@ -218,24 +223,22 @@ class API:
             # Add timestamp to tags
             if tags is None:
                 tags = {}
-            tags['timestamp'] = time.strftime('%Y-%m-%d %H:%M:%S')
+            tags_str = json.dumps(tags)
 
-            # Log interaction data
-            interaction = {
-                'requested_at': requested_at,
-                'received_at': received_at,
-                'request': req_payload,
-                'response': resp_payload,
-                'status_code': status_code,
-                'tags': tags
-            }
+            # Prepare SQL statement
+            sql = "INSERT INTO logs (requested_at, received_at, request, response, status_code, tags) VALUES (?, ?, ?, ?, ?, ?)"
+            values = (requested_at, received_at, json.dumps(req_payload), json.dumps(resp_payload), status_code, tags_str)
 
-            # Append to log file
-            with open('interaction_logs.jsonl', 'a', encoding='utf-8') as f:
-                f.write(json.dumps(interaction) + '\n')
+            # Execute SQL statement
+            self.db_cursor.execute(sql, values)
+            self.db_conn.commit()
             logging.debug(f"[API] Logged interaction with status code {status_code}")
 
         except Exception as e:
             logging.error(f"[API] Failed to report interaction: {str(e)}")
+
+    def __del__(self):
+        # Close database connection
+        self.db_conn.close()
 
 api = API()
