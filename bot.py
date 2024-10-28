@@ -105,19 +105,26 @@ async def save_channel_history(channel_id: str):
         history_file = get_history_file(channel_id)
         messages = message_history.get(channel_id, [])
         
-        # Convert messages to serializable format
-        history_data = [
-            {
-                'content': msg.content,
-                'author': str(msg.author),
-                'timestamp': msg.created_at.isoformat(),
-                'attachments': [
-                    {'url': att.url, 'filename': att.filename}
-                    for att in msg.attachments
-                ] if msg.attachments else []
-            }
-            for msg in messages
-        ]
+        # Convert messages to serializable format with additional metadata
+        history_data = {
+            'channel_id': channel_id,
+            'is_dm': isinstance(messages[0].channel, discord.DMChannel) if messages else False,
+            'last_updated': datetime.utcnow().isoformat(),
+            'messages': [
+                {
+                    'content': msg.content,
+                    'author_id': str(msg.author.id),
+                    'author_name': str(msg.author),
+                    'timestamp': msg.created_at.isoformat(),
+                    'attachments': [
+                        {'url': att.url, 'filename': att.filename}
+                        for att in msg.attachments
+                    ] if msg.attachments else [],
+                    'is_bot': msg.author.bot
+                }
+                for msg in messages
+            ]
+        }
         
         with open(history_file, 'w', encoding='utf-8') as f:
             json.dump(history_data, f, ensure_ascii=False, indent=2)
@@ -125,17 +132,56 @@ async def save_channel_history(channel_id: str):
     except Exception as e:
         logging.error(f"Error saving history for channel {channel_id}: {str(e)}")
 
+class HistoryMessage:
+    """Class to recreate message-like objects from saved history"""
+    def __init__(self, data, channel):
+        self.content = data['content']
+        self.author = type('Author', (), {
+            'id': int(data['author_id']),
+            'name': data['author_name'],
+            'bot': data['is_bot'],
+            '__str__': lambda self: data['author_name']
+        })()
+        self.created_at = datetime.fromisoformat(data['timestamp'])
+        self.attachments = [
+            type('Attachment', (), {'url': att['url'], 'filename': att['filename']})()
+            for att in data.get('attachments', [])
+        ]
+        self.channel = channel
+
 async def load_channel_history(channel_id: str, channel):
     """Load message history for a specific channel"""
     if not config.SHARED_HISTORY_ENABLED:
         return
         
     try:
-        # Get actual message history from Discord
+        history_file = get_history_file(channel_id)
+        
+        # Initialize empty history for this channel
+        message_history[channel_id] = []
+        
+        # First try to load from saved file
+        if os.path.exists(history_file):
+            try:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history_data = json.load(f)
+                    
+                # Check if history data is recent (within last 24 hours)
+                last_updated = datetime.fromisoformat(history_data['last_updated'])
+                if datetime.utcnow() - last_updated < timedelta(hours=24):
+                    # Recreate message objects from saved data
+                    for msg_data in history_data['messages']:
+                        history_msg = HistoryMessage(msg_data, channel)
+                        message_history[channel_id].append(history_msg)
+                    logging.info(f"Loaded {len(history_data['messages'])} messages from saved history for channel {channel_id}")
+                    return
+            except Exception as e:
+                logging.error(f"Error loading saved history for channel {channel_id}: {str(e)}")
+        
+        # If no valid saved history, load from Discord
         window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
         window_size = max(window_size, 50)  # Ensure at least 50 messages are loaded
         
-        message_history[channel_id] = []
         try:
             # For DM channels, we need to handle them differently
             if isinstance(channel, discord.DMChannel):
@@ -148,7 +194,11 @@ async def load_channel_history(channel_id: str, channel):
                     message_history[channel_id].append(msg)
             
             message_history[channel_id].reverse()  # Reverse to maintain chronological order
-            logging.info(f"Loaded {len(message_history[channel_id])} messages for channel {channel_id}")
+            logging.info(f"Loaded {len(message_history[channel_id])} messages from Discord for channel {channel_id}")
+            
+            # Save the newly loaded history
+            await save_channel_history(channel_id)
+            
         except discord.errors.Forbidden:
             logging.warning(f"Missing permissions to load history for channel {channel_id}")
         except Exception as e:
@@ -325,6 +375,7 @@ async def on_message(message):
         channel_id = str(message.channel.id)
         if channel_id not in message_history:
             message_history[channel_id] = []
+            await load_channel_history(channel_id, message.channel)
             
         # For DM channels, only include messages between the bot and this user
         if isinstance(message.channel, discord.DMChannel):
@@ -337,6 +388,9 @@ async def on_message(message):
         window_size = config.CONTEXT_WINDOWS.get(channel_id, config.DEFAULT_CONTEXT_WINDOW)
         if len(message_history[channel_id]) > window_size:
             message_history[channel_id] = message_history[channel_id][-window_size:]
+
+        # Save history after each message
+        await save_channel_history(channel_id)
 
     # Debug logging for message content and attachments
     logging.debug(f"Received message in channel {message.channel.id}: {message.content}")
@@ -395,10 +449,6 @@ async def on_message(message):
             else:
                 logging.warning("No cog available to handle message")
                 await message.channel.send("Sorry, no models are currently available to handle your request.")
-
-    # Save history if shared history is enabled
-    if config.SHARED_HISTORY_ENABLED:
-        await save_channel_history(str(message.channel.id))
 
 @bot.event
 async def on_command_error(ctx, error):
