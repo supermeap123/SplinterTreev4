@@ -145,7 +145,11 @@ class BaseCog(commands.Cog):
                             view=view
                         )
                     else:
-                        sent_message = await message.reply(prefixed_response, view=view)
+                        # If this is a forwarded message, reply to the original message
+                        if referenced_message:
+                            sent_message = await referenced_message.reply(prefixed_response, view=view)
+                        else:
+                            sent_message = await message.reply(prefixed_response, view=view)
 
             # Add reaction based on emotion analysis
             try:
@@ -171,6 +175,16 @@ class BaseCog(commands.Cog):
         """Handle incoming messages - this is called by the bot's on_message event"""
         if message.author == self.bot.user:
             return
+
+        # Handle forwarded message
+        referenced_message = message.reference.resolved if message.reference else None
+        if referenced_message and referenced_message.author != self.bot.user:
+            # Combine the forwarded message content with any additional context
+            combined_content = f"{referenced_message.content}\n\n{message.content if message.content else ''}"
+            # Store original content
+            original_content = message.content
+            # Temporarily modify message content to include forwarded content
+            message.content = combined_content.strip()
 
         # Process images first if there are any attachments
         if message.attachments:
@@ -208,7 +222,7 @@ class BaseCog(commands.Cog):
 
                 if response:
                     # Send the response
-                    sent_message = await self.handle_response(response, message)
+                    sent_message = await self.handle_response(response, message, referenced_message)
                     if sent_message:
                         # Log interaction
                         try:
@@ -224,6 +238,11 @@ class BaseCog(commands.Cog):
                             logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
                         except Exception as e:
                             logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
+                        
+                        # Restore original content if this was a forwarded message
+                        if referenced_message:
+                            message.content = original_content
+                            
                         return response, None
                     else:
                         logging.error(f"[{self.name}] No response received from API")
