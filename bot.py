@@ -567,7 +567,13 @@ async def on_message(message):
             if cog:
                 logging.debug(f"Using cog {cog.name} to handle message")
                 try:
-                    await cog.handle_message(message)
+                    # Check if bot has permission to send messages in the channel
+                    if message.channel.permissions_for(message.guild.me).send_messages:
+                        await cog.handle_message(message)
+                    else:
+                        # Send response as a DM to the user
+                        await message.author.send(f"Response from {cog.name}:")
+                        await cog.handle_message(message)
                     # Update last used cog for the channel
                     last_used_cogs[channel_id] = cog
                 except Exception as e:
