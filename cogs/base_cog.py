@@ -9,7 +9,6 @@ import time
 from shared.utils import analyze_emotion, log_interaction, get_message_history
 from shared.api import api
 import re
-import base64
 import aiohttp
 import asyncio
 import tempfile
@@ -30,10 +29,8 @@ class RerollView(discord.ui.View):
             if new_response:
                 # Format response with model name
                 prefixed_response = f"[{self.cog.name}] {new_response}"
-                
                 # Edit the original response
                 await interaction.message.edit(content=prefixed_response, view=self)
-                
                 # Add emotion reaction
                 emotion = analyze_emotion(new_response)
                 if emotion:
@@ -85,7 +82,6 @@ class BaseCog(commands.Cog):
             temp_file_path,
             filename=f'model_response_{message_id}.md'
         )
-        
         # Schedule file deletion
         async def delete_temp_file():
             await asyncio.sleep(1)  # Wait a bit to ensure file is sent
@@ -93,9 +89,7 @@ class BaseCog(commands.Cog):
                 os.unlink(temp_file_path)
             except Exception as e:
                 logging.error(f"Failed to delete temp file: {str(e)}")
-                
         asyncio.create_task(delete_temp_file())
-        
         return file
 
     async def handle_response(self, response_text, message, referenced_message=None):
@@ -115,10 +109,10 @@ class BaseCog(commands.Cog):
 
             # Format response with model name
             prefixed_response = f"[{self.name}] {response_text}"
-            
+
             # Create reroll view
             view = RerollView(self, message, response_text)
-            
+
             sent_message = None
             if is_spoilered:
                 # Send response as a DM to the user
@@ -139,7 +133,7 @@ class BaseCog(commands.Cog):
                 except discord.Forbidden:
                     logging.warning(f"Cannot send DM to user {message.author}")
                     can_dm = False
-            
+
             if not is_spoilered or (is_spoilered and not can_dm and can_send):
                 async with message.channel.typing():
                     if len(prefixed_response) > 2000:
@@ -161,7 +155,7 @@ class BaseCog(commands.Cog):
                         await message.add_reaction(emotion)
             except Exception as e:
                 logging.error(f"Error adding emotion reaction: {str(e)}")
-            
+
             return sent_message
 
         except Exception as e:
@@ -196,7 +190,7 @@ class BaseCog(commands.Cog):
 
                 # Generate response
                 response = await self.generate_response(message)
-                
+
                 if response:
                     # Send the response
                     sent_message = await self.handle_response(response, message)
@@ -249,7 +243,7 @@ class BaseCog(commands.Cog):
             # Get local timezone
             local_tz = datetime.now().astimezone().tzinfo
             current_time = datetime.now(local_tz)
-            
+
             # Format system prompt with dynamic variables
             formatted_prompt = self.raw_prompt.format(
                 discord_user=message.author.display_name,
@@ -278,30 +272,35 @@ class BaseCog(commands.Cog):
             history_messages = get_message_history(channel_id, limit=50)
             messages.extend(history_messages)
 
-            # Add current message
-            messages.append({
-                "role": "user",
-                "content": message.content
-            })
-
-            # Process image attachments if vision is supported
-            if self.supports_vision and message.attachments:
+            # Process image attachments for models that don't support vision
+            if not self.supports_vision and message.attachments:
+                image_descriptions = []
                 for attachment in message.attachments:
                     if attachment.content_type and attachment.content_type.startswith('image/'):
                         try:
-                            async with aiohttp.ClientSession() as session:
-                                async with session.get(attachment.url) as response:
-                                    if response.status == 200:
-                                        messages[-1]["content"] = [
-                                            {"type": "text", "text": message.content},
-                                            {
-                                                "type": "image_url",
-                                                "image_url": {"url": attachment.url}
-                                            }
-                                        ]
-                                        logging.debug(f"[{self.name}] Added image attachment to message")
+                            # Use Llama cog to get image description
+                            image_description = await self.get_image_description(attachment.url)
+                            if image_description:
+                                image_descriptions.append(f"Image Description: {image_description}")
                         except Exception as e:
-                            logging.error(f"[{self.name}] Failed to process image attachment: {str(e)}")
+                            logging.error(f"[{self.name}] Failed to get image description: {str(e)}")
+                if image_descriptions:
+                    # Append image descriptions to the user's message
+                    messages.append({
+                        "role": "user",
+                        "content": f"{message.content}\n\n{'\n'.join(image_descriptions)}"
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": message.content
+                    })
+            else:
+                # Add current message
+                messages.append({
+                    "role": "user",
+                    "content": message.content
+                })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
@@ -328,6 +327,26 @@ class BaseCog(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
+            return None
+
+    async def get_image_description(self, image_url):
+        """Use Llama cog to get image description"""
+        try:
+            # Prepare messages for Llama
+            messages = [
+                {"role": "system", "content": "You are Llama, an AI assistant that provides detailed descriptions of images."},
+                {"role": "user", "content": f"Please provide a detailed description of the image at this URL: {image_url}"}
+            ]
+            # Call Llama API directly
+            response_data = await api.call_openrouter(messages, 'meta-llama/llama-3.2-11b-instruct:free')
+            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
+                description = response_data['choices'][0]['message']['content']
+                logging.debug(f"[{self.name}] Got image description: {description}")
+                return description.strip()
+            logging.warning(f"[{self.name}] Llama did not return a description")
+            return None
+        except Exception as e:
+            logging.error(f"[{self.name}] Error getting image description from Llama: {str(e)}")
             return None
 
     def sanitize_username(self, username: str) -> str:
