@@ -43,9 +43,7 @@ class HelpCog(commands.Cog):
         # Add Administrative Commands section
         admin_commands = """
         `!splintertree_help [channel|dm]` - Show this help message (in channel or DM)
-        `!setcontext <size>` - Set context window size for the channel
-        `!getcontext` - Show current context window size
-        `!resetcontext` - Reset context window to default
+        `!set_context <count>` - Set number of context messages for the channel (1-20)
         `!clearcontext [hours]` - Clear conversation history (optionally specify hours)
         `!contact` - Show contact information
         """
@@ -69,7 +67,7 @@ class HelpCog(commands.Cog):
         • **Model Selection** - Use specific model triggers (listed below)
         • **Image Analysis** - Simply attach an image with your message
         • **File Processing** - Attach .txt or .md files with your message
-        • **Context Management** - Use context commands to control conversation history
+        • **Context Management** - Use set_context command to control conversation history
         """
         main_embed.add_field(name="📝 Basic Usage", value=usage.strip(), inline=False)
         embeds.append(main_embed)
@@ -129,9 +127,10 @@ class HelpCog(commands.Cog):
         context_info = """
         • **Persistent Storage**: SQLite database for reliable context storage
         • **Shared Context**: All models can see and reference each other's responses
-        • **Flexible Management**: Adjustable context window per channel
+        • **Flexible Management**: Adjustable context message count per channel (1-20)
         • **History Control**: Clear old context with customizable timeframe
         • **Cross-Session**: Context persists between bot restarts
+        • **Lazy Loading**: Context is loaded on-demand for each conversation
         """
         special_embed.add_field(name="🧠 Context Management", value=context_info.strip(), inline=False)
 

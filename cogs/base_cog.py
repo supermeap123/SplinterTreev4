@@ -55,6 +55,7 @@ class BaseCog(commands.Cog):
         self.provider = provider
         self.supports_vision = supports_vision
         self.context_cog = self.bot.get_cog('ContextCog')  # Get ContextCog instance
+        self.context_messages = {}  # Store context message counts per channel
 
         # Load prompt
         try:
@@ -307,6 +308,27 @@ class BaseCog(commands.Cog):
                 filtered.append(message)
         return filtered
 
+    def remove_duplicate_username(self, content):
+        """Remove duplicate usernames from the content"""
+        pattern = r'\[(\w+)\]\s*\[(\w+)\]'
+        return re.sub(pattern, r'[\1]', content)
+
+    async def get_context_messages(self, channel_id: str) -> list:
+        """Get the last N context messages for a channel"""
+        n = self.context_messages.get(channel_id, 5)  # Default to 5 if not set
+        messages = await self.context_cog.get_context_messages(channel_id, limit=n)
+        return messages
+
+    @commands.command(name='set_context')
+    @commands.has_permissions(manage_messages=True)
+    async def set_context_messages(self, ctx, count: int):
+        """Set the number of context messages for the current channel"""
+        if count < 1 or count > 20:
+            await ctx.send("Context message count must be between 1 and 20.")
+            return
+        self.context_messages[str(ctx.channel.id)] = count
+        await ctx.send(f"Context message count for this channel set to {count}.")
+
     async def generate_response(self, message):
         """Generate a response without handling it"""
         try:
@@ -337,42 +359,17 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Get last 10 messages from context database
+            # Get context messages
             channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=10)
+            history_messages = await self.get_context_messages(channel_id)
             
-            # Process messages to create 5 turns of conversation
-            conversation_turns = []
-            current_turn = {"user": "", "assistant": ""}
-            turn_count = 0
-
-            for msg in reversed(history_messages):
+            # Process messages to create conversation context
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
                 if msg['is_assistant']:
-                    if current_turn["assistant"]:
-                        conversation_turns.append(current_turn)
-                        current_turn = {"user": "", "assistant": ""}
-                        turn_count += 1
-                        if turn_count >= 5:
-                            break
-                    current_turn["assistant"] = f"[{msg['persona_name']}] {msg['content']}"
-                else:
-                    if current_turn["user"]:
-                        conversation_turns.append(current_turn)
-                        current_turn = {"user": "", "assistant": ""}
-                        turn_count += 1
-                        if turn_count >= 5:
-                            break
-                    current_turn["user"] = msg['content']
-
-            if current_turn["user"] or current_turn["assistant"]:
-                conversation_turns.append(current_turn)
-
-            # Add conversation turns to messages
-            for turn in reversed(conversation_turns):
-                if turn["user"]:
-                    messages.append({"role": "user", "content": turn["user"]})
-                if turn["assistant"]:
-                    messages.append({"role": "assistant", "content": turn["assistant"]})
+                    content = self.remove_duplicate_username(f"[{msg['persona_name']}] {content}")
+                messages.append({"role": role, "content": content})
 
             # Add current message
             messages.append({
@@ -400,6 +397,8 @@ class BaseCog(commands.Cog):
 
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 response = response_data['choices'][0]['message']['content']
+                # Remove duplicate usernames from the response
+                response = self.remove_duplicate_username(response)
                 logging.debug(f"[{self.name}] Got response: {response}")
                 return response
 
