@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
+from shared.utils import log_interaction, analyze_emotion, store_alt_text
 
 class GrokCog(BaseCog):
     def __init__(self, bot):
@@ -14,7 +14,7 @@ class GrokCog(BaseCog):
             model="x-ai/grok-beta",
             provider="openrouter",
             prompt_file="grok",
-            supports_vision=True  # Enable vision support
+            supports_vision=True
         )
         self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Grok-Beta] Initialized with raw_prompt: {self.raw_prompt}")
@@ -26,83 +26,134 @@ class GrokCog(BaseCog):
         """Override qualified_name to match the expected cog name"""
         return "Grok-Beta"
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
+    async def generate_image_description(self, image_url):
+        """Generate a description for the given image URL"""
+        try:
+            logging.info(f"[Grok-Beta] Starting image description generation for URL: {image_url}")
+            
+            # Construct messages for vision API with specific prompt for alt text
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a vision model specialized in providing detailed, accurate, and concise alt text descriptions of images. Focus on the key visual elements, context, and any text present in the image. Your descriptions should be informative yet concise, suitable for screen readers."
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Please provide a concise but detailed alt text description of this image:"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url
+                            }
+                        }
+                    ]
+                }
+            ]
+            
+            logging.debug(f"[Grok-Beta] Constructed vision API messages: {messages}")
+            logging.info(f"[Grok-Beta] Calling OpenRouter API for vision processing")
+            
+            # Call API with vision capabilities
+            response_data = await self.api_client.call_openrouter(messages, self.model, temperature=0.3)
+            logging.debug(f"[Grok-Beta] Received API response: {response_data}")
+            
+            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
+                description = response_data['choices'][0]['message']['content']
+                # Clean up the description - remove any markdown or quotes
+                description = description.strip('`"\' ')
+                if description.lower().startswith('alt text:'):
+                    description = description[8:].strip()
+                logging.info(f"[Grok-Beta] Generated alt text: {description[:100]}...")
+                return description
+            else:
+                logging.error("[Grok-Beta] No description generated for image - API response invalid")
+                logging.debug(f"[Grok-Beta] Full API response: {response_data}")
+                return None
+                
+        except Exception as e:
+            logging.error(f"[Grok-Beta] Error generating image description: {str(e)}", exc_info=True)
+            return None
+
+    async def handle_message(self, message):
+        """Override handle_message to ensure proper async flow"""
         if message.author == self.bot.user:
             return
 
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
+        logging.info(f"[Grok-Beta] Handling message from {message.author}: {message.content[:100]}...")
+        logging.debug(f"[Grok-Beta] Message has {len(message.attachments)} attachments")
+
+        # Process images first if there are any attachments
+        if message.attachments:
+            logging.info(f"[Grok-Beta] Found {len(message.attachments)} attachments")
+            image_attachments = [
+                att for att in message.attachments 
+                if att.content_type and att.content_type.startswith('image/')
+            ]
+            logging.info(f"[Grok-Beta] Found {len(image_attachments)} image attachments")
+            
+            if image_attachments:
+                logging.info("[Grok-Beta] Starting image processing")
+                async with message.channel.typing():
+                    for attachment in image_attachments:
+                        try:
+                            logging.debug(f"[Grok-Beta] Processing attachment: {attachment.filename} ({attachment.content_type})")
+                            description = await self.generate_image_description(attachment.url)
+                            if description:
+                                logging.info(f"[Grok-Beta] Generated description for {attachment.filename}")
+                                # Store alt text in database
+                                success = await store_alt_text(
+                                    message_id=str(message.id),
+                                    channel_id=str(message.channel.id),
+                                    alt_text=description,
+                                    attachment_url=attachment.url
+                                )
+                                if success:
+                                    logging.info(f"[Grok-Beta] Successfully stored alt text for {attachment.filename}")
+                                    if message.channel.permissions_for(message.guild.me).add_reactions:
+                                        await message.add_reaction('🖼️')
+                                else:
+                                    logging.error(f"[Grok-Beta] Failed to store alt text for {attachment.filename}")
+                                    if message.channel.permissions_for(message.guild.me).add_reactions:
+                                        await message.add_reaction('⚠️')
+                            else:
+                                logging.error(f"[Grok-Beta] Failed to generate description for {attachment.filename}")
+                                if message.channel.permissions_for(message.guild.me).add_reactions:
+                                    await message.add_reaction('❌')
+                        except Exception as e:
+                            logging.error(f"[Grok-Beta] Error processing image {attachment.filename}: {str(e)}", exc_info=True)
+                            if message.channel.permissions_for(message.guild.me).add_reactions:
+                                await message.add_reaction('❌')
+                            continue
 
         # Add message to context before processing
         if self.context_cog:
-            channel_id = str(message.channel.id)
-            guild_id = str(message.guild.id) if message.guild else None
-            user_id = str(message.author.id)
-            content = message.content
-            is_assistant = False
-            persona_name = self.name
-            emotion = None
+            try:
+                channel_id = str(message.channel.id)
+                guild_id = str(message.guild.id) if message.guild else None
+                user_id = str(message.author.id)
+                content = message.content
+                is_assistant = False
+                persona_name = self.name
+                emotion = None
 
-            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
+                await self.context_cog.add_message_to_context(
+                    channel_id=channel_id,
+                    guild_id=guild_id,
+                    user_id=user_id,
+                    content=content,
+                    is_assistant=is_assistant,
+                    persona_name=persona_name,
+                    emotion=emotion
+                )
+            except Exception as e:
+                logging.error(f"[Grok-Beta] Failed to add message to context: {str(e)}")
 
-        if is_triggered:
-            logging.debug(f"[Grok-Beta] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Process message and get response
-                    logging.debug(f"[Grok-Beta] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
-                    
-                    if response:
-                        logging.debug(f"[Grok-Beta] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=emotion
-                            )
-                            logging.debug(f"[Grok-Beta] Logged interaction for user {message.author.id}")
-
-                            # Add bot's response to context
-                            if self.context_cog:
-                                await self.context_cog.add_message_to_context(
-                                    channel_id=str(message.channel.id),
-                                    guild_id=str(message.guild.id) if message.guild else None,
-                                    user_id=str(self.bot.user.id),
-                                    content=response,
-                                    is_assistant=True,
-                                    persona_name=self.name,
-                                    emotion=emotion
-                                )
-                        except Exception as e:
-                            logging.error(f"[Grok-Beta] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[Grok-Beta] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-
-                except Exception as e:
-                    logging.error(f"[Grok-Beta] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
+        # Continue with normal message processing
+        await super().handle_message(message)
 
 async def setup(bot):
     # Register the cog with its proper name
