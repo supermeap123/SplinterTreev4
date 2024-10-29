@@ -50,7 +50,7 @@ class BaseCog(commands.Cog):
         self.bot = bot
         self.name = name
         self.nickname = nickname
-        self.trigger_words = trigger_words
+        self.trigger_words = [word.lower() for word in trigger_words]  # Convert trigger words to lowercase
         self.model = model
         self.provider = provider
         self.supports_vision = supports_vision
@@ -74,113 +74,12 @@ class BaseCog(commands.Cog):
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
 
-    async def create_response_file(self, response_text: str, message_id: str) -> discord.File:
-        """Create a markdown file containing the response"""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as temp_file:
-            temp_file.write(response_text)
-            temp_file_path = temp_file.name
-
-        # Create Discord File object
-        file = discord.File(
-            temp_file_path,
-            filename=f'model_response_{message_id}.md'
-        )
-        # Schedule file deletion
-        async def delete_temp_file():
-            await asyncio.sleep(1)  # Wait a bit to ensure file is sent
-            try:
-                os.unlink(temp_file_path)
-            except Exception as e:
-                logging.error(f"Failed to delete temp file: {str(e)}")
-        asyncio.create_task(delete_temp_file())
-        return file
-
-    async def handle_response(self, response_text, message, referenced_message=None):
-        """Handle the response formatting and sending"""
-        try:
-            # Check permissions
-            permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
-            can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
-            can_dm = True  # Assume DMs are possible until proven otherwise
-
-            if not can_send and not can_dm:
-                logging.error(f"[{self.name}] No available method to send response")
-                return None
-
-            # Check if message content is spoilered using ||content|| format
-            is_spoilered = message.content.startswith('||') and message.content.endswith('||')
-
-            # Format response with model name
-            prefixed_response = f"[{self.name}] {response_text}"
-
-            # Create reroll view
-            view = RerollView(self, message, response_text)
-
-            sent_message = None
-            if is_spoilered:
-                # Send response as a DM to the user
-                try:
-                    user = message.author
-                    dm_channel = await user.create_dm()
-                    async with message.channel.typing():
-                        if len(prefixed_response) > 2000:
-                            # Create and send markdown file
-                            file = await self.create_response_file(prefixed_response, str(message.id))
-                            sent_message = await dm_channel.send(
-                                f"[{self.name}] Response was too long. Full response is in the attached file:",
-                                file=file,
-                                view=view
-                            )
-                        else:
-                            sent_message = await dm_channel.send(prefixed_response, view=view)
-                except discord.Forbidden:
-                    logging.warning(f"Cannot send DM to user {message.author}")
-                    can_dm = False
-
-            if not is_spoilered or (is_spoilered and not can_dm and can_send):
-                async with message.channel.typing():
-                    if len(prefixed_response) > 2000:
-                        # Create and send markdown file
-                        file = await self.create_response_file(prefixed_response, str(message.id))
-                        sent_message = await message.reply(
-                            f"[{self.name}] Response was too long. Full response is in the attached file:",
-                            file=file,
-                            view=view
-                        )
-                    else:
-                        sent_message = await message.reply(prefixed_response, view=view)
-
-            # Add reaction based on emotion analysis
-            try:
-                if permissions.add_reactions:
-                    emotion = analyze_emotion(response_text)
-                    if emotion:
-                        await message.add_reaction(emotion)
-            except Exception as e:
-                logging.error(f"Error adding emotion reaction: {str(e)}")
-
-            # Add bot's response to context database
-            if sent_message:
-                await self.context_cog.add_message_to_context(
-                    channel_id=str(sent_message.channel.id),
-                    guild_id=str(sent_message.guild.id) if sent_message.guild else None,
-                    user_id=str(self.bot.user.id),
-                    content=response_text,
-                    is_assistant=True,
-                    persona_name=self.name,
-                    emotion=emotion
-                )
-
-            return sent_message
-
-        except Exception as e:
-            logging.error(f"Error sending response for {self.name}: {str(e)}")
-            try:
-                if permissions.add_reactions:
-                    await message.add_reaction('❌')
-            except:
-                pass
-            return None
+    def check_triggers(self, content: str) -> bool:
+        """Check if the message content contains any trigger words"""
+        content = content.lower()
+        # Split content into words and check each word against triggers
+        words = content.split()
+        return any(trigger in words for trigger in self.trigger_words)
 
     def is_reply_to_bot(self, message):
         """Check if the message is a reply to this bot's persona and return the referenced message content"""
@@ -198,8 +97,7 @@ class BaseCog(commands.Cog):
             return
 
         # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
+        is_triggered = self.check_triggers(message.content)
         replied_content = self.is_reply_to_bot(message)
 
         if is_triggered or replied_content:
