@@ -38,9 +38,22 @@ class Llama32_11BCog(BaseCog):
                 },
                 {
                     "role": "user",
-                    "content": f"Please provide a concise but detailed alt text description of this image: {image_url}"
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Please provide a concise but detailed alt text description of this image:"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url
+                            }
+                        }
+                    ]
                 }
             ]
+            
+            logging.debug(f"[Llama-3.2-11B] Sending vision request for image: {image_url}")
             
             # Call API with vision capabilities
             response_data = await self.api_client.call_openrouter(messages, self.model)
@@ -60,61 +73,6 @@ class Llama32_11BCog(BaseCog):
         except Exception as e:
             logging.error(f"[Llama-3.2-11B] Error generating image description: {str(e)}")
             return None
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
-        if message.author == self.bot.user:
-            return
-
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
-
-        if is_triggered:
-            logging.debug(f"[Llama-3.2-11B] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Process message and get response
-                    logging.debug(f"[Llama-3.2-11B] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
-                    
-                    if response:
-                        logging.debug(f"[Llama-3.2-11B] Got response: {response[:100]}...")
-                        # Send the response
-                        sent_message = await self.handle_response(response, message)
-                        if sent_message:
-                            # Log interaction
-                            try:
-                                log_interaction(
-                                    user_id=message.author.id,
-                                    guild_id=message.guild.id if message.guild else None,
-                                    persona_name=self.name,
-                                    user_message=message.content,
-                                    assistant_reply=response,
-                                    emotion=analyze_emotion(response),
-                                    channel_id=str(message.channel.id)
-                                )
-                                logging.debug(f"[Llama-3.2-11B] Logged interaction for user {message.author.id}")
-                            except Exception as e:
-                                logging.error(f"[Llama-3.2-11B] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[Llama-3.2-11B] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-
-                except Exception as e:
-                    logging.error(f"[Llama-3.2-11B] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
 
 async def setup(bot):
     # Register the cog with its proper name
