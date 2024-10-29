@@ -32,6 +32,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Mistral**: Efficient open-source model
 - **Llama-2**: Open-source model with vision capabilities
 - **NoroMaid-20B**: Advanced conversational model
+- **MythoMax-L2-13B**: Versatile language model
 
 ### OpenPipe Models
 - **Hermes**: Specialized conversation model
