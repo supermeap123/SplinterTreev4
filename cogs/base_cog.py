@@ -79,9 +79,14 @@ class BaseCog(commands.Cog):
             logging.info(f"[{self.name}] Acquired image processing lock")
             
             # Get Llama cog for vision processing
-            llama_cog = self.bot.get_cog('Llama-3.2-11B')
-            if not llama_cog or not llama_cog.supports_vision:
-                logging.warning(f"[{self.name}] Vision model not available - Llama cog found: {llama_cog is not None}, supports_vision: {llama_cog.supports_vision if llama_cog else False}")
+            llama_cog = None
+            for cog in self.bot.cogs.values():
+                if isinstance(cog, commands.Cog) and getattr(cog, 'name', '') == 'Llama-3.2-11B':
+                    llama_cog = cog
+                    break
+
+            if not llama_cog or not getattr(llama_cog, 'supports_vision', False):
+                logging.warning(f"[{self.name}] Vision model not available - Llama cog found: {llama_cog is not None}, supports_vision: {getattr(llama_cog, 'supports_vision', False) if llama_cog else False}")
                 return False
 
             image_attachments = [

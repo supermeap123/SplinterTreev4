@@ -135,11 +135,11 @@ class Llama32_11BCog(BaseCog):
         await super().handle_message(message)
 
 async def setup(bot):
-    # Register the cog with its proper name
+    """Register the cog with its proper name"""
     try:
         cog = Llama32_11BCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Llama-3.2-11B] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Llama-3.2-11B] Registered cog with name: {cog.name}")
         return cog
     except Exception as e:
         logging.error(f"[Llama-3.2-11B] Failed to register cog: {str(e)}", exc_info=True)
