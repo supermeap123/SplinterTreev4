@@ -172,6 +172,21 @@ class BaseCog(commands.Cog):
         if message.author == self.bot.user:
             return
 
+        # Process images first if there are any attachments
+        if message.attachments:
+            image_attachments = [
+                att for att in message.attachments 
+                if att.content_type and att.content_type.startswith('image/')
+            ]
+            if image_attachments:
+                # Get Llama cog for vision processing
+                llama_cog = self.bot.get_cog('Llama-3.2-11B')
+                if llama_cog and llama_cog.supports_vision:
+                    await self.process_images(message)
+                    # Return if this is not the Llama cog (let other models wait for alt text)
+                    if self.name != "Llama-3.2-11B":
+                        return
+
         # Check if message triggers this cog
         msg_content = message.content.lower()
         is_triggered = any(word in msg_content for word in self.trigger_words)
@@ -187,10 +202,6 @@ class BaseCog(commands.Cog):
                 if not can_send:
                     logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
                     return
-
-                # Process images first if needed
-                if not self.supports_vision and message.attachments:
-                    await self.process_images(message)
 
                 # Generate response
                 response = await self.generate_response(message)
@@ -377,16 +388,12 @@ class BaseCog(commands.Cog):
 
             # Add current message with any image descriptions from the database
             if message.attachments and not self.supports_vision:
-                # Get the most recent image descriptions from the database
-                image_descriptions = []
-                for msg in history_messages[-5:]:  # Check last 5 messages for image descriptions
-                    if msg['role'] == 'assistant' and msg.get('name') == 'Llama-Vision':
-                        image_descriptions.append(msg['content'])
-                
-                if image_descriptions:
+                # Get alt text for this message
+                alt_text = get_alt_text(str(message.id))
+                if alt_text:
                     messages.append({
                         "role": "user",
-                        "content": f"{message.content}\n\n{'\n'.join(image_descriptions)}"
+                        "content": f"{message.content}\n\nImage description: {alt_text}"
                     })
                 else:
                     messages.append({
@@ -470,4 +477,5 @@ class BaseCog(commands.Cog):
                 temperatures = json.load(f)
             return temperatures.get(agent_name)  # Return None if not found
         except Exception as e:
-            logging
+            logging.error(f"Error getting temperature: {str(e)}")
+            return None
