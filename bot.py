@@ -8,7 +8,7 @@ import asyncio
 import random
 import aiohttp
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -69,7 +69,7 @@ def get_uptime():
     """Get bot uptime as a formatted string"""
     if start_time is None:
         return "Unknown"
-    uptime = datetime.utcnow() - start_time
+    uptime = datetime.now(timezone.utc) - start_time
     days = uptime.days
     hours, remainder = divmod(uptime.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -88,7 +88,7 @@ def get_last_interaction():
     """Get last interaction as a formatted string"""
     if last_interaction['user'] is None:
         return "No interactions yet"
-    time_diff = datetime.utcnow() - last_interaction['time']
+    time_diff = datetime.now(timezone.utc) - last_interaction['time']
     minutes = int(time_diff.total_seconds() / 60)
     if minutes < 1:
         return f"Just now with {last_interaction['user']}"
@@ -139,7 +139,7 @@ async def save_channel_history(channel_id: str):
         history_data = {
             'channel_id': channel_id,
             'is_dm': isinstance(messages[0].channel, discord.DMChannel) if messages else False,
-            'last_updated': datetime.utcnow().isoformat(),
+            'last_updated': datetime.now(timezone.utc).isoformat(),
             'messages': [
                 {
                     'content': msg.content,
@@ -198,7 +198,7 @@ async def load_channel_history(channel_id: str, channel):
                     
                 # Check if history data is recent (within last 24 hours)
                 last_updated = datetime.fromisoformat(history_data['last_updated'])
-                if datetime.utcnow() - last_updated < timedelta(hours=24):
+                if datetime.now(timezone.utc) - last_updated < timedelta(hours=24):
                     # Recreate message objects from saved data
                     for msg_data in history_data['messages']:
                         history_msg = HistoryMessage(msg_data, channel)
@@ -373,22 +373,11 @@ async def rotate_status():
 @bot.event
 async def on_ready():
     global start_time
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
     
     # Set initial "Booting..." status
     await bot.change_presence(activity=discord.Game(name="Booting..."))
-    
-    # Load history for all channels
-    for guild in bot.guilds:
-        for channel in guild.text_channels:
-            channel_id = str(channel.id)
-            await load_channel_history(channel_id, channel)
-    
-    # Load history for DM channels
-    for dm_channel in bot.private_channels:
-        channel_id = str(dm_channel.id)
-        await load_channel_history(channel_id, dm_channel)
     
     await setup_cogs()
     
@@ -449,7 +438,7 @@ async def on_message(message):
 
     # Update last interaction
     last_interaction['user'] = message.author.display_name
-    last_interaction['time'] = datetime.utcnow()
+    last_interaction['time'] = datetime.now(timezone.utc)
 
     # Add message to history if shared history is enabled
     if config.SHARED_HISTORY_ENABLED:
