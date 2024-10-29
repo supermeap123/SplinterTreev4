@@ -4,27 +4,27 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion
 
-class NoroMaidCog(BaseCog):
+class NoromaidCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="NoroMaid-20B",
-            nickname="NoroMaid",
-            trigger_words=['noromaid', 'noro', 'maid'],
-            model="neversleep/noromaid-20b",
-            provider="openrouter",
+            name="Noromaid",
+            nickname="Noromaid",
+            trigger_words=['noromaid', 'noromaid hi'],
+            model="neversleep/noromaid-20b",  # Keeping the model line as instructed
+            provider="openrouter",  # Updating the provider as per the instructions
             prompt_file="noromaid",
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[NoroMaid-20B] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[NoroMaid-20B] Using provider: {self.provider}")
-        logging.debug(f"[NoroMaid-20B] Vision support: {self.supports_vision}")
+        logging.debug(f"[Noromaid] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Noromaid] Using provider: {self.provider}")
+        logging.debug(f"[Noromaid] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "NoroMaid-20B"
+        return "Noromaid"
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -32,85 +32,39 @@ class NoroMaidCog(BaseCog):
         if message.author == self.bot.user:
             return
 
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
-
         # Add message to context before processing
         if self.context_cog:
-            channel_id = str(message.channel.id)
-            guild_id = str(message.guild.id) if message.guild else None
-            user_id = str(message.author.id)
-            content = message.content
-            is_assistant = False
-            persona_name = self.name
-            emotion = None
+            try:
+                channel_id = str(message.channel.id)
+                guild_id = str(message.guild.id) if message.guild else None
+                user_id = str(message.author.id)
+                content = message.content
+                is_assistant = False
+                persona_name = self.name
+                emotion = None
 
-            await self.context_cog.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
+                await self.context_cog.add_message_to_context(
+                    channel_id=channel_id,
+                    guild_id=guild_id,
+                    user_id=user_id,
+                    content=content,
+                    is_assistant=is_assistant,
+                    persona_name=persona_name,
+                    emotion=emotion
+                )
+            except Exception as e:
+                logging.error(f"[Noromaid] Failed to add message to context: {str(e)}")
 
-        if is_triggered:
-            logging.debug(f"[NoroMaid-20B] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Process message and get response
-                    logging.debug(f"[NoroMaid-20B] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
-                    
-                    if response:
-                        logging.debug(f"[NoroMaid-20B] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=emotion
-                            )
-                            logging.debug(f"[NoroMaid-20B] Logged interaction for user {message.author.id}")
-
-                            # Add bot's response to context
-                            if self.context_cog:
-                                await self.context_cog.add_message_to_context(
-                                    channel_id=str(message.channel.id),
-                                    guild_id=str(message.guild.id) if message.guild else None,
-                                    user_id=str(self.bot.user.id),
-                                    content=response,
-                                    is_assistant=True,
-                                    persona_name=self.name,
-                                    emotion=emotion
-                                )
-                        except Exception as e:
-                            logging.error(f"[NoroMaid-20B] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[NoroMaid-20B] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-
-                except Exception as e:
-                    logging.error(f"[NoroMaid-20B] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
+        # Let base_cog handle image processing first
+        await super().handle_message(message)
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        cog = NoroMaidCog(bot)
+        cog = NoromaidCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[NoroMaid-20B] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Noromaid] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[NoroMaid-20B] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Noromaid] Failed to register cog: {str(e)}", exc_info=True)
         raise

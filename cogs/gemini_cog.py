@@ -8,22 +8,23 @@ class GeminiCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Gemini-Flash",
+            name="Gemini",
             nickname="Gemini",
-            trigger_words=['gemini', 'flash', "gemini flash 1.5", "gimmi"],
-            model="google/gemini-flash-1.5",
-            provider="openrouter",
+            trigger_words=['gemini', 'gemini hi'],
+            model="google/gemini-flash-1.5",  # Keeping the model line as instructed
+            provider="openrouter",  # Updating the provider as per the instructions
             prompt_file="gemini",
-            supports_vision=True
+            supports_vision=False
         )
-        logging.debug(f"[Gemini-Flash] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Gemini-Flash] Using provider: {self.provider}")
-        logging.debug(f"[Gemini-Flash] Vision support: {self.supports_vision}")
+        self.context_cog = bot.get_cog('ContextCog')
+        logging.debug(f"[Gemini] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Gemini] Using provider: {self.provider}")
+        logging.debug(f"[Gemini] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Gemini-Flash"
+        return "Gemini"
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -31,61 +32,39 @@ class GeminiCog(BaseCog):
         if message.author == self.bot.user:
             return
 
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
+        # Add message to context before processing
+        if self.context_cog:
+            try:
+                channel_id = str(message.channel.id)
+                guild_id = str(message.guild.id) if message.guild else None
+                user_id = str(message.author.id)
+                content = message.content
+                is_assistant = False
+                persona_name = self.name
+                emotion = None
 
-        if is_triggered:
-            logging.debug(f"[Gemini-Flash] Triggered by message: {message.content}")
-            async with message.channel.typing():
-                try:
-                    # Process message and get response
-                    logging.debug(f"[Gemini-Flash] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.generate_response(message)
-                    
-                    if response:
-                        logging.debug(f"[Gemini-Flash] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=emotion
-                            )
-                            logging.debug(f"[Gemini-Flash] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[Gemini-Flash] Failed to log interaction: {str(e)}", exc_info=True)
-                    else:
-                        logging.error("[Gemini-Flash] No response received from API")
-                        await message.add_reaction('❌')
-                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
+                await self.context_cog.add_message_to_context(
+                    channel_id=channel_id,
+                    guild_id=guild_id,
+                    user_id=user_id,
+                    content=content,
+                    is_assistant=is_assistant,
+                    persona_name=persona_name,
+                    emotion=emotion
+                )
+            except Exception as e:
+                logging.error(f"[Gemini] Failed to add message to context: {str(e)}")
 
-                except Exception as e:
-                    logging.error(f"[Gemini-Flash] Error in message handling: {str(e)}", exc_info=True)
-                    await message.add_reaction('❌')
-                    error_msg = str(e)
-                    if "insufficient_quota" in error_msg.lower():
-                        await message.reply("⚠️ API quota exceeded. Please try again later.")
-                    elif "invalid_api_key" in error_msg.lower():
-                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                    elif "rate_limit_exceeded" in error_msg.lower():
-                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                    else:
-                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
+        # Let base_cog handle image processing first
+        await super().handle_message(message)
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
         cog = GeminiCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Gemini-Flash] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Gemini] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Gemini-Flash] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Gemini] Failed to register cog: {str(e)}", exc_info=True)
         raise
