@@ -290,6 +290,14 @@ class BaseCog(commands.Cog):
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to process image: {str(e)}")
 
+    def filter_consecutive_duplicates(self, messages):
+        """Filter out consecutive duplicate messages"""
+        filtered = []
+        for message in messages:
+            if not filtered or message != filtered[-1]:
+                filtered.append(message)
+        return filtered
+
     async def generate_response(self, message):
         """Generate a response without handling it"""
         try:
@@ -353,6 +361,9 @@ class BaseCog(commands.Cog):
                     "role": "user",
                     "content": message.content
                 })
+
+            # Filter out consecutive duplicate messages
+            messages = self.filter_consecutive_duplicates(messages)
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
