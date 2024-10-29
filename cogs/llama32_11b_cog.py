@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
+from shared.utils import log_interaction, analyze_emotion, store_alt_text
+from shared.api import api
 
 class Llama32_11BCog(BaseCog):
     def __init__(self, bot):
@@ -16,6 +17,7 @@ class Llama32_11BCog(BaseCog):
             prompt_file="llama32_11b",
             supports_vision=True
         )
+        self.api_client = api
         logging.debug(f"[Llama-3.2-11B] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Llama-3.2-11B] Using provider: {self.provider}")
         logging.debug(f"[Llama-3.2-11B] Vision support: {self.supports_vision}")
@@ -28,11 +30,11 @@ class Llama32_11BCog(BaseCog):
     async def generate_image_description(self, image_url):
         """Generate a description for the given image URL"""
         try:
-            # Construct messages for vision API
+            # Construct messages for vision API with specific prompt for alt text
             messages = [
-                {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
+                {"role": "system", "content": "You are a vision model specialized in providing detailed, accurate, and concise alt text descriptions of images. Focus on the key visual elements, context, and any text present in the image. Your descriptions should be informative yet concise, suitable for screen readers."},
                 {"role": "user", "content": [
-                    {"type": "text", "text": "Please provide a detailed description of this image."},
+                    {"type": "text", "text": "Please provide a concise but detailed alt text description of this image."},
                     {"type": "image_url", "image_url": {"url": image_url}}
                 ]}
             ]
@@ -42,7 +44,11 @@ class Llama32_11BCog(BaseCog):
             
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 description = response_data['choices'][0]['message']['content']
-                logging.debug(f"[Llama-3.2-11B] Generated description for image: {description[:100]}...")
+                # Clean up the description - remove any markdown or quotes
+                description = description.strip('`"\' ')
+                if description.lower().startswith('alt text:'):
+                    description = description[8:].strip()
+                logging.debug(f"[Llama-3.2-11B] Generated alt text: {description[:100]}...")
                 return description
             else:
                 logging.error("[Llama-3.2-11B] No description generated for image")
@@ -68,26 +74,27 @@ class Llama32_11BCog(BaseCog):
                 try:
                     # Process message and get response
                     logging.debug(f"[Llama-3.2-11B] Processing message with provider: {self.provider}, model: {self.model}")
-                    response = await self.process_message(message)
+                    response = await self.generate_response(message)
                     
                     if response:
                         logging.debug(f"[Llama-3.2-11B] Got response: {response[:100]}...")
-                        # Handle the response and get emotion
-                        emotion = await self.handle_response(response, message)
-                        
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=emotion
-                            )
-                            logging.debug(f"[Llama-3.2-11B] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[Llama-3.2-11B] Failed to log interaction: {str(e)}", exc_info=True)
+                        # Send the response
+                        sent_message = await self.handle_response(response, message)
+                        if sent_message:
+                            # Log interaction
+                            try:
+                                log_interaction(
+                                    user_id=message.author.id,
+                                    guild_id=message.guild.id if message.guild else None,
+                                    persona_name=self.name,
+                                    user_message=message.content,
+                                    assistant_reply=response,
+                                    emotion=analyze_emotion(response),
+                                    channel_id=str(message.channel.id)
+                                )
+                                logging.debug(f"[Llama-3.2-11B] Logged interaction for user {message.author.id}")
+                            except Exception as e:
+                                logging.error(f"[Llama-3.2-11B] Failed to log interaction: {str(e)}", exc_info=True)
                     else:
                         logging.error("[Llama-3.2-11B] No response received from API")
                         await message.add_reaction('❌')

@@ -100,6 +100,61 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
         logging.error(f"Failed to fetch message history: {str(e)}")
         return []
 
+def store_alt_text(message_id: str, channel_id: str, alt_text: str, attachment_url: str) -> bool:
+    """Store image alt text in the database"""
+    try:
+        db_path = 'databases/interaction_logs.db'
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO image_alt_text (message_id, channel_id, alt_text, attachment_url)
+                VALUES (?, ?, ?, ?)
+            """, (str(message_id), str(channel_id), alt_text, attachment_url))
+            conn.commit()
+            logging.debug(f"Stored alt text for message {message_id}")
+            return True
+    except Exception as e:
+        logging.error(f"Failed to store alt text: {str(e)}")
+        return False
+
+def get_alt_text(message_id: str) -> Optional[str]:
+    """Retrieve alt text for a message"""
+    try:
+        db_path = 'databases/interaction_logs.db'
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT alt_text FROM image_alt_text
+                WHERE message_id = ?
+            """, (str(message_id),))
+            result = cursor.fetchone()
+            return result[0] if result else None
+    except Exception as e:
+        logging.error(f"Failed to get alt text: {str(e)}")
+        return None
+
+def get_unprocessed_images(channel_id: str, limit: int = 50) -> List[Dict]:
+    """Get messages with images that don't have alt text"""
+    try:
+        db_path = 'databases/interaction_logs.db'
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT m.id, m.channel_id, m.content
+                FROM messages m
+                LEFT JOIN image_alt_text i ON m.id = i.message_id
+                WHERE m.channel_id = ?
+                AND m.content LIKE '%https://%'
+                AND i.message_id IS NULL
+                ORDER BY m.timestamp DESC
+                LIMIT ?
+            """, (str(channel_id), limit))
+            return [{"message_id": row[0], "channel_id": row[1], "content": row[2]} 
+                   for row in cursor.fetchall()]
+    except Exception as e:
+        logging.error(f"Failed to get unprocessed images: {str(e)}")
+        return []
+
 def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]], 
                    persona_name: str, user_message: Union[str, Dict, Any], assistant_reply: str, 
                    emotion: Optional[str] = None, channel_id: Optional[Union[int, str]] = None):

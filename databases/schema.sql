@@ -20,8 +20,18 @@ CREATE TABLE IF NOT EXISTS context_windows (
     last_modified DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Image alt text storage
+CREATE TABLE IF NOT EXISTS image_alt_text (
+    message_id TEXT PRIMARY KEY,
+    channel_id TEXT NOT NULL,
+    alt_text TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    attachment_url TEXT NOT NULL
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_persona ON messages(persona_name);
+CREATE INDEX IF NOT EXISTS idx_alt_text_channel ON image_alt_text(channel_id);

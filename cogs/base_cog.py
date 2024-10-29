@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
-from shared.utils import analyze_emotion, log_interaction, get_message_history
+from shared.utils import analyze_emotion, log_interaction, get_message_history, store_alt_text, get_alt_text, get_unprocessed_images
 from shared.api import api
 import re
 import aiohttp
@@ -264,45 +264,81 @@ class BaseCog(commands.Cog):
                 try:
                     # Check if bot has permission to add reactions
                     if message.channel.permissions_for(message.guild.me).add_reactions:
-                        await attachment.add_reaction('🔍')  # Processing indicator
+                        await message.add_reaction('🔍')  # Processing indicator
                     
                     # Use Llama cog for vision processing
                     description = await llama_cog.generate_image_description(attachment.url)
                     
                     if description:
-                        # Log the image description interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name="Llama-Vision",
-                                user_message=f"Image URL: {attachment.url}",
-                                assistant_reply=description,
-                                channel_id=str(message.channel.id)
-                            )
-                            logging.debug(f"[Llama-Vision] Logged image description for user {message.author.id}")
-                            
-                            # Replace processing indicator with success indicator
+                        # Store alt text in database
+                        success = store_alt_text(
+                            message_id=str(message.id),
+                            channel_id=str(message.channel.id),
+                            alt_text=description,
+                            attachment_url=attachment.url
+                        )
+                        
+                        if success:
+                            # Log the image description interaction
+                            try:
+                                log_interaction(
+                                    user_id=message.author.id,
+                                    guild_id=message.guild.id if message.guild else None,
+                                    persona_name="Llama-Vision",
+                                    user_message=f"Image URL: {attachment.url}",
+                                    assistant_reply=description,
+                                    channel_id=str(message.channel.id)
+                                )
+                                logging.debug(f"[Llama-Vision] Logged image description for user {message.author.id}")
+                                
+                                # Replace processing indicator with success indicator
+                                if message.channel.permissions_for(message.guild.me).add_reactions:
+                                    await message.remove_reaction('🔍', self.bot.user)
+                                    await message.add_reaction('🖼️')  # Image processed indicator
+                            except Exception as e:
+                                logging.error(f"[Llama-Vision] Failed to log image description: {str(e)}")
+                                if message.channel.permissions_for(message.guild.me).add_reactions:
+                                    await message.remove_reaction('🔍', self.bot.user)
+                                    await message.add_reaction('❌')
+                        else:
                             if message.channel.permissions_for(message.guild.me).add_reactions:
-                                await attachment.remove_reaction('🔍', self.bot.user)
-                                await attachment.add_reaction('✅')
-                        except Exception as e:
-                            logging.error(f"[Llama-Vision] Failed to log image description: {str(e)}")
-                            # Replace processing indicator with error indicator
-                            if message.channel.permissions_for(message.guild.me).add_reactions:
-                                await attachment.remove_reaction('🔍', self.bot.user)
-                                await attachment.add_reaction('❌')
+                                await message.remove_reaction('🔍', self.bot.user)
+                                await message.add_reaction('❌')
                     else:
-                        # Replace processing indicator with error indicator
                         if message.channel.permissions_for(message.guild.me).add_reactions:
-                            await attachment.remove_reaction('🔍', self.bot.user)
-                            await attachment.add_reaction('❌')
+                            await message.remove_reaction('🔍', self.bot.user)
+                            await message.add_reaction('❌')
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to process image: {str(e)}")
-                    # Replace processing indicator with error indicator
                     if message.channel.permissions_for(message.guild.me).add_reactions:
-                        await attachment.remove_reaction('🔍', self.bot.user)
-                        await attachment.add_reaction('❌')
+                        await message.remove_reaction('🔍', self.bot.user)
+                        await message.add_reaction('❌')
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """Handle reaction adds to process unprocessed images"""
+        # Skip bot's own reactions
+        if payload.user_id == self.bot.user.id:
+            return
+
+        try:
+            # Get the channel
+            channel = self.bot.get_channel(payload.channel_id)
+            if not channel:
+                return
+
+            # Get the message
+            message = await channel.fetch_message(payload.message_id)
+            if not message:
+                return
+
+            # Check if message has images and no alt text
+            if message.attachments:
+                # Process any unprocessed images
+                await self.process_images(message)
+
+        except Exception as e:
+            logging.error(f"Error handling reaction: {str(e)}")
 
     async def generate_response(self, message):
         """Generate a response without handling it"""
@@ -434,5 +470,4 @@ class BaseCog(commands.Cog):
                 temperatures = json.load(f)
             return temperatures.get(agent_name)  # Return None if not found
         except Exception as e:
-            logging.error(f"Error getting temperature: {str(e)}")
-            return None
+            logging
