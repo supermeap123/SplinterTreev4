@@ -55,6 +55,9 @@ last_interaction = {
 # Keep track of last used cog per channel
 last_used_cogs = {}
 
+# Track processed messages to prevent double handling
+processed_messages = set()
+
 def get_history_file(channel_id: str) -> str:
     """Get the history file path for a channel"""
     history_dir = os.path.join(BOT_DIR, 'history')
@@ -440,6 +443,10 @@ async def on_message(message):
                 await save_channel_history(channel_id)
         return
 
+    # Check if message has already been processed
+    if message.id in processed_messages:
+        return
+
     # Update last interaction
     last_interaction['user'] = message.author.display_name
     last_interaction['time'] = datetime.utcnow()
@@ -557,6 +564,13 @@ async def on_message(message):
             else:
                 logging.warning("No cog available to handle message")
                 await message.channel.send("Sorry, no models are currently available to handle your request.")
+
+    # Mark message as processed
+    processed_messages.add(message.id)
+
+    # Clean up old processed messages (keep last 1000)
+    if len(processed_messages) > 1000:
+        processed_messages.clear()
 
 @bot.event
 async def on_command_error(ctx, error):
