@@ -52,10 +52,9 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
             
             # Get last N messages ordered by timestamp
             cursor.execute("""
-                SELECT DISTINCT content, is_assistant, persona_name, timestamp
+                SELECT content, is_assistant, persona_name, timestamp
                 FROM messages 
                 WHERE channel_id = ?
-                GROUP BY content
                 ORDER BY timestamp DESC
                 LIMIT ?
             """, (str(channel_id), limit))
@@ -64,29 +63,39 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
             seen_content = set()
             
             for content, is_assistant, persona_name, timestamp in cursor.fetchall():
-                # Skip if we've seen this content before
+                # Skip if we've seen this exact content before
                 if content in seen_content:
                     continue
                 seen_content.add(content)
                 
+                # For assistant messages
                 if is_assistant:
                     # Remove model name prefix if present
                     if content.startswith('[') and ']' in content:
                         content = content[content.index(']')+1:].strip()
-                    messages.append({
-                        "role": "assistant",
-                        "content": content
-                    })
+                    
+                    # Add name field for vision messages
+                    if persona_name == "Llama-Vision":
+                        messages.append({
+                            "role": "assistant",
+                            "name": persona_name,
+                            "content": content
+                        })
+                    else:
+                        messages.append({
+                            "role": "assistant",
+                            "content": content
+                        })
                 else:
                     messages.append({
                         "role": "user",
                         "content": content
                     })
             
-            # Reverse to get chronological order and limit to last N messages
+            # Reverse to get chronological order
             messages.reverse()
-            return messages[-limit:]
-            
+            return messages
+
     except Exception as e:
         logging.error(f"Failed to fetch message history: {str(e)}")
         return []
