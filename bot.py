@@ -52,6 +52,9 @@ last_interaction = {
     'time': None
 }
 
+# Keep track of last used cog per channel
+last_used_cogs = {}
+
 def get_history_file(channel_id: str) -> str:
     """Get the history file path for a channel"""
     history_dir = os.path.join(BOT_DIR, 'history')
@@ -394,6 +397,37 @@ async def on_ready():
     # Set initial uptime status after loading
     await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
 
+def is_contextually_related(message):
+    """Determine if the message is contextually related based on time and content"""
+    channel_id = str(message.channel.id)
+    if channel_id not in message_history:
+        return False
+    history = message_history[channel_id]
+    if not history:
+        return False
+    last_message = history[-1]
+    # Check if last message was from the bot
+    if last_message.author != bot.user:
+        return False
+    # Check if message is a reply to the last bot message
+    time_diff = message.created_at - last_message.created_at
+    if time_diff.total_seconds() > 300:  # 5 minutes
+        return False
+    return True
+
+async def analyze_with_sydney_court(message):
+    """Use the Sydney-Court model to analyze the message and decide which cog to use"""
+    # Placeholder function for integrating with the Sydney-Court model
+    # In a real implementation, this would make an API call to OpenPipe
+    # For now, we'll default to a specific cog or random selection
+    # You need to implement the integration with OpenPipe here
+    logging.info("Analyzing message with Sydney-Court model")
+    # Example: Return a specific cog based on analysis
+    for cog in loaded_cogs:
+        if getattr(cog, 'name', '').lower() == 'sydney-court':
+            return cog
+    return await get_random_cog()
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -493,16 +527,33 @@ async def on_message(message):
                     specific_trigger = True
                     break
 
-        # Only use random cog if no specific model was triggered
+        # Only proceed if no specific model was triggered
         if not specific_trigger:
             logging.info(f"Bot triggered by {'mention' if is_pinged else 'keyword'} from {message.author.display_name}")
-            cog = await get_random_cog()
+            channel_id = str(message.channel.id)
+
+            # Check if message is contextually related
+            if is_contextually_related(message):
+                # Use last used cog if available
+                last_cog = last_used_cogs.get(channel_id)
+                if last_cog:
+                    cog = last_cog
+                    logging.debug(f"Using last used cog {cog.name} for channel {channel_id}")
+                else:
+                    # Analyze with Sydney-Court model
+                    cog = await analyze_with_sydney_court(message)
+            else:
+                # Analyze with Sydney-Court model
+                cog = await analyze_with_sydney_court(message)
+
             if cog:
-                logging.debug(f"Using random cog {cog.name} to handle message")
+                logging.debug(f"Using cog {cog.name} to handle message")
                 try:
                     await cog.handle_message(message)
+                    # Update last used cog for the channel
+                    last_used_cogs[channel_id] = cog
                 except Exception as e:
-                    logging.error(f"Error in random cog {cog.name} message handling: {str(e)}", exc_info=True)
+                    logging.error(f"Error in cog {cog.name} message handling: {str(e)}", exc_info=True)
             else:
                 logging.warning("No cog available to handle message")
                 await message.channel.send("Sorry, no models are currently available to handle your request.")
