@@ -328,43 +328,48 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Check if this is a continuation of an existing conversation
+            # Get last 10 messages from context database
             channel_id = str(message.channel.id)
-            last_message = await self.context_cog.get_context_messages(channel_id, limit=1)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=10)
             
-            if last_message and (datetime.now() - datetime.fromisoformat(last_message[0]['timestamp'])).total_seconds() < 3600:
-                # If there's a recent message, load the conversation history
-                history_messages = await self.context_cog.get_context_messages(channel_id, limit=10)
-                for msg in history_messages:
-                    role = "assistant" if msg['is_assistant'] else "user"
-                    content = msg['content']
-                    if msg['is_assistant']:
-                        content = f"[{msg['persona_name']}] {content}"
-                    messages.append({"role": role, "content": content})
+            # Process messages to create 5 turns of conversation
+            conversation_turns = []
+            current_turn = {"user": "", "assistant": ""}
+            turn_count = 0
 
-            # Add current message with any image descriptions from the database
-            if message.attachments and not self.supports_vision:
-                # Get the most recent image descriptions from the database
-                image_descriptions = []
-                for msg in history_messages[-5:] if 'history_messages' in locals() else []:
-                    if msg['is_assistant'] and msg['persona_name'] == 'Llama-Vision':
-                        image_descriptions.append(msg['content'])
-                
-                if image_descriptions:
-                    messages.append({
-                        "role": "user",
-                        "content": f"{message.content}\n\n{'\n'.join(image_descriptions)}"
-                    })
+            for msg in reversed(history_messages):
+                if msg['is_assistant']:
+                    if current_turn["assistant"]:
+                        conversation_turns.append(current_turn)
+                        current_turn = {"user": "", "assistant": ""}
+                        turn_count += 1
+                        if turn_count >= 5:
+                            break
+                    current_turn["assistant"] = f"[{msg['persona_name']}] {msg['content']}"
                 else:
-                    messages.append({
-                        "role": "user",
-                        "content": message.content
-                    })
-            else:
-                messages.append({
-                    "role": "user",
-                    "content": message.content
-                })
+                    if current_turn["user"]:
+                        conversation_turns.append(current_turn)
+                        current_turn = {"user": "", "assistant": ""}
+                        turn_count += 1
+                        if turn_count >= 5:
+                            break
+                    current_turn["user"] = msg['content']
+
+            if current_turn["user"] or current_turn["assistant"]:
+                conversation_turns.append(current_turn)
+
+            # Add conversation turns to messages
+            for turn in reversed(conversation_turns):
+                if turn["user"]:
+                    messages.append({"role": "user", "content": turn["user"]})
+                if turn["assistant"]:
+                    messages.append({"role": "assistant", "content": turn["assistant"]})
+
+            # Add current message
+            messages.append({
+                "role": "user",
+                "content": message.content
+            })
 
             # Filter out consecutive duplicate messages
             messages = self.filter_consecutive_duplicates(messages)
