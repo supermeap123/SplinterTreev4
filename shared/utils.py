@@ -101,7 +101,7 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
         return []
 
 def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]], 
-                   persona_name: str, user_message: str, assistant_reply: str, 
+                   persona_name: str, user_message: Union[str, Dict, Any], assistant_reply: str, 
                    emotion: Optional[str] = None, channel_id: Optional[Union[int, str]] = None):
     """
     Log interaction details to SQLite database
@@ -116,7 +116,19 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
             guild_id = str(guild_id) if guild_id else None
             user_id = str(user_id)
             persona_name = str(persona_name)
-            user_message = str(user_message)
+            
+            # Handle user_message that might be a Discord Message object or other complex type
+            if isinstance(user_message, str):
+                user_message_content = user_message
+            elif isinstance(user_message, dict):
+                user_message_content = json.dumps(user_message)
+            else:
+                # Try to convert to string, fallback to repr if needed
+                try:
+                    user_message_content = str(user_message)
+                except:
+                    user_message_content = repr(user_message)
+            
             assistant_reply = str(assistant_reply)
             emotion = str(emotion) if emotion else None
             timestamp = datetime.now().isoformat()
@@ -127,7 +139,7 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
                     channel_id, guild_id, user_id, content, 
                     is_assistant, emotion, timestamp
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (channel_id, guild_id, user_id, user_message, False, None, timestamp))
+            """, (channel_id, guild_id, user_id, user_message_content, False, None, timestamp))
             
             user_message_id = cursor.lastrowid
             
@@ -154,7 +166,7 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
                 'guild_id': str(guild_id) if guild_id else None,
                 'channel_id': str(channel_id) if channel_id else None,
                 'persona': str(persona_name),
-                'user_message': str(user_message),
+                'user_message': str(user_message_content) if 'user_message_content' in locals() else str(user_message),
                 'assistant_reply': str(assistant_reply),
                 'emotion': str(emotion) if emotion else None
             }
