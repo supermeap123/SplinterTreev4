@@ -278,10 +278,18 @@ class BaseCog(commands.Cog):
                 for attachment in message.attachments:
                     if attachment.content_type and attachment.content_type.startswith('image/'):
                         try:
-                            # Use Llama cog to get image description
-                            image_description = await self.get_image_description(attachment.url)
-                            if image_description:
-                                image_descriptions.append(f"Image Description: {image_description}")
+                            # Use Llama with vision capabilities
+                            messages_for_vision = [
+                                {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
+                                {"role": "user", "content": [
+                                    {"type": "text", "text": "Please provide a detailed description of this image."},
+                                    {"type": "image_url", "image_url": {"url": attachment.url}}
+                                ]}
+                            ]
+                            vision_response = await api.call_openrouter(messages_for_vision, "meta-llama/llama-3.2-11b-instruct:free")
+                            if vision_response and 'choices' in vision_response and len(vision_response['choices']) > 0:
+                                description = vision_response['choices'][0]['message']['content']
+                                image_descriptions.append(f"Image Description: {description}")
                         except Exception as e:
                             logging.error(f"[{self.name}] Failed to get image description: {str(e)}")
                 if image_descriptions:
@@ -327,26 +335,6 @@ class BaseCog(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
-            return None
-
-    async def get_image_description(self, image_url):
-        """Use Llama cog to get image description"""
-        try:
-            # Prepare messages for Llama
-            messages = [
-                {"role": "system", "content": "You are Llama, an AI assistant that provides detailed descriptions of images."},
-                {"role": "user", "content": f"Please provide a detailed description of the image at this URL: {image_url}"}
-            ]
-            # Call Llama API directly
-            response_data = await api.call_openrouter(messages, 'meta-llama/llama-3.2-11b-instruct:free')
-            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
-                description = response_data['choices'][0]['message']['content']
-                logging.debug(f"[{self.name}] Got image description: {description}")
-                return description.strip()
-            logging.warning(f"[{self.name}] Llama did not return a description")
-            return None
-        except Exception as e:
-            logging.error(f"[{self.name}] Error getting image description from Llama: {str(e)}")
             return None
 
     def sanitize_username(self, username: str) -> str:
