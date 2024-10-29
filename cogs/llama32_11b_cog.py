@@ -79,6 +79,13 @@ class Llama32_11BCog(BaseCog):
                     else:
                         await message.reply(f"[{self.name}] An error occurred while processing your request.")
 
+    async def generate_image_description(self, image_url):
+        """Generate a description for the given image URL"""
+        # Placeholder for actual image description generation logic
+        # This could be an API call to an image captioning service
+        description = f"Description for image: {image_url}"
+        return description
+
 async def setup(bot):
     # Register the cog with its proper name
     try:

@@ -491,6 +491,17 @@ async def on_message(message):
         for att in message.attachments:
             logging.debug(f"Attachment: {att.filename} ({att.content_type})")
 
+    # Process image attachments
+    if message.attachments:
+        llama_cog = bot.get_cog('Llama-3.2-11B')
+        if llama_cog:
+            descriptions = []
+            for attachment in message.attachments:
+                description = await llama_cog.generate_image_description(attachment.url)
+                descriptions.append(description)
+            # Replace message content with image descriptions
+            message.content = "\n".join(descriptions)
+
     # Process commands first
     await bot.process_commands(message)
 
