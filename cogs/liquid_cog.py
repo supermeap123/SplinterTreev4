@@ -10,7 +10,7 @@ class LiquidCog(BaseCog):
             bot=bot,
             name="Liquid",
             nickname="Liquid",
-            trigger_words=['liquid'],
+            trigger_words=['liquid', 'lfm', '40b'],
             model="liquid/lfm-40b:free",
             provider="openrouter",
             prompt_file="liquid",
