@@ -51,18 +51,90 @@ class HelpCog(BaseCog):
             except Exception as e:
                 logging.error(f"[Help] Failed to add message to context: {str(e)}")
 
-        # Let base_cog handle image processing first
+        # Let base_cog handle message processing
         await super().handle_message(message)
 
-    @commands.command(name="help", help="Displays a list of available commands")
+    @commands.command(name="help", help="Displays a list of available commands and features")
     async def help_command(self, ctx):
-        """Send a help message with available commands"""
+        """Send a comprehensive help message with all available features"""
         help_message = """
-        **Help Commands:**
-        - `!help`: Displays this help message.
-        - `!commands`: Lists all available commands.
-        - `!info`: Provides information about the bot.
-        """
+**🤖 Available AI Models**
+
+**Vision-Capable Models:**
+• **Llama-3.2-11B** - Advanced vision model for image analysis
+  *Triggers:* llama, llama 3, llama3
+  *Special:* Can analyze images and provide descriptions
+
+**Large Language Models:**
+• **Claude-3-Opus** - Latest Claude model with enhanced capabilities
+  *Triggers:* claude, claude 3, opus
+
+• **Claude-3-Sonnet** - Balanced version of Claude 3
+  *Triggers:* sonnet, claude sonnet
+
+• **Gemini Pro** - Google's advanced language model
+  *Triggers:* gemini pro, geminipro
+
+• **Gemini** - Standard Gemini model
+  *Triggers:* gemini
+
+• **Claude-2** - Previous generation Claude
+  *Triggers:* claude2, claude 2
+
+• **Claude-1.1** - Original Claude model
+  *Triggers:* claude1, claude 1
+
+• **Grok** - xAI's conversational model
+  *Triggers:* grok
+
+• **Hermes** - Specialized language model
+  *Triggers:* hermes
+
+• **Liquid** - Fluid conversation model
+  *Triggers:* liquid
+
+• **Mythomax** - Mythological knowledge model
+  *Triggers:* mythomax
+
+• **Magnum** - Large context model
+  *Triggers:* magnum
+
+• **Ministral** - Efficient language model
+  *Triggers:* ministral
+
+• **Nemotron** - Advanced reasoning model
+  *Triggers:* nemotron
+
+• **O1-Mini** - Compact but capable model
+  *Triggers:* o1mini, o1
+
+• **OpenChat** - Open conversation model
+  *Triggers:* openchat
+
+• **R-Plus** - Enhanced reasoning model
+  *Triggers:* rplus, r+
+
+• **Sonar** - Precise language model
+  *Triggers:* sonar
+
+• **Sydney** - Conversational AI model
+  *Triggers:* sydney
+
+**📝 Special Features:**
+• **Response Reroll** - Click the 🎲 button to get a different response
+• **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
+• **Context Memory** - Models remember conversation history for better context
+• **Image Analysis** - Use Llama-3.2-11B for image descriptions and analysis
+
+**💡 Tips:**
+1. Models will respond when you mention their trigger words
+2. Each model has unique strengths - try different ones for different tasks
+3. For private responses, format your message like: ||your message here||
+4. Images are automatically analyzed when sent with messages
+5. Use the reroll button to get alternative responses if needed
+
+**Need more help?** Just mention 'help' or use !help to see this message again.
+"""
         await ctx.send(help_message)
 
 async def setup(bot):
