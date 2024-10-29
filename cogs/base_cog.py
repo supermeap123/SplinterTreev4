@@ -77,9 +77,8 @@ class BaseCog(commands.Cog):
     def check_triggers(self, content: str) -> bool:
         """Check if the message content contains any trigger words"""
         content = content.lower()
-        # Split content into words and check each word against triggers
-        words = content.split()
-        return any(trigger in words for trigger in self.trigger_words)
+        # Check if any trigger word appears as a substring in the content
+        return any(trigger in content for trigger in self.trigger_words)
 
     def is_reply_to_bot(self, message):
         """Check if the message is a reply to this bot's persona and return the referenced message content"""
