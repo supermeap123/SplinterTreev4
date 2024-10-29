@@ -10,7 +10,7 @@ class HelpCog(BaseCog):
             bot=bot,
             name="Help",
             nickname="Help",
-            trigger_words=['help', 'commands'],
+            trigger_words=['splintertree_help', 'help', 'commands'],
             prompt_file="help",
             supports_vision=False
         )
@@ -54,7 +54,7 @@ class HelpCog(BaseCog):
         # Let base_cog handle message processing
         await super().handle_message(message)
 
-    @commands.command(name="help", help="Displays a list of available commands and features")
+    @commands.command(name="splintertree_help", help="Displays a list of available commands and features")
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
         help_message = """
@@ -133,7 +133,7 @@ class HelpCog(BaseCog):
 4. Images are automatically analyzed when sent with messages
 5. Use the reroll button to get alternative responses if needed
 
-**Need more help?** Just mention 'help' or use !help to see this message again.
+**Need more help?** Just mention 'splintertree_help' or use !splintertree_help to see this message again.
 """
         await ctx.send(help_message)
 
