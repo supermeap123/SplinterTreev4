@@ -358,3 +358,9 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.error(f"Error getting temperature: {str(e)}")
             return None
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        """Ensure set_context command is only registered once"""
+        if 'set_context' not in self.bot.all_commands:
+            self.bot.add_command(self.set_context_messages)
