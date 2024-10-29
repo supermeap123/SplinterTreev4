@@ -30,6 +30,8 @@ class Llama32_11BCog(BaseCog):
     async def generate_image_description(self, image_url):
         """Generate a description for the given image URL"""
         try:
+            logging.info(f"[Llama-3.2-11B] Starting image description generation for URL: {image_url}")
+            
             # Construct messages for vision API with specific prompt for alt text
             messages = [
                 {
@@ -53,10 +55,12 @@ class Llama32_11BCog(BaseCog):
                 }
             ]
             
-            logging.debug(f"[Llama-3.2-11B] Sending vision request for image: {image_url}")
+            logging.debug(f"[Llama-3.2-11B] Constructed vision API messages: {messages}")
+            logging.info(f"[Llama-3.2-11B] Calling OpenRouter API for vision processing")
             
             # Call API with vision capabilities
             response_data = await self.api_client.call_openrouter(messages, self.model, temperature=0.3)
+            logging.debug(f"[Llama-3.2-11B] Received API response: {response_data}")
             
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 description = response_data['choices'][0]['message']['content']
@@ -64,14 +68,15 @@ class Llama32_11BCog(BaseCog):
                 description = description.strip('`"\' ')
                 if description.lower().startswith('alt text:'):
                     description = description[8:].strip()
-                logging.debug(f"[Llama-3.2-11B] Generated alt text: {description[:100]}...")
+                logging.info(f"[Llama-3.2-11B] Generated alt text: {description[:100]}...")
                 return description
             else:
-                logging.error("[Llama-3.2-11B] No description generated for image")
+                logging.error("[Llama-3.2-11B] No description generated for image - API response invalid")
+                logging.debug(f"[Llama-3.2-11B] Full API response: {response_data}")
                 return None
                 
         except Exception as e:
-            logging.error(f"[Llama-3.2-11B] Error generating image description: {str(e)}")
+            logging.error(f"[Llama-3.2-11B] Error generating image description: {str(e)}", exc_info=True)
             return None
 
     async def handle_message(self, message):
@@ -79,18 +84,27 @@ class Llama32_11BCog(BaseCog):
         if message.author == self.bot.user:
             return
 
+        logging.info(f"[Llama-3.2-11B] Handling message from {message.author}: {message.content[:100]}...")
+        logging.debug(f"[Llama-3.2-11B] Message has {len(message.attachments)} attachments")
+
         # Process images first if there are any attachments
         if message.attachments:
+            logging.info(f"[Llama-3.2-11B] Found {len(message.attachments)} attachments")
             image_attachments = [
                 att for att in message.attachments 
                 if att.content_type and att.content_type.startswith('image/')
             ]
+            logging.info(f"[Llama-3.2-11B] Found {len(image_attachments)} image attachments")
+            
             if image_attachments:
+                logging.info("[Llama-3.2-11B] Starting image processing")
                 async with message.channel.typing():
                     for attachment in image_attachments:
                         try:
+                            logging.debug(f"[Llama-3.2-11B] Processing attachment: {attachment.filename} ({attachment.content_type})")
                             description = await self.generate_image_description(attachment.url)
                             if description:
+                                logging.info(f"[Llama-3.2-11B] Generated description for {attachment.filename}")
                                 # Store alt text in database
                                 success = await store_alt_text(
                                     message_id=str(message.id),
@@ -99,16 +113,25 @@ class Llama32_11BCog(BaseCog):
                                     attachment_url=attachment.url
                                 )
                                 if success:
-                                    logging.debug(f"[Llama-3.2-11B] Stored alt text for image: {attachment.url}")
+                                    logging.info(f"[Llama-3.2-11B] Successfully stored alt text for {attachment.filename}")
                                     if message.channel.permissions_for(message.guild.me).add_reactions:
                                         await message.add_reaction('🖼️')
                                 else:
-                                    logging.error(f"[Llama-3.2-11B] Failed to store alt text for image: {attachment.url}")
+                                    logging.error(f"[Llama-3.2-11B] Failed to store alt text for {attachment.filename}")
+                                    if message.channel.permissions_for(message.guild.me).add_reactions:
+                                        await message.add_reaction('⚠️')
+                            else:
+                                logging.error(f"[Llama-3.2-11B] Failed to generate description for {attachment.filename}")
+                                if message.channel.permissions_for(message.guild.me).add_reactions:
+                                    await message.add_reaction('❌')
                         except Exception as e:
-                            logging.error(f"[Llama-3.2-11B] Error processing image: {str(e)}")
+                            logging.error(f"[Llama-3.2-11B] Error processing image {attachment.filename}: {str(e)}", exc_info=True)
+                            if message.channel.permissions_for(message.guild.me).add_reactions:
+                                await message.add_reaction('❌')
                             continue
 
         # Continue with normal message processing
+        logging.info("[Llama-3.2-11B] Proceeding with normal message processing")
         await super().handle_message(message)
 
 async def setup(bot):

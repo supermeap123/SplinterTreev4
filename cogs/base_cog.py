@@ -74,11 +74,14 @@ class BaseCog(commands.Cog):
 
     async def wait_for_image_processing(self, message):
         """Wait for image processing to complete"""
+        logging.info(f"[{self.name}] Attempting to acquire image processing lock")
         async with self._image_processing_lock:
+            logging.info(f"[{self.name}] Acquired image processing lock")
+            
             # Get Llama cog for vision processing
             llama_cog = self.bot.get_cog('Llama-3.2-11B')
             if not llama_cog or not llama_cog.supports_vision:
-                logging.warning(f"[{self.name}] Vision model not available")
+                logging.warning(f"[{self.name}] Vision model not available - Llama cog found: {llama_cog is not None}, supports_vision: {llama_cog.supports_vision if llama_cog else False}")
                 return False
 
             image_attachments = [
@@ -86,30 +89,38 @@ class BaseCog(commands.Cog):
                 if att.content_type and att.content_type.startswith('image/')
             ]
             
+            logging.info(f"[{self.name}] Found {len(image_attachments)} image attachments")
             if not image_attachments:
+                logging.info(f"[{self.name}] No image attachments to process")
                 return True
 
             # Check if images are already processed
-            alt_text = get_alt_text(str(message.id))
+            alt_text = await get_alt_text(str(message.id))
             if alt_text:
-                logging.debug(f"[{self.name}] Images already processed for message {message.id}")
+                logging.info(f"[{self.name}] Images already processed for message {message.id}")
                 return True
 
             # Wait for image processing
             try:
+                logging.info(f"[{self.name}] Starting image processing with Llama cog")
                 async with message.channel.typing():
                     await llama_cog.handle_message(message)
                     # Verify processing completed
-                    alt_text = get_alt_text(str(message.id))
-                    return alt_text is not None
+                    alt_text = await get_alt_text(str(message.id))
+                    success = alt_text is not None
+                    logging.info(f"[{self.name}] Image processing {'completed successfully' if success else 'failed'}")
+                    return success
             except Exception as e:
-                logging.error(f"[{self.name}] Error waiting for image processing: {str(e)}")
+                logging.error(f"[{self.name}] Error waiting for image processing: {str(e)}", exc_info=True)
                 return False
 
     async def handle_message(self, message):
         """Handle incoming messages"""
         if message.author == self.bot.user:
             return
+
+        logging.info(f"[{self.name}] Received message from {message.author}: {message.content[:100]}...")
+        logging.debug(f"[{self.name}] Message has {len(message.attachments)} attachments")
 
         # Check if message triggers this cog
         msg_content = message.content.lower()
@@ -129,6 +140,7 @@ class BaseCog(commands.Cog):
 
                 # Wait for image processing if needed
                 if message.attachments and not self.supports_vision:
+                    logging.info(f"[{self.name}] Message has attachments and model doesn't support vision, waiting for processing")
                     processing_success = await self.wait_for_image_processing(message)
                     if not processing_success:
                         logging.warning(f"[{self.name}] Image processing failed or timed out")
@@ -137,6 +149,7 @@ class BaseCog(commands.Cog):
                         return
 
                 # Generate response
+                logging.info(f"[{self.name}] Generating response")
                 response = await self.generate_response(message)
 
                 if response:
@@ -145,7 +158,7 @@ class BaseCog(commands.Cog):
                     if sent_message:
                         # Log interaction
                         try:
-                            log_interaction(
+                            await log_interaction(
                                 user_id=message.author.id,
                                 guild_id=message.guild.id if message.guild else None,
                                 persona_name=self.name,
@@ -313,13 +326,13 @@ class BaseCog(commands.Cog):
 
             # Get last 50 messages from database
             channel_id = str(message.channel.id)
-            history_messages = get_message_history(channel_id, limit=50)
+            history_messages = await get_message_history(channel_id, limit=50)
             messages.extend(history_messages)
 
             # Add current message with any image descriptions from the database
             if message.attachments and not self.supports_vision:
                 # Get alt text for this message
-                alt_text = get_alt_text(str(message.id))
+                alt_text = await get_alt_text(str(message.id))
                 if alt_text:
                     messages.append({
                         "role": "user",
