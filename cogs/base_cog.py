@@ -169,7 +169,7 @@ class BaseCog(commands.Cog):
 
     async def handle_message(self, message):
         """Handle incoming messages - this is called by the bot's on_message event"""
-        if message.author == bot.user:
+        if message.author == self.bot.user:
             return
 
         # Process images first if there are any attachments
