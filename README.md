@@ -15,10 +15,11 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
-- **Context Management**: Per-channel message history with configurable window size
+- **Context Management**: Per-channel message history with configurable message count
 - **Cross-Model Context**: Models can see and reference each other's responses
 - **File Processing**: Automatic content extraction from text files
 - **Dynamic Prompting**: Customizable system prompts per channel/server
+- **Lazy Context Loading**: Efficient on-demand loading of conversation history
 
 ## 🤖 Available Models
 
@@ -90,9 +91,7 @@ python bot.py
 
 ### Basic Commands
 - `!splintertree_help [channel|dm]`: Show help information
-- `!setcontext <size>`: Set context window size
-- `!getcontext`: Show current context window size
-- `!resetcontext`: Reset to default context window
+- `!set_context <count>`: Set number of context messages for the channel (1-20)
 - `!clearcontext [hours]`: Clear conversation history
 - `!contact`: Show contact information
 
@@ -108,7 +107,7 @@ python bot.py
 splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
-!setcontext 20  # Set context window to 20 messages
+!set_context 10  # Set context to include last 10 messages
 !clearcontext 24  # Clear messages older than 24 hours
 ```
 
@@ -116,7 +115,7 @@ gemini analyze this image [attached image]
 
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
-- **Context Management**: SQLite-based conversation history
+- **Context Management**: SQLite-based conversation history with lazy loading
 - **API Integration**: OpenRouter and OpenPipe connections
 - **File Processing**: Handles various file types
 - **Image Processing**: Vision model integration
