@@ -183,13 +183,14 @@ class BaseCog(commands.Cog):
             return None
 
     def is_reply_to_bot(self, message):
-        """Check if the message is a reply to this bot's persona"""
+        """Check if the message is a reply to this bot's persona and return the referenced message content"""
         if message.reference and message.reference.resolved:
             referenced_message = message.reference.resolved
             if referenced_message.author == self.bot.user:
                 # Check if the referenced message starts with this persona's name
-                return referenced_message.content.startswith(f"[{self.name}]")
-        return False
+                if referenced_message.content.startswith(f"[{self.name}]"):
+                    return referenced_message.content
+        return None
 
     async def handle_message(self, message):
         """Handle incoming messages - this is called by the bot's on_message event"""
@@ -198,9 +199,10 @@ class BaseCog(commands.Cog):
 
         # Check if message triggers this cog
         msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words) or self.is_reply_to_bot(message)
+        is_triggered = any(word in msg_content for word in self.trigger_words)
+        replied_content = self.is_reply_to_bot(message)
 
-        if is_triggered:
+        if is_triggered or replied_content:
             logging.debug(f"[{self.name}] Triggered by message: {message.content}")
             try:
                 # Check permissions
@@ -217,7 +219,7 @@ class BaseCog(commands.Cog):
                     await self.process_images(message)
 
                 # Generate response
-                response = await self.generate_response(message)
+                response = await self.generate_response(message, replied_content)
 
                 if response:
                     # Send the response
@@ -329,7 +331,7 @@ class BaseCog(commands.Cog):
         self.context_messages[str(ctx.channel.id)] = count
         await ctx.send(f"Context message count for this channel set to {count}.")
 
-    async def generate_response(self, message):
+    async def generate_response(self, message, replied_content=None):
         """Generate a response without handling it"""
         try:
             # Get local timezone
@@ -370,6 +372,10 @@ class BaseCog(commands.Cog):
                 if msg['is_assistant']:
                     content = self.remove_duplicate_username(f"[{msg['persona_name']}] {content}")
                 messages.append({"role": role, "content": content})
+
+            # Add replied-to message if it exists
+            if replied_content:
+                messages.append({"role": "assistant", "content": replied_content})
 
             # Add current message
             messages.append({
