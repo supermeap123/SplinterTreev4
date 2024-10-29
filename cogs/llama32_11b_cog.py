@@ -32,11 +32,14 @@ class Llama32_11BCog(BaseCog):
         try:
             # Construct messages for vision API with specific prompt for alt text
             messages = [
-                {"role": "system", "content": "You are a vision model specialized in providing detailed, accurate, and concise alt text descriptions of images. Focus on the key visual elements, context, and any text present in the image. Your descriptions should be informative yet concise, suitable for screen readers."},
-                {"role": "user", "content": [
-                    {"type": "text", "text": "Please provide a concise but detailed alt text description of this image."},
-                    {"type": "image_url", "image_url": {"url": image_url}}
-                ]}
+                {
+                    "role": "system",
+                    "content": "You are a vision model specialized in providing detailed, accurate, and concise alt text descriptions of images. Focus on the key visual elements, context, and any text present in the image. Your descriptions should be informative yet concise, suitable for screen readers."
+                },
+                {
+                    "role": "user",
+                    "content": f"Please provide a concise but detailed alt text description of this image: {image_url}"
+                }
             ]
             
             # Call API with vision capabilities
