@@ -181,6 +181,15 @@ class BaseCog(commands.Cog):
                 pass
             return None
 
+    def is_reply_to_bot(self, message):
+        """Check if the message is a reply to this bot's persona"""
+        if message.reference and message.reference.resolved:
+            referenced_message = message.reference.resolved
+            if referenced_message.author == self.bot.user:
+                # Check if the referenced message starts with this persona's name
+                return referenced_message.content.startswith(f"[{self.name}]")
+        return False
+
     async def handle_message(self, message):
         """Handle incoming messages - this is called by the bot's on_message event"""
         if message.author == self.bot.user:
@@ -188,7 +197,7 @@ class BaseCog(commands.Cog):
 
         # Check if message triggers this cog
         msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
+        is_triggered = any(word in msg_content for word in self.trigger_words) or self.is_reply_to_bot(message)
 
         if is_triggered:
             logging.debug(f"[{self.name}] Triggered by message: {message.content}")
