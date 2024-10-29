@@ -1,6 +1,7 @@
 import json
 import logging
 import sqlite3
+import aiosqlite
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union
 
@@ -40,18 +41,18 @@ def analyze_emotion(text):
     # Return corresponding emoji, default to neutral
     return emotions[max_emotion[0]][1] if max_emotion[1] > 0 else emotions['neutral'][1]
 
-def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
+async def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
     """
     Fetch the last N messages from the database for a given channel
     Returns list of messages in API format (role, content)
     """
     try:
         db_path = 'databases/interaction_logs.db'
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
+        async with aiosqlite.connect(db_path) as conn:
+            cursor = await conn.cursor()
             
             # Get last N messages ordered by timestamp
-            cursor.execute("""
+            await cursor.execute("""
                 SELECT content, is_assistant, persona_name, timestamp
                 FROM messages 
                 WHERE channel_id = ?
@@ -59,10 +60,11 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
                 LIMIT ?
             """, (str(channel_id), limit))
             
+            rows = await cursor.fetchall()
             messages = []
             seen_content = set()
             
-            for content, is_assistant, persona_name, timestamp in cursor.fetchall():
+            for content, is_assistant, persona_name, timestamp in rows:
                 # Skip if we've seen this exact content before
                 if content in seen_content:
                     continue
@@ -100,46 +102,45 @@ def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
         logging.error(f"Failed to fetch message history: {str(e)}")
         return []
 
-def store_alt_text(message_id: str, channel_id: str, alt_text: str, attachment_url: str) -> bool:
+async def store_alt_text(message_id: str, channel_id: str, alt_text: str, attachment_url: str) -> bool:
     """Store image alt text in the database"""
     try:
         db_path = 'databases/interaction_logs.db'
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        async with aiosqlite.connect(db_path) as conn:
+            await conn.execute("""
                 INSERT INTO image_alt_text (message_id, channel_id, alt_text, attachment_url)
                 VALUES (?, ?, ?, ?)
             """, (str(message_id), str(channel_id), alt_text, attachment_url))
-            conn.commit()
+            await conn.commit()
             logging.debug(f"Stored alt text for message {message_id}")
             return True
     except Exception as e:
         logging.error(f"Failed to store alt text: {str(e)}")
         return False
 
-def get_alt_text(message_id: str) -> Optional[str]:
+async def get_alt_text(message_id: str) -> Optional[str]:
     """Retrieve alt text for a message"""
     try:
         db_path = 'databases/interaction_logs.db'
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        async with aiosqlite.connect(db_path) as conn:
+            cursor = await conn.cursor()
+            await cursor.execute("""
                 SELECT alt_text FROM image_alt_text
                 WHERE message_id = ?
             """, (str(message_id),))
-            result = cursor.fetchone()
+            result = await cursor.fetchone()
             return result[0] if result else None
     except Exception as e:
         logging.error(f"Failed to get alt text: {str(e)}")
         return None
 
-def get_unprocessed_images(channel_id: str, limit: int = 50) -> List[Dict]:
+async def get_unprocessed_images(channel_id: str, limit: int = 50) -> List[Dict]:
     """Get messages with images that don't have alt text"""
     try:
         db_path = 'databases/interaction_logs.db'
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
+        async with aiosqlite.connect(db_path) as conn:
+            cursor = await conn.cursor()
+            await cursor.execute("""
                 SELECT m.id, m.channel_id, m.content
                 FROM messages m
                 LEFT JOIN image_alt_text i ON m.id = i.message_id
@@ -149,23 +150,22 @@ def get_unprocessed_images(channel_id: str, limit: int = 50) -> List[Dict]:
                 ORDER BY m.timestamp DESC
                 LIMIT ?
             """, (str(channel_id), limit))
+            rows = await cursor.fetchall()
             return [{"message_id": row[0], "channel_id": row[1], "content": row[2]} 
-                   for row in cursor.fetchall()]
+                   for row in rows]
     except Exception as e:
         logging.error(f"Failed to get unprocessed images: {str(e)}")
         return []
 
-def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]], 
-                   persona_name: str, user_message: Union[str, Dict, Any], assistant_reply: str, 
-                   emotion: Optional[str] = None, channel_id: Optional[Union[int, str]] = None):
+async def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]], 
+                        persona_name: str, user_message: Union[str, Dict, Any], assistant_reply: str, 
+                        emotion: Optional[str] = None, channel_id: Optional[Union[int, str]] = None):
     """
     Log interaction details to SQLite database
     """
     try:
         db_path = 'databases/interaction_logs.db'
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            
+        async with aiosqlite.connect(db_path) as conn:
             # Convert all values to strings to prevent type issues
             channel_id = str(channel_id) if channel_id else None
             guild_id = str(guild_id) if guild_id else None
@@ -189,7 +189,8 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
             timestamp = datetime.now().isoformat()
             
             # Log user message
-            cursor.execute("""
+            cursor = await conn.cursor()
+            await cursor.execute("""
                 INSERT INTO messages (
                     channel_id, guild_id, user_id, content, 
                     is_assistant, emotion, timestamp
@@ -199,7 +200,7 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
             user_message_id = cursor.lastrowid
             
             # Log assistant reply
-            cursor.execute("""
+            await cursor.execute("""
                 INSERT INTO messages (
                     channel_id, guild_id, user_id, persona_name,
                     content, is_assistant, emotion, parent_message_id,
@@ -208,7 +209,7 @@ def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int, str]
             """, (channel_id, guild_id, user_id, persona_name,
                  assistant_reply, True, emotion, user_message_id, timestamp))
             
-            conn.commit()
+            await conn.commit()
             logging.debug(f"Successfully logged interaction for user {user_id}")
             
     except Exception as e:

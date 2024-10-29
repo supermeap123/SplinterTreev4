@@ -53,6 +53,7 @@ class BaseCog(commands.Cog):
         self.model = model
         self.provider = provider
         self.supports_vision = supports_vision
+        self._image_processing_lock = asyncio.Lock()
 
         # Load prompt
         try:
@@ -71,26 +72,118 @@ class BaseCog(commands.Cog):
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
 
-    async def create_response_file(self, response_text: str, message_id: str) -> discord.File:
-        """Create a markdown file containing the response"""
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as temp_file:
-            temp_file.write(response_text)
-            temp_file_path = temp_file.name
+    async def wait_for_image_processing(self, message):
+        """Wait for image processing to complete"""
+        async with self._image_processing_lock:
+            # Get Llama cog for vision processing
+            llama_cog = self.bot.get_cog('Llama-3.2-11B')
+            if not llama_cog or not llama_cog.supports_vision:
+                logging.warning(f"[{self.name}] Vision model not available")
+                return False
 
-        # Create Discord File object
-        file = discord.File(
-            temp_file_path,
-            filename=f'model_response_{message_id}.md'
-        )
-        # Schedule file deletion
-        async def delete_temp_file():
-            await asyncio.sleep(1)  # Wait a bit to ensure file is sent
+            image_attachments = [
+                att for att in message.attachments 
+                if att.content_type and att.content_type.startswith('image/')
+            ]
+            
+            if not image_attachments:
+                return True
+
+            # Check if images are already processed
+            alt_text = get_alt_text(str(message.id))
+            if alt_text:
+                logging.debug(f"[{self.name}] Images already processed for message {message.id}")
+                return True
+
+            # Wait for image processing
             try:
-                os.unlink(temp_file_path)
+                async with message.channel.typing():
+                    await llama_cog.handle_message(message)
+                    # Verify processing completed
+                    alt_text = get_alt_text(str(message.id))
+                    return alt_text is not None
             except Exception as e:
-                logging.error(f"Failed to delete temp file: {str(e)}")
-        asyncio.create_task(delete_temp_file())
-        return file
+                logging.error(f"[{self.name}] Error waiting for image processing: {str(e)}")
+                return False
+
+    async def handle_message(self, message):
+        """Handle incoming messages"""
+        if message.author == self.bot.user:
+            return
+
+        # Check if message triggers this cog
+        msg_content = message.content.lower()
+        is_triggered = any(word in msg_content for word in self.trigger_words)
+
+        if is_triggered:
+            logging.debug(f"[{self.name}] Triggered by message: {message.content}")
+            try:
+                # Check permissions
+                permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+                can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+                can_add_reactions = permissions.add_reactions if hasattr(permissions, 'add_reactions') else True
+
+                if not can_send:
+                    logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
+                    return
+
+                # Wait for image processing if needed
+                if message.attachments and not self.supports_vision:
+                    processing_success = await self.wait_for_image_processing(message)
+                    if not processing_success:
+                        logging.warning(f"[{self.name}] Image processing failed or timed out")
+                        if can_add_reactions:
+                            await message.add_reaction('⚠️')
+                        return
+
+                # Generate response
+                response = await self.generate_response(message)
+
+                if response:
+                    # Send the response
+                    sent_message = await self.handle_response(response, message)
+                    if sent_message:
+                        # Log interaction
+                        try:
+                            log_interaction(
+                                user_id=message.author.id,
+                                guild_id=message.guild.id if message.guild else None,
+                                persona_name=self.name,
+                                user_message=message.content,
+                                assistant_reply=response,
+                                emotion=analyze_emotion(response),
+                                channel_id=str(message.channel.id)
+                            )
+                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+                        except Exception as e:
+                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
+                        return response, None
+                    else:
+                        logging.error(f"[{self.name}] No response received from API")
+                        if can_add_reactions:
+                            await message.add_reaction('❌')
+                        if can_send:
+                            await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
+                        return None, None
+
+            except Exception as e:
+                logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
+                try:
+                    if can_add_reactions:
+                        await message.add_reaction('❌')
+                    if can_send:
+                        error_msg = str(e)
+                        if "insufficient_quota" in error_msg.lower():
+                            await message.reply("⚠️ API quota exceeded. Please try again later.")
+                        elif "invalid_api_key" in error_msg.lower():
+                            await message.reply("🔑 API configuration error. Please contact the bot administrator.")
+                        elif "rate_limit_exceeded" in error_msg.lower():
+                            await message.reply("⏳ Rate limit exceeded. Please try again later.")
+                        else:
+                            await message.reply(f"[{self.name}] An error occurred while processing your request.")
+                except discord.errors.Forbidden:
+                    logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
+                return None, None
 
     async def handle_response(self, response_text, message, referenced_message=None):
         """Handle the response formatting and sending"""
@@ -167,189 +260,26 @@ class BaseCog(commands.Cog):
                 pass
             return None
 
-    async def handle_message(self, message):
-        """Handle incoming messages - this is called by the bot's on_message event"""
-        if message.author == self.bot.user:
-            return
+    async def create_response_file(self, response_text: str, message_id: str) -> discord.File:
+        """Create a markdown file containing the response"""
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as temp_file:
+            temp_file.write(response_text)
+            temp_file_path = temp_file.name
 
-        # Process images first if there are any attachments
-        if message.attachments:
-            image_attachments = [
-                att for att in message.attachments 
-                if att.content_type and att.content_type.startswith('image/')
-            ]
-            if image_attachments:
-                # Get Llama cog for vision processing
-                llama_cog = self.bot.get_cog('Llama-3.2-11B')
-                if llama_cog and llama_cog.supports_vision:
-                    await self.process_images(message)
-                    # Return if this is not the Llama cog (let other models wait for alt text)
-                    if self.name != "Llama-3.2-11B":
-                        return
-
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
-
-        if is_triggered:
-            logging.debug(f"[{self.name}] Triggered by message: {message.content}")
+        # Create Discord File object
+        file = discord.File(
+            temp_file_path,
+            filename=f'model_response_{message_id}.md'
+        )
+        # Schedule file deletion
+        async def delete_temp_file():
+            await asyncio.sleep(1)  # Wait a bit to ensure file is sent
             try:
-                # Check permissions
-                permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
-                can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
-                can_add_reactions = permissions.add_reactions if hasattr(permissions, 'add_reactions') else True
-
-                if not can_send:
-                    logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
-                    return
-
-                # Generate response
-                response = await self.generate_response(message)
-
-                if response:
-                    # Send the response
-                    sent_message = await self.handle_response(response, message)
-                    if sent_message:
-                        # Log interaction
-                        try:
-                            log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=response,
-                                emotion=analyze_emotion(response),
-                                channel_id=str(message.channel.id)  # Ensure channel_id is passed as string
-                            )
-                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
-                        return response, None
-                    else:
-                        logging.error(f"[{self.name}] No response received from API")
-                        if can_add_reactions:
-                            await message.add_reaction('❌')
-                        if can_send:
-                            await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-                        return None, None
-
+                os.unlink(temp_file_path)
             except Exception as e:
-                logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
-                try:
-                    if can_add_reactions:
-                        await message.add_reaction('❌')
-                    if can_send:
-                        error_msg = str(e)
-                        if "insufficient_quota" in error_msg.lower():
-                            await message.reply("⚠️ API quota exceeded. Please try again later.")
-                        elif "invalid_api_key" in error_msg.lower():
-                            await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                        elif "rate_limit_exceeded" in error_msg.lower():
-                            await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                        else:
-                            await message.reply(f"[{self.name}] An error occurred while processing your request.")
-                except discord.errors.Forbidden:
-                    logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
-                return None, None
-
-    async def process_images(self, message):
-        """Process images and store descriptions in the database"""
-        if not message.attachments:
-            return
-
-        # Get Llama cog for vision processing
-        llama_cog = self.bot.get_cog('Llama-3.2-11B')
-        if not llama_cog or not llama_cog.supports_vision:
-            return
-
-        image_attachments = [
-            att for att in message.attachments 
-            if att.content_type and att.content_type.startswith('image/')
-        ]
-
-        if not image_attachments:
-            return
-
-        async with message.channel.typing():
-            for attachment in image_attachments:
-                try:
-                    # Check if bot has permission to add reactions
-                    if message.channel.permissions_for(message.guild.me).add_reactions:
-                        await message.add_reaction('🔍')  # Processing indicator
-                    
-                    # Use Llama cog for vision processing
-                    description = await llama_cog.generate_image_description(attachment.url)
-                    
-                    if description:
-                        # Store alt text in database
-                        success = store_alt_text(
-                            message_id=str(message.id),
-                            channel_id=str(message.channel.id),
-                            alt_text=description,
-                            attachment_url=attachment.url
-                        )
-                        
-                        if success:
-                            # Log the image description interaction
-                            try:
-                                log_interaction(
-                                    user_id=message.author.id,
-                                    guild_id=message.guild.id if message.guild else None,
-                                    persona_name="Llama-Vision",
-                                    user_message=f"Image URL: {attachment.url}",
-                                    assistant_reply=description,
-                                    channel_id=str(message.channel.id)  # Ensure channel_id is passed as string
-                                )
-                                logging.debug(f"[Llama-Vision] Logged image description for user {message.author.id}")
-                                
-                                # Replace processing indicator with success indicator
-                                if message.channel.permissions_for(message.guild.me).add_reactions:
-                                    await message.remove_reaction('🔍', self.bot.user)
-                                    await message.add_reaction('🖼️')  # Image processed indicator
-                            except Exception as e:
-                                logging.error(f"[Llama-Vision] Failed to log image description: {str(e)}")
-                                if message.channel.permissions_for(message.guild.me).add_reactions:
-                                    await message.remove_reaction('🔍', self.bot.user)
-                                    await message.add_reaction('❌')
-                        else:
-                            if message.channel.permissions_for(message.guild.me).add_reactions:
-                                await message.remove_reaction('🔍', self.bot.user)
-                                await message.add_reaction('❌')
-                    else:
-                        if message.channel.permissions_for(message.guild.me).add_reactions:
-                            await message.remove_reaction('🔍', self.bot.user)
-                            await message.add_reaction('❌')
-                except Exception as e:
-                    logging.error(f"[{self.name}] Failed to process image: {str(e)}")
-                    if message.channel.permissions_for(message.guild.me).add_reactions:
-                        await message.remove_reaction('🔍', self.bot.user)
-                        await message.add_reaction('❌')
-
-    @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
-        """Handle reaction adds to process unprocessed images"""
-        # Skip bot's own reactions
-        if payload.user_id == self.bot.user.id:
-            return
-
-        try:
-            # Get the channel
-            channel = self.bot.get_channel(payload.channel_id)
-            if not channel:
-                return
-
-            # Get the message
-            message = await channel.fetch_message(payload.message_id)
-            if not message:
-                return
-
-            # Check if message has images and no alt text
-            if message.attachments:
-                # Process any unprocessed images
-                await self.process_images(message)
-
-        except Exception as e:
-            logging.error(f"Error handling reaction: {str(e)}")
+                logging.error(f"Failed to delete temp file: {str(e)}")
+        asyncio.create_task(delete_temp_file())
+        return file
 
     async def generate_response(self, message):
         """Generate a response without handling it"""
@@ -432,16 +362,6 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
             return None
-
-    def sanitize_username(self, username: str) -> str:
-        """Sanitize username to match the pattern ^[a-zA-Z0-9_-]+$"""
-        # Replace spaces and special characters with underscores
-        sanitized = re.sub(r'[^\w\-]', '_', username)
-        # Remove consecutive underscores
-        sanitized = re.sub(r'_+', '_', sanitized)
-        # Remove leading/trailing underscores
-        sanitized = sanitized.strip('_')
-        return sanitized
 
     def get_dynamic_prompt(self, ctx):
         """Get dynamic prompt for channel/server if one exists"""
