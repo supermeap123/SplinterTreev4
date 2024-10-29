@@ -20,7 +20,7 @@ class RerollView(discord.ui.View):
         self.message = message
         self.original_response = original_response
 
-    @discord.ui.button(label="🎲 Reroll Response", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="🎲 Reroll Response", style=discord.ButtonStyle.secondary, custom_id="reroll_button")
     async def reroll(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             await interaction.response.defer()
@@ -35,7 +35,7 @@ class RerollView(discord.ui.View):
                 emotion = analyze_emotion(new_response)
                 if emotion:
                     try:
-                        await interaction.message.add_reaction(emotion)
+                        await self.message.add_reaction(emotion)
                     except discord.errors.Forbidden:
                         logging.warning(f"[{self.cog.name}] Missing permission to add reaction")
             else:
