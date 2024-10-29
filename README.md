@@ -31,6 +31,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Gemini Pro**: Google's advanced model
 - **Mistral**: Efficient open-source model
 - **Llama-2**: Open-source model with vision capabilities
+- **NoroMaid-20B**: Advanced conversational model
 
 ### OpenPipe Models
 - **Hermes**: Specialized conversation model
