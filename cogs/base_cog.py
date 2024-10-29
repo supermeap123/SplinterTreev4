@@ -246,20 +246,30 @@ class BaseCog(commands.Cog):
         if not message.attachments:
             return
 
-        for attachment in message.attachments:
-            if attachment.content_type and attachment.content_type.startswith('image/'):
+        # Get Llama cog for vision processing
+        llama_cog = self.bot.get_cog('Llama-3.2-11B')
+        if not llama_cog or not llama_cog.supports_vision:
+            return
+
+        image_attachments = [
+            att for att in message.attachments 
+            if att.content_type and att.content_type.startswith('image/')
+        ]
+
+        if not image_attachments:
+            return
+
+        async with message.channel.typing():
+            for attachment in image_attachments:
                 try:
-                    # Use Llama with vision capabilities
-                    messages_for_vision = [
-                        {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
-                        {"role": "user", "content": [
-                            {"type": "text", "text": "Please provide a detailed description of this image."},
-                            {"type": "image_url", "image_url": {"url": attachment.url}}
-                        ]}
-                    ]
-                    vision_response = await api.call_openrouter(messages_for_vision, "meta-llama/llama-3.2-11b-instruct:free")
-                    if vision_response and 'choices' in vision_response and len(vision_response['choices']) > 0:
-                        description = vision_response['choices'][0]['message']['content']
+                    # Check if bot has permission to add reactions
+                    if message.channel.permissions_for(message.guild.me).add_reactions:
+                        await attachment.add_reaction('🔍')  # Processing indicator
+                    
+                    # Use Llama cog for vision processing
+                    description = await llama_cog.generate_image_description(attachment.url)
+                    
+                    if description:
                         # Log the image description interaction
                         try:
                             log_interaction(
@@ -271,10 +281,28 @@ class BaseCog(commands.Cog):
                                 channel_id=str(message.channel.id)
                             )
                             logging.debug(f"[Llama-Vision] Logged image description for user {message.author.id}")
+                            
+                            # Replace processing indicator with success indicator
+                            if message.channel.permissions_for(message.guild.me).add_reactions:
+                                await attachment.remove_reaction('🔍', self.bot.user)
+                                await attachment.add_reaction('✅')
                         except Exception as e:
                             logging.error(f"[Llama-Vision] Failed to log image description: {str(e)}")
+                            # Replace processing indicator with error indicator
+                            if message.channel.permissions_for(message.guild.me).add_reactions:
+                                await attachment.remove_reaction('🔍', self.bot.user)
+                                await attachment.add_reaction('❌')
+                    else:
+                        # Replace processing indicator with error indicator
+                        if message.channel.permissions_for(message.guild.me).add_reactions:
+                            await attachment.remove_reaction('🔍', self.bot.user)
+                            await attachment.add_reaction('❌')
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to process image: {str(e)}")
+                    # Replace processing indicator with error indicator
+                    if message.channel.permissions_for(message.guild.me).add_reactions:
+                        await attachment.remove_reaction('🔍', self.bot.user)
+                        await attachment.add_reaction('❌')
 
     async def generate_response(self, message):
         """Generate a response without handling it"""

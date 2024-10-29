@@ -14,7 +14,7 @@ class Llama32_11BCog(BaseCog):
             model="meta-llama/llama-3.2-11b-instruct:free",
             provider="openrouter",
             prompt_file="llama32_11b",
-            supports_vision=False
+            supports_vision=True
         )
         logging.debug(f"[Llama-3.2-11B] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Llama-3.2-11B] Using provider: {self.provider}")
@@ -24,6 +24,33 @@ class Llama32_11BCog(BaseCog):
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
         return "Llama-3.2-11B"
+
+    async def generate_image_description(self, image_url):
+        """Generate a description for the given image URL"""
+        try:
+            # Construct messages for vision API
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Please provide a detailed description of this image."},
+                    {"type": "image_url", "image_url": {"url": image_url}}
+                ]}
+            ]
+            
+            # Call API with vision capabilities
+            response_data = await self.api_client.call_openrouter(messages, self.model)
+            
+            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
+                description = response_data['choices'][0]['message']['content']
+                logging.debug(f"[Llama-3.2-11B] Generated description for image: {description[:100]}...")
+                return description
+            else:
+                logging.error("[Llama-3.2-11B] No description generated for image")
+                return None
+                
+        except Exception as e:
+            logging.error(f"[Llama-3.2-11B] Error generating image description: {str(e)}")
+            return None
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -78,13 +105,6 @@ class Llama32_11BCog(BaseCog):
                         await message.reply("⏳ Rate limit exceeded. Please try again later.")
                     else:
                         await message.reply(f"[{self.name}] An error occurred while processing your request.")
-
-    async def generate_image_description(self, image_url):
-        """Generate a description for the given image URL"""
-        # Placeholder for actual image description generation logic
-        # This could be an API call to an image captioning service
-        description = f"Description for image: {image_url}"
-        return description
 
 async def setup(bot):
     # Register the cog with its proper name
