@@ -22,6 +22,50 @@ class HelpCog(BaseCog):
         """Override qualified_name to match the expected cog name"""
         return "Help"
 
+    def get_all_models(self):
+        """Get all models and their details from registered cogs"""
+        models = []
+        vision_models = []
+        
+        for cog in self.bot.cogs.values():
+            if isinstance(cog, BaseCog) and cog.name != "Help":
+                model_info = {
+                    'name': cog.name,
+                    'nickname': cog.nickname,
+                    'trigger_words': cog.trigger_words,
+                    'supports_vision': getattr(cog, 'supports_vision', False)
+                }
+                
+                if model_info['supports_vision']:
+                    vision_models.append(model_info)
+                else:
+                    models.append(model_info)
+                    
+        return vision_models, models
+
+    def format_model_list(self, vision_models, models):
+        """Format the model list for display"""
+        help_text = """**🤖 Available AI Models**\n\n"""
+        
+        # Add vision-capable models
+        if vision_models:
+            help_text += "**Vision-Capable Models:**\n"
+            for model in vision_models:
+                triggers = ", ".join(model['trigger_words'])
+                help_text += f"• **{model['name']}** - Vision-enabled AI model\n"
+                help_text += f"  *Triggers:* {triggers}\n"
+                help_text += f"  *Special:* Can analyze images and provide descriptions\n\n"
+        
+        # Add language models
+        if models:
+            help_text += "**Large Language Models:**\n"
+            for model in models:
+                triggers = ", ".join(model['trigger_words'])
+                help_text += f"• **{model['name']}** - AI language model\n"
+                help_text += f"  *Triggers:* {triggers}\n\n"
+                
+        return help_text
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Handle incoming messages"""
@@ -54,77 +98,27 @@ class HelpCog(BaseCog):
         # Let base_cog handle message processing
         await super().handle_message(message)
 
+    @commands.command(name="listmodels", help="Lists all available AI models and their trigger words")
+    async def list_models_command(self, ctx):
+        """Send a list of all available models and their trigger words"""
+        vision_models, models = self.get_all_models()
+        model_list = self.format_model_list(vision_models, models)
+        await ctx.send(model_list)
+
     @commands.command(name="splintertree_help", help="Displays a list of available commands and features")
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
-        help_message = """
-**🤖 Available AI Models**
-
-**Vision-Capable Models:**
-• **Llama-3.2-11B** - Advanced vision model for image analysis
-  *Triggers:* llama, llama 3, llama3
-  *Special:* Can analyze images and provide descriptions
-
-**Large Language Models:**
-• **Claude-3-Opus** - Latest Claude model with enhanced capabilities
-  *Triggers:* claude, claude 3, opus
-
-• **Claude-3-Sonnet** - Balanced version of Claude 3
-  *Triggers:* sonnet, claude sonnet
-
-• **Gemini Pro** - Google's advanced language model
-  *Triggers:* gemini pro, geminipro
-
-• **Gemini** - Standard Gemini model
-  *Triggers:* gemini
-
-• **Claude-2** - Previous generation Claude
-  *Triggers:* claude2, claude 2
-
-• **Claude-1.1** - Original Claude model
-  *Triggers:* claude1, claude 1
-
-• **Grok** - xAI's conversational model
-  *Triggers:* grok
-
-• **Hermes** - Specialized language model
-  *Triggers:* hermes
-
-• **Liquid** - Fluid conversation model
-  *Triggers:* liquid
-
-• **Mythomax** - Mythological knowledge model
-  *Triggers:* mythomax
-
-• **Magnum** - Large context model
-  *Triggers:* magnum
-
-• **Ministral** - Efficient language model
-  *Triggers:* ministral
-
-• **Nemotron** - Advanced reasoning model
-  *Triggers:* nemotron
-
-• **O1-Mini** - Compact but capable model
-  *Triggers:* o1mini, o1
-
-• **OpenChat** - Open conversation model
-  *Triggers:* openchat
-
-• **R-Plus** - Enhanced reasoning model
-  *Triggers:* rplus, r+
-
-• **Sonar** - Precise language model
-  *Triggers:* sonar
-
-• **Sydney** - Conversational AI model
-  *Triggers:* sydney
-
+        # Get dynamically loaded models
+        vision_models, models = self.get_all_models()
+        model_list = self.format_model_list(vision_models, models)
+        
+        # Add special features and tips
+        help_message = f"""{model_list}
 **📝 Special Features:**
 • **Response Reroll** - Click the 🎲 button to get a different response
 • **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
 • **Context Memory** - Models remember conversation history for better context
-• **Image Analysis** - Use Llama-3.2-11B for image descriptions and analysis
+• **Image Analysis** - Use vision-capable models for image descriptions and analysis
 
 **💡 Tips:**
 1. Models will respond when you mention their trigger words
@@ -132,6 +126,10 @@ class HelpCog(BaseCog):
 3. For private responses, format your message like: ||your message here||
 4. Images are automatically analyzed when sent with messages
 5. Use the reroll button to get alternative responses if needed
+
+**Available Commands:**
+• !splintertree_help - Show this help message
+• !listmodels - Show a list of all available models and their trigger words
 
 **Need more help?** Just mention 'splintertree_help' or use !splintertree_help to see this message again.
 """
