@@ -6,12 +6,13 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
-from shared.utils import analyze_emotion, log_interaction, get_message_history
+from shared.utils import analyze_emotion, log_interaction
 from shared.api import api
 import re
 import aiohttp
 import asyncio
 import tempfile
+from cogs.context_cog import ContextCog  # Import ContextCog
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -53,6 +54,7 @@ class BaseCog(commands.Cog):
         self.model = model
         self.provider = provider
         self.supports_vision = supports_vision
+        self.context_cog = self.bot.get_cog('ContextCog')  # Get ContextCog instance
 
         # Load prompt
         try:
@@ -155,6 +157,18 @@ class BaseCog(commands.Cog):
                         await message.add_reaction(emotion)
             except Exception as e:
                 logging.error(f"Error adding emotion reaction: {str(e)}")
+
+            # Add bot's response to context database
+            if sent_message:
+                await self.context_cog.add_message_to_context(
+                    channel_id=str(sent_message.channel.id),
+                    guild_id=str(sent_message.guild.id) if sent_message.guild else None,
+                    user_id=str(self.bot.user.id),
+                    content=response_text,
+                    is_assistant=True,
+                    persona_name=self.name,
+                    emotion=emotion
+                )
 
             return sent_message
 
@@ -306,17 +320,22 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Get last 50 messages from database
+            # Get last 50 messages from context database
             channel_id = str(message.channel.id)
-            history_messages = get_message_history(channel_id, limit=50)
-            messages.extend(history_messages)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                if msg['is_assistant']:
+                    content = f"[{msg['persona_name']}] {content}"
+                messages.append({"role": role, "content": content})
 
             # Add current message with any image descriptions from the database
             if message.attachments and not self.supports_vision:
                 # Get the most recent image descriptions from the database
                 image_descriptions = []
                 for msg in history_messages[-5:]:  # Check last 5 messages for image descriptions
-                    if msg['role'] == 'assistant' and msg.get('name') == 'Llama-Vision':
+                    if msg['is_assistant'] and msg['persona_name'] == 'Llama-Vision':
                         image_descriptions.append(msg['content'])
                 
                 if image_descriptions:
