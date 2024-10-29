@@ -495,43 +495,6 @@ async def on_message(message):
         for att in message.attachments:
             logging.debug(f"Attachment: {att.filename} ({att.content_type})")
 
-    # Process image attachments
-    if message.attachments:
-        llama_cog = bot.get_cog('Llama-3.2-11B')
-        if llama_cog:
-            for attachment in message.attachments:
-                # Filter for image attachments
-                if attachment.content_type and attachment.content_type.startswith('image/'):
-                    try:
-                        # Add processing indicator
-                        await attachment.add_reaction('⏳')
-                        
-                        async with message.channel.typing():
-                            # Generate image description
-                            description = await llama_cog.generate_image_description(attachment.url)
-                            
-                            if description:
-                                # Send the description
-                                await message.channel.send(f"Image description: {description}")
-                                # Add success reaction
-                                await attachment.add_reaction('✅')
-                            else:
-                                # Add error reaction if no description generated
-                                await attachment.add_reaction('❌')
-                                await message.channel.send("Failed to generate image description.")
-                                
-                    except Exception as e:
-                        # Log error and add error reaction
-                        logging.error(f"Error processing image {attachment.filename}: {str(e)}")
-                        await attachment.add_reaction('❌')
-                        await message.channel.send("An error occurred while processing the image.")
-                    finally:
-                        # Clean up processing indicator
-                        try:
-                            await attachment.remove_reaction('⏳', bot.user)
-                        except:
-                            pass
-
     # Process commands first
     await bot.process_commands(message)
 
