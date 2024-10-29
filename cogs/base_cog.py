@@ -188,6 +188,10 @@ class BaseCog(commands.Cog):
                     logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
                     return
 
+                # Process images first if needed
+                if not self.supports_vision and message.attachments:
+                    await self.process_images(message)
+
                 # Generate response
                 response = await self.generate_response(message)
 
@@ -237,6 +241,41 @@ class BaseCog(commands.Cog):
                     logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
                 return None, None
 
+    async def process_images(self, message):
+        """Process images and store descriptions in the database"""
+        if not message.attachments:
+            return
+
+        for attachment in message.attachments:
+            if attachment.content_type and attachment.content_type.startswith('image/'):
+                try:
+                    # Use Llama with vision capabilities
+                    messages_for_vision = [
+                        {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": "Please provide a detailed description of this image."},
+                            {"type": "image_url", "image_url": {"url": attachment.url}}
+                        ]}
+                    ]
+                    vision_response = await api.call_openrouter(messages_for_vision, "meta-llama/llama-3.2-11b-instruct:free")
+                    if vision_response and 'choices' in vision_response and len(vision_response['choices']) > 0:
+                        description = vision_response['choices'][0]['message']['content']
+                        # Log the image description interaction
+                        try:
+                            log_interaction(
+                                user_id=message.author.id,
+                                guild_id=message.guild.id if message.guild else None,
+                                persona_name="Llama-Vision",
+                                user_message=f"Image URL: {attachment.url}",
+                                assistant_reply=description,
+                                channel_id=str(message.channel.id)
+                            )
+                            logging.debug(f"[Llama-Vision] Logged image description for user {message.author.id}")
+                        except Exception as e:
+                            logging.error(f"[Llama-Vision] Failed to log image description: {str(e)}")
+                except Exception as e:
+                    logging.error(f"[{self.name}] Failed to process image: {str(e)}")
+
     async def generate_response(self, message):
         """Generate a response without handling it"""
         try:
@@ -272,28 +311,15 @@ class BaseCog(commands.Cog):
             history_messages = get_message_history(channel_id, limit=50)
             messages.extend(history_messages)
 
-            # Process image attachments for models that don't support vision
-            if not self.supports_vision and message.attachments:
+            # Add current message with any image descriptions from the database
+            if message.attachments and not self.supports_vision:
+                # Get the most recent image descriptions from the database
                 image_descriptions = []
-                for attachment in message.attachments:
-                    if attachment.content_type and attachment.content_type.startswith('image/'):
-                        try:
-                            # Use Llama with vision capabilities
-                            messages_for_vision = [
-                                {"role": "system", "content": "You are a helpful assistant that provides detailed descriptions of images."},
-                                {"role": "user", "content": [
-                                    {"type": "text", "text": "Please provide a detailed description of this image."},
-                                    {"type": "image_url", "image_url": {"url": attachment.url}}
-                                ]}
-                            ]
-                            vision_response = await api.call_openrouter(messages_for_vision, "meta-llama/llama-3.2-11b-instruct:free")
-                            if vision_response and 'choices' in vision_response and len(vision_response['choices']) > 0:
-                                description = vision_response['choices'][0]['message']['content']
-                                image_descriptions.append(f"Image Description: {description}")
-                        except Exception as e:
-                            logging.error(f"[{self.name}] Failed to get image description: {str(e)}")
+                for msg in history_messages[-5:]:  # Check last 5 messages for image descriptions
+                    if msg['role'] == 'assistant' and msg.get('name') == 'Llama-Vision':
+                        image_descriptions.append(msg['content'])
+                
                 if image_descriptions:
-                    # Append image descriptions to the user's message
                     messages.append({
                         "role": "user",
                         "content": f"{message.content}\n\n{'\n'.join(image_descriptions)}"
@@ -304,7 +330,6 @@ class BaseCog(commands.Cog):
                         "content": message.content
                     })
             else:
-                # Add current message
                 messages.append({
                     "role": "user",
                     "content": message.content
