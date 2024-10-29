@@ -328,21 +328,25 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Get last 50 messages from context database
+            # Check if this is a continuation of an existing conversation
             channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
-                if msg['is_assistant']:
-                    content = f"[{msg['persona_name']}] {content}"
-                messages.append({"role": role, "content": content})
+            last_message = await self.context_cog.get_context_messages(channel_id, limit=1)
+            
+            if last_message and (datetime.now() - datetime.fromisoformat(last_message[0]['timestamp'])).total_seconds() < 3600:
+                # If there's a recent message, load the conversation history
+                history_messages = await self.context_cog.get_context_messages(channel_id, limit=10)
+                for msg in history_messages:
+                    role = "assistant" if msg['is_assistant'] else "user"
+                    content = msg['content']
+                    if msg['is_assistant']:
+                        content = f"[{msg['persona_name']}] {content}"
+                    messages.append({"role": role, "content": content})
 
             # Add current message with any image descriptions from the database
             if message.attachments and not self.supports_vision:
                 # Get the most recent image descriptions from the database
                 image_descriptions = []
-                for msg in history_messages[-5:]:  # Check last 5 messages for image descriptions
+                for msg in history_messages[-5:] if 'history_messages' in locals() else []:
                     if msg['is_assistant'] and msg['persona_name'] == 'Llama-Vision':
                         image_descriptions.append(msg['content'])
                 
