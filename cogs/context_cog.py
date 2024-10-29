@@ -26,49 +26,35 @@ class ContextCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Capture all messages to add to context"""
+        """Capture user messages to add to context"""
+        # Ignore messages from bots
+        if message.author.bot:
+            return
+
         channel_id = str(message.channel.id)
         guild_id = str(message.guild.id) if message.guild else None
         user_id = str(message.author.id)
         content = message.content
-
-        # Determine if message is from an assistant
-        is_assistant = message.author.bot
+        is_assistant = False
         persona_name = None
         emotion = None
-        
-        # Extract persona name and emotion from bot messages
-        if is_assistant and content.startswith('['):
-            try:
-                persona_end = content.index(']')
-                persona_name = content[1:persona_end].strip()
-                content = content[persona_end + 1:].strip()
-            except ValueError:
-                pass
 
         await self.add_message_to_context(channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         """Capture edited messages to update context"""
+        # Ignore messages from bots
+        if after.author.bot:
+            return
+
         channel_id = str(after.channel.id)
         guild_id = str(after.guild.id) if after.guild else None
         user_id = str(after.author.id)
         content = after.content
-        
-        # Determine if message is from an assistant
-        is_assistant = after.author.bot
+        is_assistant = False
         persona_name = None
         emotion = None
-        
-        # Extract persona name and emotion from bot messages
-        if is_assistant and content.startswith('['):
-            try:
-                persona_end = content.index(']')
-                persona_name = content[1:persona_end].strip()
-                content = content[persona_end + 1:].strip()
-            except ValueError:
-                pass
 
         # Optionally, you might want to update the existing message in the database
         # For simplicity, we'll treat edits as new messages

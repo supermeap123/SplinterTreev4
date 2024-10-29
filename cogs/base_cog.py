@@ -6,13 +6,12 @@ import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
-from shared.utils import analyze_emotion, log_interaction
+from shared.utils import analyze_emotion, log_interaction, get_message_history
 from shared.api import api
 import re
 import aiohttp
 import asyncio
 import tempfile
-from cogs.context_cog import ContextCog  # Import ContextCog
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -50,12 +49,10 @@ class BaseCog(commands.Cog):
         self.bot = bot
         self.name = name
         self.nickname = nickname
-        self.trigger_words = [word.lower() for word in trigger_words]  # Convert trigger words to lowercase
+        self.trigger_words = trigger_words
         self.model = model
         self.provider = provider
         self.supports_vision = supports_vision
-        self.context_cog = self.bot.get_cog('ContextCog')  # Get ContextCog instance
-        self.context_messages = {}  # Store context message counts per channel
 
         # Load prompt
         try:
@@ -74,21 +71,101 @@ class BaseCog(commands.Cog):
         self.raw_prompt = raw_prompt
         self.formatted_prompt = raw_prompt
 
-    def check_triggers(self, content: str) -> bool:
-        """Check if the message content contains any trigger words"""
-        content = content.lower()
-        # Check if any trigger word appears as a substring in the content
-        return any(trigger in content for trigger in self.trigger_words)
+    async def create_response_file(self, response_text: str, message_id: str) -> discord.File:
+        """Create a markdown file containing the response"""
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.md') as temp_file:
+            temp_file.write(response_text)
+            temp_file_path = temp_file.name
 
-    def is_reply_to_bot(self, message):
-        """Check if the message is a reply to this bot's persona and return the referenced message content"""
-        if message.reference and message.reference.resolved:
-            referenced_message = message.reference.resolved
-            if referenced_message.author == self.bot.user:
-                # Check if the referenced message starts with this persona's name
-                if referenced_message.content.startswith(f"[{self.name}]"):
-                    return referenced_message.content
-        return None
+        # Create Discord File object
+        file = discord.File(
+            temp_file_path,
+            filename=f'model_response_{message_id}.md'
+        )
+        # Schedule file deletion
+        async def delete_temp_file():
+            await asyncio.sleep(1)  # Wait a bit to ensure file is sent
+            try:
+                os.unlink(temp_file_path)
+            except Exception as e:
+                logging.error(f"Failed to delete temp file: {str(e)}")
+        asyncio.create_task(delete_temp_file())
+        return file
+
+    async def handle_response(self, response_text, message, referenced_message=None):
+        """Handle the response formatting and sending"""
+        try:
+            # Check permissions
+            permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+            can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+            can_dm = True  # Assume DMs are possible until proven otherwise
+
+            if not can_send and not can_dm:
+                logging.error(f"[{self.name}] No available method to send response")
+                return None
+
+            # Check if message content is spoilered using ||content|| format
+            is_spoilered = message.content.startswith('||') and message.content.endswith('||')
+
+            # Format response with model name
+            prefixed_response = f"[{self.name}] {response_text}"
+
+            # Create reroll view
+            view = RerollView(self, message, response_text)
+
+            sent_message = None
+            if is_spoilered:
+                # Send response as a DM to the user
+                try:
+                    user = message.author
+                    dm_channel = await user.create_dm()
+                    async with message.channel.typing():
+                        if len(prefixed_response) > 2000:
+                            # Create and send markdown file
+                            file = await self.create_response_file(prefixed_response, str(message.id))
+                            sent_message = await dm_channel.send(
+                                f"[{self.name}] Response was too long. Full response is in the attached file:",
+                                file=file,
+                                view=view
+                            )
+                        else:
+                            sent_message = await dm_channel.send(prefixed_response, view=view)
+                except discord.Forbidden:
+                    logging.warning(f"Cannot send DM to user {message.author}")
+                    can_dm = False
+
+            if not is_spoilered or (is_spoilered and not can_dm and can_send):
+                async with message.channel.typing():
+                    if len(prefixed_response) > 2000:
+                        # Create and send markdown file
+                        file = await self.create_response_file(prefixed_response, str(message.id))
+                        sent_message = await message.reply(
+                            f"[{self.name}] Response was too long. Full response is in the attached file:",
+                            file=file,
+                            view=view
+                        )
+                    else:
+                        sent_message = await message.reply(prefixed_response, view=view)
+
+            # Add reaction based on emotion analysis
+            try:
+                if permissions.add_reactions:
+                    emotion = analyze_emotion(response_text)
+                    if emotion:
+                        await message.add_reaction(emotion)
+            except Exception as e:
+                logging.error(f"Error adding emotion reaction: {str(e)}")
+
+            return sent_message
+
+        except Exception as e:
+            logging.error(f"Error sending response for {self.name}: {str(e)}")
+            try:
+                if permissions.add_reactions:
+                    await message.add_reaction('❌')
+            except:
+                pass
+            return None
 
     async def handle_message(self, message):
         """Handle incoming messages - this is called by the bot's on_message event"""
@@ -96,10 +173,10 @@ class BaseCog(commands.Cog):
             return
 
         # Check if message triggers this cog
-        is_triggered = self.check_triggers(message.content)
-        replied_content = self.is_reply_to_bot(message)
+        msg_content = message.content.lower()
+        is_triggered = any(word in msg_content for word in self.trigger_words)
 
-        if is_triggered or replied_content:
+        if is_triggered:
             logging.debug(f"[{self.name}] Triggered by message: {message.content}")
             try:
                 # Check permissions
@@ -116,7 +193,7 @@ class BaseCog(commands.Cog):
                     await self.process_images(message)
 
                 # Generate response
-                response = await self.generate_response(message, replied_content)
+                response = await self.generate_response(message)
 
                 if response:
                     # Send the response
@@ -199,36 +276,7 @@ class BaseCog(commands.Cog):
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to process image: {str(e)}")
 
-    def filter_consecutive_duplicates(self, messages):
-        """Filter out consecutive duplicate messages"""
-        filtered = []
-        for message in messages:
-            if not filtered or message != filtered[-1]:
-                filtered.append(message)
-        return filtered
-
-    def remove_duplicate_username(self, content):
-        """Remove duplicate usernames from the content"""
-        pattern = r'\[(\w+)\]\s*\[(\w+)\]'
-        return re.sub(pattern, r'[\1]', content)
-
-    async def get_context_messages(self, channel_id: str) -> list:
-        """Get the last N context messages for a channel"""
-        n = self.context_messages.get(channel_id, 5)  # Default to 5 if not set
-        messages = await self.context_cog.get_context_messages(channel_id, limit=n)
-        return messages
-
-    @commands.command(name='set_context')
-    @commands.has_permissions(manage_messages=True)
-    async def set_context_messages(self, ctx, count: int):
-        """Set the number of context messages for the current channel"""
-        if count < 1 or count > 20:
-            await ctx.send("Context message count must be between 1 and 20.")
-            return
-        self.context_messages[str(ctx.channel.id)] = count
-        await ctx.send(f"Context message count for this channel set to {count}.")
-
-    async def generate_response(self, message, replied_content=None):
+    async def generate_response(self, message):
         """Generate a response without handling it"""
         try:
             # Get local timezone
@@ -258,30 +306,34 @@ class BaseCog(commands.Cog):
                     {"role": "system", "content": formatted_prompt}
                 ]
 
-            # Get context messages
+            # Get last 50 messages from database
             channel_id = str(message.channel.id)
-            history_messages = await self.get_context_messages(channel_id)
-            
-            # Process messages to create conversation context
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
-                if msg['is_assistant']:
-                    content = self.remove_duplicate_username(f"[{msg['persona_name']}] {content}")
-                messages.append({"role": role, "content": content})
+            history_messages = get_message_history(channel_id, limit=50)
+            messages.extend(history_messages)
 
-            # Add replied-to message if it exists
-            if replied_content:
-                messages.append({"role": "assistant", "content": replied_content})
-
-            # Add current message
-            messages.append({
-                "role": "user",
-                "content": message.content
-            })
-
-            # Filter out consecutive duplicate messages
-            messages = self.filter_consecutive_duplicates(messages)
+            # Add current message with any image descriptions from the database
+            if message.attachments and not self.supports_vision:
+                # Get the most recent image descriptions from the database
+                image_descriptions = []
+                for msg in history_messages[-5:]:  # Check last 5 messages for image descriptions
+                    if msg['role'] == 'assistant' and msg.get('name') == 'Llama-Vision':
+                        image_descriptions.append(msg['content'])
+                
+                if image_descriptions:
+                    messages.append({
+                        "role": "user",
+                        "content": f"{message.content}\n\n{'\n'.join(image_descriptions)}"
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": message.content
+                    })
+            else:
+                messages.append({
+                    "role": "user",
+                    "content": message.content
+                })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
             logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
@@ -300,8 +352,6 @@ class BaseCog(commands.Cog):
 
             if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
                 response = response_data['choices'][0]['message']['content']
-                # Remove duplicate usernames from the response
-                response = self.remove_duplicate_username(response)
                 logging.debug(f"[{self.name}] Got response: {response}")
                 return response
 
@@ -358,9 +408,3 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.error(f"Error getting temperature: {str(e)}")
             return None
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        """Ensure set_context command is only registered once"""
-        if 'set_context' not in self.bot.all_commands:
-            self.bot.add_command(self.set_context_messages)
