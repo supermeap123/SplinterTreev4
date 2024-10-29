@@ -484,12 +484,10 @@ async def on_message(message):
     if message.attachments:
         llama_cog = bot.get_cog('Llama-3.2-11B')
         if llama_cog:
-            descriptions = []
-            for attachment in message.attachments:
-                description = await llama_cog.generate_image_description(attachment.url)
-                descriptions.append(description)
-            # Replace message content with image descriptions
-            message.content = "\n".join(descriptions)
+            async with message.channel.typing():
+                for attachment in message.attachments:
+                    await llama_cog.generate_image_description(attachment.url)
+                    await attachment.add_reaction('✅')
 
     # Process commands first
     await bot.process_commands(message)
