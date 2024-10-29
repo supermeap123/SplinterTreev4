@@ -9,6 +9,7 @@ import random
 import aiohttp
 import json
 from datetime import datetime, timedelta, timezone
+import re
 
 # Configure logging
 logging.basicConfig(
@@ -330,6 +331,20 @@ async def get_random_cog():
     logging.warning("No cogs available for random selection")
     return None
 
+def get_model_from_message(message_content: str) -> str:
+    """Extract model name from message content"""
+    match = re.match(r'\[(.*?)\]', message_content)
+    if match:
+        return match.group(1)
+    return None
+
+def get_cog_by_name(name: str):
+    """Get cog instance by model name"""
+    for cog in loaded_cogs:
+        if getattr(cog, 'name', '') == name:
+            return cog
+    return None
+
 @tasks.loop(seconds=60)  # Discord rate limit is 5 requests per minute
 async def rotate_status():
     """Rotate bot status message"""
@@ -519,6 +534,24 @@ async def on_message(message):
 
     # Process commands first
     await bot.process_commands(message)
+
+    # Check if message is a reply to a bot message
+    if message.reference and message.reference.message_id:
+        try:
+            replied_msg = await message.channel.fetch_message(message.reference.message_id)
+            if replied_msg.author == bot.user:
+                # Extract model name from the replied message
+                model_name = get_model_from_message(replied_msg.content)
+                if model_name:
+                    # Get corresponding cog
+                    cog = get_cog_by_name(model_name)
+                    if cog:
+                        logging.debug(f"Using {model_name} cog to handle reply")
+                        await cog.handle_message(message)
+                        processed_messages.add(message.id)
+                        return
+        except Exception as e:
+            logging.error(f"Error handling reply: {str(e)}")
 
     # Check for bot mention or keywords
     msg_content = message.content.lower()
