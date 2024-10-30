@@ -5,7 +5,8 @@ import json
 import asyncio
 import sqlite3
 from typing import Dict, Any, List, Union
-from openpipe import OpenAI
+from openai import OpenAI
+from openpipe.client import OpenPipe
 import backoff
 import httpx
 from functools import partial
@@ -26,8 +27,9 @@ class API:
             keepalive_expiry=30.0
         )
         
-        # Initialize OpenPipe client
+        # Initialize OpenAI and OpenPipe clients
         self.client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
+        self.openpipe = OpenPipe()
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
@@ -155,7 +157,7 @@ class API:
                 if temperature is None:
                     temperature = 1
 
-                # Run API call
+                requested_at = int(time.time() * 1000)
                 completion = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -164,12 +166,25 @@ class API:
                     top_p=1,
                     frequency_penalty=0,
                     presence_penalty=0,
-                    stream=False,
-                    store=True,
-                    metadata={
+                    stream=False
+                )
+                received_at = int(time.time() * 1000)
+
+                # Report to OpenPipe
+                self.openpipe.report(
+                    requested_at=requested_at,
+                    received_at=received_at,
+                    req_payload={
                         "model": model,
+                        "messages": messages,
                         "temperature": temperature,
-                        "source": "SplinterTree"
+                        "max_tokens": 1000
+                    },
+                    resp_payload=completion,
+                    status_code=200,
+                    metadata={
+                        "source": "openpipe",
+                        "model": model
                     }
                 )
 
