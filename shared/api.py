@@ -4,13 +4,13 @@ import time
 import json
 import asyncio
 import sqlite3
+import re
 from typing import Dict, Any, List, Union
 from openai import OpenAI
 import backoff
 import httpx
 from functools import partial
 from config import OPENPIPE_API_URL, OPENPIPE_API_KEY
-import re
 
 class API:
     def __init__(self):
@@ -35,13 +35,13 @@ class API:
         self.db_conn = sqlite3.connect('databases/interaction_logs.db')
         self.db_cursor = self.db_conn.cursor()
 
-    def _make_openrouter_request(self, messages, model, temperature, max_tokens):
-        """Synchronous OpenRouter API call"""
+    async def _make_openrouter_request(self, messages, model, temperature, max_tokens):
+        """Asynchronous OpenRouter API call"""
         logging.debug(f"[API] Making OpenRouter request to model: {model}")
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         requested_at = int(time.time() * 1000)
-        completion = self.client.chat.completions.create(
+        completion = await self.client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
@@ -54,7 +54,7 @@ class API:
         received_at = int(time.time() * 1000)
 
         # Log request to database
-        self.report(
+        await self.report(
             requested_at=requested_at,
             received_at=received_at,
             req_payload={
@@ -80,26 +80,25 @@ class API:
         # Regex for sentence boundaries
         sentence_end = re.compile(r'[.!?]\s+')
 
-        for chunk in stream:
-            if hasattr(chunk.choices[0].delta, 'content'):
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
-                if content:
-                    buffer += content
-                    current_sentence += content
+                buffer += content
+                current_sentence += content
 
-                    # Check for complete sentences
-                    sentences = sentence_end.split(buffer)
+                # Check for complete sentences
+                sentences = sentence_end.split(buffer)
+                
+                # If we have multiple sentences, update buffer
+                if len(sentences) > 1:
+                    buffer = sentences[-1]
                     
-                    # If we have multiple sentences, update buffer
-                    if len(sentences) > 1:
-                        buffer = sentences[-1]
-                        
-                    # Periodically edit the message with the current progress
-                    current_time = time.time()
-                    if current_time - last_edit_time >= edit_interval:
-                        if edit_message_func and buffer.strip():
-                            await edit_message_func(buffer.strip())
-                        last_edit_time = current_time
+                # Periodically edit the message with the current progress
+                current_time = time.time()
+                if current_time - last_edit_time >= edit_interval:
+                    if edit_message_func and buffer.strip():
+                        await edit_message_func(buffer.strip())
+                    last_edit_time = current_time
 
         # Return the complete response
         return buffer.strip()
@@ -149,12 +148,8 @@ class API:
                         logging.debug(f"[API] Message type: text")
                         logging.debug(f"[API] Content: {msg.get('content')}")
 
-                # Run API call in thread pool
-                loop = asyncio.get_event_loop()
-                stream = await loop.run_in_executor(
-                    None,
-                    partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
-                )
+                # Make API call
+                stream = await self._make_openrouter_request(messages, full_model, temperature, max_tokens)
 
                 # Process the stream
                 full_response = await self._process_stream(stream, edit_message_func)
@@ -209,7 +204,7 @@ class API:
                     temperature = 1
 
                 requested_at = int(time.time() * 1000)
-                stream = self.client.chat.completions.create(
+                stream = await self.client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
@@ -234,7 +229,7 @@ class API:
                 }
 
                 # Log request to database
-                self.report(
+                await self.report(
                     requested_at=requested_at,
                     received_at=received_at,
                     req_payload={
