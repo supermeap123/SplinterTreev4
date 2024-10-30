@@ -4,7 +4,8 @@ import time
 import json
 import asyncio
 import sqlite3
-from typing import Dict, Any, List, Union
+import re
+from typing import Dict, Any, List, Union, AsyncGenerator
 from openai import OpenAI
 from openpipe.client import OpenPipe
 import backoff
@@ -49,9 +50,49 @@ class API:
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stream=False,
+            stream=True,
             store=True
         )
+
+    async def _stream_process_response(self, stream, edit_message_func) -> AsyncGenerator[str, None]:
+        """Process streaming response with fancy sentence-by-sentence editing"""
+        buffer = ""
+        current_sentence = ""
+        last_edit_time = time.time()
+        edit_interval = 0.5  # Edit message every 0.5 seconds
+
+        # Regex for sentence boundaries
+        sentence_end = re.compile(r'[.!?]\s+')
+        
+        async for chunk in stream:
+            if hasattr(chunk.choices[0].delta, 'content'):
+                content = chunk.choices[0].delta.content
+                if content:
+                    buffer += content
+                    current_sentence += content
+
+                    # Check for complete sentences
+                    sentences = sentence_end.split(buffer)
+                    
+                    # If we have multiple sentences, yield all but the last one
+                    if len(sentences) > 1:
+                        complete_sentences = sentences[:-1]
+                        buffer = sentences[-1]
+                        
+                        for sentence in complete_sentences:
+                            if sentence.strip():
+                                yield f"{sentence.strip()}.{' ' if not sentence.endswith(' ') else ''}"
+
+                    # Periodically edit the message with the current progress
+                    current_time = time.time()
+                    if current_time - last_edit_time >= edit_interval:
+                        if edit_message_func and buffer.strip():
+                            await edit_message_func(buffer.strip())
+                        last_edit_time = current_time
+
+        # Yield any remaining content
+        if buffer.strip():
+            yield buffer.strip()
 
     @backoff.on_exception(
         backoff.expo,
@@ -59,7 +100,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None):
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, edit_message_func=None):
         try:
             # Check if any message contains vision content
             has_vision_content = any(
@@ -100,22 +141,24 @@ class API:
 
                 # Run API call in thread pool
                 loop = asyncio.get_event_loop()
-                completion = await loop.run_in_executor(
+                stream = await loop.run_in_executor(
                     None,
                     partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
                 )
 
-                # Convert OpenAI response to dict format
-                if hasattr(completion, 'model_dump'):
-                    response_dict = completion.model_dump()
-                else:
-                    response_dict = {
-                        'choices': [ {
-                            'message': {
-                                'content': completion.choices[0].message.content
-                            }
-                        }]
-                    }
+                # Process the stream with fancy editing
+                full_response = ""
+                async for sentence in self._stream_process_response(stream, edit_message_func):
+                    full_response += sentence
+
+                # Convert to dict format for consistency
+                response_dict = {
+                    'choices': [{
+                        'message': {
+                            'content': full_response
+                        }
+                    }]
+                }
                 logging.debug("[API] Successfully received OpenRouter response")
                 return response_dict
 
@@ -144,7 +187,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7):
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, edit_message_func=None):
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -158,7 +201,7 @@ class API:
                     temperature = 1
 
                 requested_at = int(time.time() * 1000)
-                completion = self.client.chat.completions.create(
+                stream = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
@@ -166,9 +209,24 @@ class API:
                     top_p=1,
                     frequency_penalty=0,
                     presence_penalty=0,
-                    stream=False
+                    stream=True
                 )
+                
+                # Process the stream with fancy editing
+                full_response = ""
+                async for sentence in self._stream_process_response(stream, edit_message_func):
+                    full_response += sentence
+
                 received_at = int(time.time() * 1000)
+
+                # Create completion object for reporting
+                completion = {
+                    'choices': [{
+                        'message': {
+                            'content': full_response
+                        }
+                    }]
+                }
 
                 # Report to OpenPipe
                 self.openpipe.report(
@@ -188,17 +246,14 @@ class API:
                     }
                 )
 
-                # Convert OpenAI response to dict format
-                if hasattr(completion, 'model_dump'):
-                    response_dict = completion.model_dump()
-                else:
-                    response_dict = {
-                        'choices': [{
-                            'message': {
-                                'content': completion.choices[0].message.content
-                            }
-                        }]
-                    }
+                # Return response dict
+                response_dict = {
+                    'choices': [{
+                        'message': {
+                            'content': full_response
+                        }
+                    }]
+                }
                 logging.debug("[API] Successfully received OpenPipe response")
                 return response_dict
 
