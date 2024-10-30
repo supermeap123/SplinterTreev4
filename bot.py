@@ -59,6 +59,29 @@ last_used_cogs = {}
 # Track processed messages to prevent double handling
 processed_messages = set()
 
+# File to persist processed messages
+PROCESSED_MESSAGES_FILE = os.path.join(BOT_DIR, 'processed_messages.json')
+
+def load_processed_messages():
+    """Load processed messages from file"""
+    global processed_messages
+    if os.path.exists(PROCESSED_MESSAGES_FILE):
+        try:
+            with open(PROCESSED_MESSAGES_FILE, 'r') as f:
+                processed_messages = set(json.load(f))
+            logging.info(f"Loaded {len(processed_messages)} processed messages from file")
+        except Exception as e:
+            logging.error(f"Error loading processed messages: {str(e)}")
+
+def save_processed_messages():
+    """Save processed messages to file"""
+    try:
+        with open(PROCESSED_MESSAGES_FILE, 'w') as f:
+            json.dump(list(processed_messages), f)
+        logging.info(f"Saved {len(processed_messages)} processed messages to file")
+    except Exception as e:
+        logging.error(f"Error saving processed messages: {str(e)}")
+
 def get_history_file(channel_id: str) -> str:
     """Get the history file path for a channel"""
     history_dir = os.path.join(BOT_DIR, 'history')
@@ -512,6 +535,7 @@ async def on_message(message):
                         logging.debug(f"Using {model_name} cog to handle reply")
                         await cog.handle_message(message)
                         processed_messages.add(message.id)
+                        save_processed_messages()  # Save processed messages after handling
                         return
         except Exception as e:
             logging.error(f"Error handling reply: {str(e)}")
@@ -595,6 +619,7 @@ async def on_message(message):
 
     # Mark message as processed
     processed_messages.add(message.id)
+    save_processed_messages()  # Save processed messages after handling
 
     # Clean up old processed messages (keep last 1000)
     if len(processed_messages) > 1000:
@@ -614,4 +639,5 @@ async def on_command_error(ctx, error):
 # Run bot
 if __name__ == "__main__":
     logging.debug("Starting bot...")
+    load_processed_messages()  # Load processed messages on startup
     bot.run(TOKEN)
