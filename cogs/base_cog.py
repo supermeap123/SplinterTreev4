@@ -71,6 +71,19 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    async def wait_for_image_processing(self, message, timeout=30):
+        """Wait for image processing to complete and alt text to be stored"""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            async with self._image_processing_lock:
+                # Check if alt text exists for this message
+                alt_text = await get_alt_text(str(message.id))
+                if alt_text:
+                    return True
+            # Wait a bit before checking again
+            await asyncio.sleep(1)
+        return False
+
     def get_dynamic_prompt(self, ctx):
         """Get dynamic prompt for channel/server if one exists"""
         guild_id = str(ctx.guild.id) if ctx.guild else None
