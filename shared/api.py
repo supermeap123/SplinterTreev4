@@ -10,6 +10,7 @@ import backoff
 import httpx
 from functools import partial
 from config import OPENPIPE_API_URL, OPENPIPE_API_KEY
+import re
 
 class API:
     def __init__(self):
