@@ -54,17 +54,17 @@ class API:
             store=True
         )
 
-    async def _stream_process_response(self, stream, edit_message_func) -> AsyncGenerator[str, None]:
+    async def _process_stream(self, stream, edit_message_func=None) -> str:
         """Process streaming response with fancy sentence-by-sentence editing"""
         buffer = ""
         current_sentence = ""
         last_edit_time = time.time()
         edit_interval = 0.5  # Edit message every 0.5 seconds
-
+        
         # Regex for sentence boundaries
         sentence_end = re.compile(r'[.!?]\s+')
-        
-        async for chunk in stream:
+
+        for chunk in stream:
             if hasattr(chunk.choices[0].delta, 'content'):
                 content = chunk.choices[0].delta.content
                 if content:
@@ -74,15 +74,10 @@ class API:
                     # Check for complete sentences
                     sentences = sentence_end.split(buffer)
                     
-                    # If we have multiple sentences, yield all but the last one
+                    # If we have multiple sentences, update buffer
                     if len(sentences) > 1:
-                        complete_sentences = sentences[:-1]
                         buffer = sentences[-1]
                         
-                        for sentence in complete_sentences:
-                            if sentence.strip():
-                                yield f"{sentence.strip()}.{' ' if not sentence.endswith(' ') else ''}"
-
                     # Periodically edit the message with the current progress
                     current_time = time.time()
                     if current_time - last_edit_time >= edit_interval:
@@ -90,9 +85,8 @@ class API:
                             await edit_message_func(buffer.strip())
                         last_edit_time = current_time
 
-        # Yield any remaining content
-        if buffer.strip():
-            yield buffer.strip()
+        # Return the complete response
+        return buffer.strip()
 
     @backoff.on_exception(
         backoff.expo,
@@ -146,10 +140,8 @@ class API:
                     partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
                 )
 
-                # Process the stream with fancy editing
-                full_response = ""
-                async for sentence in self._stream_process_response(stream, edit_message_func):
-                    full_response += sentence
+                # Process the stream
+                full_response = await self._process_stream(stream, edit_message_func)
 
                 # Convert to dict format for consistency
                 response_dict = {
@@ -211,12 +203,9 @@ class API:
                     presence_penalty=0,
                     stream=True
                 )
-                
-                # Process the stream with fancy editing
-                full_response = ""
-                async for sentence in self._stream_process_response(stream, edit_message_func):
-                    full_response += sentence
 
+                # Process the stream
+                full_response = await self._process_stream(stream, edit_message_func)
                 received_at = int(time.time() * 1000)
 
                 # Create completion object for reporting
