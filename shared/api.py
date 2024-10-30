@@ -4,10 +4,8 @@ import time
 import json
 import asyncio
 import sqlite3
-import re
-from typing import Dict, Any, List, Union, AsyncGenerator
+from typing import Dict, Any, List, Union
 from openai import OpenAI
-from openpipe.client import OpenPipe
 import backoff
 import httpx
 from functools import partial
@@ -28,9 +26,8 @@ class API:
             keepalive_expiry=30.0
         )
         
-        # Initialize OpenAI and OpenPipe clients
+        # Initialize OpenAI client
         self.client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
-        self.openpipe = OpenPipe()
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
@@ -42,7 +39,8 @@ class API:
         logging.debug(f"[API] Making OpenRouter request to model: {model}")
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
-        return self.client.chat.completions.create(
+        requested_at = int(time.time() * 1000)
+        completion = self.client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
@@ -50,43 +48,26 @@ class API:
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stream=True,
-            store=True
+            stream=True
+        )
+        received_at = int(time.time() * 1000)
+
+        # Log request to database
+        self.report(
+            requested_at=requested_at,
+            received_at=received_at,
+            req_payload={
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            },
+            resp_payload=completion,
+            status_code=200,
+            tags={"source": "openrouter"}
         )
 
-    async def _process_stream(self, stream, edit_message_func=None) -> str:
-        """Process streaming response with fancy sentence-by-sentence editing"""
-        buffer = ""
-        current_sentence = ""
-        last_edit_time = time.time()
-        edit_interval = 0.5  # Edit message every 0.5 seconds
-        
-        # Regex for sentence boundaries
-        sentence_end = re.compile(r'[.!?]\s+')
-
-        for chunk in stream:
-            if hasattr(chunk.choices[0].delta, 'content'):
-                content = chunk.choices[0].delta.content
-                if content:
-                    buffer += content
-                    current_sentence += content
-
-                    # Check for complete sentences
-                    sentences = sentence_end.split(buffer)
-                    
-                    # If we have multiple sentences, update buffer
-                    if len(sentences) > 1:
-                        buffer = sentences[-1]
-                        
-                    # Periodically edit the message with the current progress
-                    current_time = time.time()
-                    if current_time - last_edit_time >= edit_interval:
-                        if edit_message_func and buffer.strip():
-                            await edit_message_func(buffer.strip())
-                        last_edit_time = current_time
-
-        # Return the complete response
-        return buffer.strip()
+        return completion
 
     @backoff.on_exception(
         backoff.expo,
@@ -94,7 +75,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, edit_message_func=None):
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None):
         try:
             # Check if any message contains vision content
             has_vision_content = any(
@@ -140,8 +121,13 @@ class API:
                     partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
                 )
 
-                # Process the stream
-                full_response = await self._process_stream(stream, edit_message_func)
+                # Process stream and build response
+                full_response = ""
+                async for chunk in stream:
+                    if hasattr(chunk.choices[0].delta, 'content'):
+                        content = chunk.choices[0].delta.content
+                        if content:
+                            full_response += content
 
                 # Convert to dict format for consistency
                 response_dict = {
@@ -179,7 +165,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, edit_message_func=None):
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7):
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -203,9 +189,15 @@ class API:
                     presence_penalty=0,
                     stream=True
                 )
+                
+                # Process stream and build response
+                full_response = ""
+                async for chunk in stream:
+                    if hasattr(chunk.choices[0].delta, 'content'):
+                        content = chunk.choices[0].delta.content
+                        if content:
+                            full_response += content
 
-                # Process the stream
-                full_response = await self._process_stream(stream, edit_message_func)
                 received_at = int(time.time() * 1000)
 
                 # Create completion object for reporting
@@ -217,8 +209,8 @@ class API:
                     }]
                 }
 
-                # Report to OpenPipe
-                self.openpipe.report(
+                # Log request to database
+                self.report(
                     requested_at=requested_at,
                     received_at=received_at,
                     req_payload={
@@ -229,10 +221,7 @@ class API:
                     },
                     resp_payload=completion,
                     status_code=200,
-                    metadata={
-                        "source": "openpipe",
-                        "model": model
-                    }
+                    tags={"source": "openpipe"}
                 )
 
                 # Return response dict
