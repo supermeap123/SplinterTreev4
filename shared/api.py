@@ -42,12 +42,13 @@ class API:
         return self.client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=temperature if temperature is not None else 0.7,
+            temperature=temperature if temperature is not None else 1,
             max_tokens=max_tokens,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stream=False
+            stream=False,
+            store=True
         )
 
     @backoff.on_exception(
@@ -152,7 +153,7 @@ class API:
             try:
                 # Ensure temperature is not None
                 if temperature is None:
-                    temperature = 0.7
+                    temperature = 1
 
                 # Run API call
                 completion = self.client.chat.completions.create(
@@ -164,6 +165,7 @@ class API:
                     frequency_penalty=0,
                     presence_penalty=0,
                     stream=False,
+                    store=True,
                     metadata={
                         "model": model,
                         "temperature": temperature,
