@@ -52,6 +52,23 @@ class API:
         )
         received_at = int(time.time() * 1000)
 
+        # Process stream synchronously
+        full_response = ""
+        for chunk in completion:
+            if hasattr(chunk.choices[0].delta, 'content'):
+                content = chunk.choices[0].delta.content
+                if content:
+                    full_response += content
+
+        # Create completion object for reporting
+        completion_obj = {
+            'choices': [{
+                'message': {
+                    'content': full_response
+                }
+            }]
+        }
+
         # Log request to database
         self.report(
             requested_at=requested_at,
@@ -62,12 +79,12 @@ class API:
                 "temperature": temperature,
                 "max_tokens": max_tokens
             },
-            resp_payload=completion,
+            resp_payload=completion_obj,
             status_code=200,
             tags={"source": "openrouter"}
         )
 
-        return completion
+        return full_response
 
     @backoff.on_exception(
         backoff.expo,
@@ -116,18 +133,10 @@ class API:
 
                 # Run API call in thread pool
                 loop = asyncio.get_event_loop()
-                stream = await loop.run_in_executor(
+                full_response = await loop.run_in_executor(
                     None,
                     partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
                 )
-
-                # Process stream and build response
-                full_response = ""
-                async for chunk in stream:
-                    if hasattr(chunk.choices[0].delta, 'content'):
-                        content = chunk.choices[0].delta.content
-                        if content:
-                            full_response += content
 
                 # Convert to dict format for consistency
                 response_dict = {
@@ -179,7 +188,7 @@ class API:
                     temperature = 1
 
                 requested_at = int(time.time() * 1000)
-                stream = self.client.chat.completions.create(
+                completion = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
@@ -190,9 +199,9 @@ class API:
                     stream=True
                 )
                 
-                # Process stream and build response
+                # Process stream synchronously
                 full_response = ""
-                async for chunk in stream:
+                for chunk in completion:
                     if hasattr(chunk.choices[0].delta, 'content'):
                         content = chunk.choices[0].delta.content
                         if content:
@@ -201,7 +210,7 @@ class API:
                 received_at = int(time.time() * 1000)
 
                 # Create completion object for reporting
-                completion = {
+                completion_obj = {
                     'choices': [{
                         'message': {
                             'content': full_response
@@ -219,7 +228,7 @@ class API:
                         "temperature": temperature,
                         "max_tokens": 1000
                     },
-                    resp_payload=completion,
+                    resp_payload=completion_obj,
                     status_code=200,
                     tags={"source": "openpipe"}
                 )
