@@ -12,6 +12,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Response Reroll**: Button to generate alternative responses
 - **Emotion Analysis**: Reactions based on message sentiment
 - **Status Updates**: Rotating status showing uptime, last interaction, and current model
+- **Dynamic System Prompts**: Customizable per-channel system prompts with variable support
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -90,13 +91,21 @@ python bot.py
 
 ## 📝 Usage
 
-### Basic Commands
-- `!splintertree_help [channel|dm]`: Show help information
-- `!setcontext <size>`: Set context window size
-- `!getcontext`: Show current context window size
-- `!resetcontext`: Reset to default context window
-- `!clearcontext [hours]`: Clear conversation history
-- `!contact`: Show contact information
+### Slash Commands
+- `/help`: Show comprehensive help information
+- `/listmodels`: Show all available AI models
+- `/set_system_prompt`: Set a custom system prompt for an AI agent
+- `/reset_system_prompt`: Reset an AI agent's system prompt to default
+
+### System Prompt Variables
+When setting custom system prompts, you can use these variables:
+- `{MODEL_ID}`: The AI model's name
+- `{USERNAME}`: The user's Discord display name
+- `{DISCORD_USER_ID}`: The user's Discord ID
+- `{TIME}`: Current local time
+- `{TZ}`: Local timezone
+- `{SERVER_NAME}`: Current Discord server name
+- `{CHANNEL_NAME}`: Current channel name
 
 ### Triggering Models
 - **Random Model**: Mention the bot or use "splintertree" keyword
@@ -110,8 +119,9 @@ python bot.py
 splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
-!setcontext 20  # Set context window to 20 messages
-!clearcontext 24  # Clear messages older than 24 hours
+
+# Setting a custom system prompt
+/set_system_prompt agent:Claude-3 prompt:"You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
 ```
 
 ## 🏗️ Architecture
@@ -122,6 +132,7 @@ gemini analyze this image [attached image]
 - **API Integration**: OpenRouter and OpenPipe connections
 - **File Processing**: Handles various file types
 - **Image Processing**: Vision model integration
+- **Settings Management**: Handles dynamic system prompts
 
 ### Directory Structure
 ```
@@ -131,11 +142,11 @@ SplinterTreev4/
 ├── cogs/               # Model-specific implementations
 │   ├── base_cog.py    # Base cog implementation
 │   ├── context_cog.py # Context management
+│   ├── settings_cog.py # Settings management
 │   └── [model]_cog.py # Individual model cogs
 ├── databases/          # SQLite database
 │   ├── schema.sql     # Database schema
 │   └── interaction_logs.db # Conversation history
-├── prompts/            # System prompts
 └── shared/            # Shared utilities
 ```
 
@@ -145,14 +156,14 @@ SplinterTreev4/
 1. Create a new cog file in `cogs/`
 2. Inherit from `BaseCog`
 3. Configure model-specific settings
-4. Add system prompt to `prompts/consolidated_prompts.json`
+4. The default system prompt template will be used
 
 ### Custom Prompts
-Create channel-specific prompts in `dynamic_prompts.json`:
+Channel-specific prompts are stored in `dynamic_prompts.json`:
 ```json
 {
-  "channel_id": {
-    "prompt": "Custom system prompt for this channel"
+  "guild_id": {
+    "channel_id": "Custom system prompt with {MODEL_ID} and other variables"
   }
 }
 ```

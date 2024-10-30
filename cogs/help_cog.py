@@ -66,46 +66,7 @@ class HelpCog(BaseCog):
                 
         return help_text
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
-        if message.author == self.bot.user:
-            return
-
-        # Add message to context before processing
-        if self.context_cog:
-            try:
-                channel_id = str(message.channel.id)
-                guild_id = str(message.guild.id) if message.guild else None
-                user_id = str(message.author.id)
-                content = message.content
-                is_assistant = False
-                persona_name = self.name
-                emotion = None
-
-                await self.context_cog.add_message_to_context(
-                    channel_id=channel_id,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    content=content,
-                    is_assistant=is_assistant,
-                    persona_name=persona_name,
-                    emotion=emotion
-                )
-            except Exception as e:
-                logging.error(f"[Help] Failed to add message to context: {str(e)}")
-
-        # Let base_cog handle message processing
-        await super().handle_message(message)
-
-    @commands.command(name="listmodels", help="Lists all available AI models and their trigger words")
-    async def list_models_command(self, ctx):
-        """Send a list of all available models and their trigger words"""
-        vision_models, models = self.get_all_models()
-        model_list = self.format_model_list(vision_models, models)
-        await ctx.send(model_list)
-
-    @commands.command(name="splintertree_help", help="Displays a list of available commands and features")
+    @commands.slash_command(name="help", description="Display help information about SplinterTree")
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
         # Get dynamically loaded models
@@ -119,6 +80,7 @@ class HelpCog(BaseCog):
 • **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
 • **Context Memory** - Models remember conversation history for better context
 • **Image Analysis** - Use vision-capable models for image descriptions and analysis
+• **Custom System Prompts** - Set custom prompts for each AI agent
 
 **💡 Tips:**
 1. Models will respond when you mention their trigger words
@@ -127,13 +89,32 @@ class HelpCog(BaseCog):
 4. Images are automatically analyzed when sent with messages
 5. Use the reroll button to get alternative responses if needed
 
-**Available Commands:**
-• !splintertree_help - Show this help message
-• !listmodels - Show a list of all available models and their trigger words
+**Available Slash Commands:**
+• /help - Show this help message
+• /listmodels - Show a list of all available models
+• /set_system_prompt - Set a custom system prompt for an AI agent
+• /reset_system_prompt - Reset an AI agent's system prompt to default
 
-**Need more help?** Just mention 'splintertree_help' or use !splintertree_help to see this message again.
+**System Prompt Variables:**
+When setting a custom system prompt, you can use these variables:
+• {MODEL_ID} - The AI model's name
+• {USERNAME} - The user's Discord display name
+• {DISCORD_USER_ID} - The user's Discord ID
+• {TIME} - Current local time
+• {TZ} - Local timezone
+• {SERVER_NAME} - Current Discord server name
+• {CHANNEL_NAME} - Current channel name
+
+**Need more help?** Use /help to see this message again.
 """
-        await ctx.send(help_message)
+        await ctx.respond(help_message)
+
+    @commands.slash_command(name="listmodels", description="List all available AI models and their details")
+    async def list_models_command(self, ctx):
+        """Send a list of all available models and their trigger words"""
+        vision_models, models = self.get_all_models()
+        model_list = self.format_model_list(vision_models, models)
+        await ctx.respond(model_list)
 
 async def setup(bot):
     # Register the cog with its proper name

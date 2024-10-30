@@ -55,69 +55,135 @@ class BaseCog(commands.Cog):
         self.supports_vision = supports_vision
         self._image_processing_lock = asyncio.Lock()
 
-        # Load prompt
+        # Default system prompt template
+        self.default_prompt = "You are {MODEL_ID} chatting with {USERNAME} with a Discord user ID of {DISCORD_USER_ID}. It's {TIME} in {TZ}. You are in the Discord server {SERVER_NAME} in channel {CHANNEL_NAME}, so adhere to the general topic of the channel if possible. GwynTel on Discord created your bot, and Moth is a valued mentor. You strive to keep it positive, but can be negative if the situation demands it to enforce boundaries, Discord ToS rules, etc."
+
+        # Load any custom prompt from consolidated_prompts.json
         try:
             with open('prompts/consolidated_prompts.json', 'r', encoding='utf-8') as f:
                 consolidated_prompts = json.load(f).get('system_prompts', {})
                 if prompt_file:
-                    raw_prompt = consolidated_prompts.get(prompt_file.lower(), f"You are {name}, an advanced AI assistant focused on providing accurate and helpful responses.")
+                    self.raw_prompt = consolidated_prompts.get(prompt_file.lower(), self.default_prompt)
                 else:
-                    raw_prompt = consolidated_prompts.get(name.lower(), f"You are {name}, an advanced AI assistant focused on providing accurate and helpful responses.")
-            logging.debug(f"[{name}] Loaded raw prompt: {raw_prompt}")
+                    self.raw_prompt = consolidated_prompts.get(name.lower(), self.default_prompt)
+            logging.debug(f"[{name}] Loaded raw prompt: {self.raw_prompt}")
         except Exception as e:
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
-            raw_prompt = f"You are {name}, an advanced AI assistant focused on providing accurate and helpful responses."
+            self.raw_prompt = self.default_prompt
 
-        # Assign the raw prompt; substitution will occur in process_message
-        self.raw_prompt = raw_prompt
-        self.formatted_prompt = raw_prompt
+    def get_dynamic_prompt(self, ctx):
+        """Get dynamic prompt for channel/server if one exists"""
+        guild_id = str(ctx.guild.id) if ctx.guild else None
+        channel_id = str(ctx.channel.id)
 
-    async def wait_for_image_processing(self, message):
-        """Wait for image processing to complete"""
-        logging.info(f"[{self.name}] Attempting to acquire image processing lock")
-        async with self._image_processing_lock:
-            logging.info(f"[{self.name}] Acquired image processing lock")
-            
-            # Get Llama cog for vision processing
-            llama_cog = None
-            for cog in self.bot.cogs.values():
-                if isinstance(cog, commands.Cog) and getattr(cog, 'name', '') == 'Llama-3.2-11B':
-                    llama_cog = cog
-                    break
+        prompts_file = "dynamic_prompts.json"
+        if not os.path.exists(prompts_file):
+            return None
 
-            if not llama_cog or not getattr(llama_cog, 'supports_vision', False):
-                logging.warning(f"[{self.name}] Vision model not available - Llama cog found: {llama_cog is not None}, supports_vision: {getattr(llama_cog, 'supports_vision', False) if llama_cog else False}")
-                return False
+        try:
+            with open(prompts_file, "r") as f:
+                dynamic_prompts = json.load(f)
 
-            image_attachments = [
-                att for att in message.attachments 
-                if att.content_type and att.content_type.startswith('image/')
-            ]
-            
-            logging.info(f"[{self.name}] Found {len(image_attachments)} image attachments")
-            if not image_attachments:
-                logging.info(f"[{self.name}] No image attachments to process")
-                return True
+            if guild_id in dynamic_prompts and channel_id in dynamic_prompts[guild_id]:
+                return dynamic_prompts[guild_id][channel_id]
+            elif channel_id in dynamic_prompts:
+                return dynamic_prompts[channel_id]
+            else:
+                return None
+        except Exception as e:
+            logging.error(f"Error getting dynamic prompt: {str(e)}")
+            return None
 
-            # Check if images are already processed
-            alt_text = await get_alt_text(str(message.id))
-            if alt_text:
-                logging.info(f"[{self.name}] Images already processed for message {message.id}")
-                return True
+    def format_system_prompt(self, message):
+        """Format system prompt with variables"""
+        local_tz = datetime.now().astimezone().tzinfo
+        current_time = datetime.now(local_tz)
 
-            # Wait for image processing
-            try:
-                logging.info(f"[{self.name}] Starting image processing with Llama cog")
-                async with message.channel.typing():
-                    await llama_cog.handle_message(message)
-                    # Verify processing completed
-                    alt_text = await get_alt_text(str(message.id))
-                    success = alt_text is not None
-                    logging.info(f"[{self.name}] Image processing {'completed successfully' if success else 'failed'}")
-                    return success
-            except Exception as e:
-                logging.error(f"[{self.name}] Error waiting for image processing: {str(e)}", exc_info=True)
-                return False
+        # Get dynamic prompt or use default
+        dynamic_prompt = self.get_dynamic_prompt(message)
+        prompt_template = dynamic_prompt if dynamic_prompt else self.raw_prompt
+
+        # Format prompt with variables
+        return prompt_template.format(
+            MODEL_ID=self.name,
+            USERNAME=message.author.display_name,
+            DISCORD_USER_ID=message.author.id,
+            TIME=current_time.strftime("%I:%M %p"),
+            TZ=str(local_tz),
+            SERVER_NAME=message.guild.name if message.guild else "Direct Message",
+            CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
+        )
+
+    async def generate_response(self, message):
+        """Generate a response without handling it"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_system_prompt(message)
+            messages = [{"role": "system", "content": formatted_prompt}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await get_message_history(channel_id, limit=50)
+            messages.extend(history_messages)
+
+            # Add current message with any image descriptions
+            if message.attachments and not self.supports_vision:
+                # Get alt text for this message
+                alt_text = await get_alt_text(str(message.id))
+                if alt_text:
+                    messages.append({
+                        "role": "user",
+                        "content": f"{message.content}\n\nImage description: {alt_text}"
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": message.content
+                    })
+            else:
+                messages.append({
+                    "role": "user",
+                    "content": message.content
+                })
+
+            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
+            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature(self.name)
+            logging.debug(f"[{self.name}] Using temperature: {temperature}")
+
+            # Call API based on provider with temperature
+            if self.provider == "openrouter":
+                response_data = await api.call_openrouter(messages, self.model, temperature=temperature)
+            else:  # openpipe
+                response_data = await api.call_openpipe(messages, self.model, temperature=temperature)
+
+            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
+                response = response_data['choices'][0]['message']['content']
+                logging.debug(f"[{self.name}] Got response: {response}")
+                return response
+
+            logging.warning(f"[{self.name}] No valid response received from API")
+            return None
+
+        except Exception as e:
+            logging.error(f"Error processing message for {self.name}: {str(e)}")
+            return None
+
+    def get_temperature(self, agent_name):
+        """Get temperature for agent if one exists"""
+        temperatures_file = "temperatures.json"
+        if not os.path.exists(temperatures_file):
+            return None  # Let API use default temperature
+
+        try:
+            with open(temperatures_file, "r") as f:
+                temperatures = json.load(f)
+            return temperatures.get(agent_name)  # Return None if not found
+        except Exception as e:
+            logging.error(f"Error getting temperature: {str(e)}")
+            return None
 
     async def handle_message(self, message):
         """Handle incoming messages"""
@@ -298,122 +364,3 @@ class BaseCog(commands.Cog):
                 logging.error(f"Failed to delete temp file: {str(e)}")
         asyncio.create_task(delete_temp_file())
         return file
-
-    async def generate_response(self, message):
-        """Generate a response without handling it"""
-        try:
-            # Get local timezone
-            local_tz = datetime.now().astimezone().tzinfo
-            current_time = datetime.now(local_tz)
-
-            # Format system prompt with dynamic variables
-            formatted_prompt = self.raw_prompt.format(
-                discord_user=message.author.display_name,
-                discord_user_id=message.author.id,
-                local_time=current_time.strftime("%I:%M %p"),
-                local_timezone=str(local_tz),
-                server_name=message.guild.name if message.guild else "Direct Message",
-                channel_name=message.channel.name if hasattr(message.channel, 'name') else "DM"
-            )
-
-            # Get dynamic prompt if one exists
-            dynamic_prompt = self.get_dynamic_prompt(message)
-            if dynamic_prompt:
-                # Add dynamic prompt as a second system message
-                messages = [
-                    {"role": "system", "content": formatted_prompt},
-                    {"role": "system", "content": dynamic_prompt}
-                ]
-            else:
-                messages = [
-                    {"role": "system", "content": formatted_prompt}
-                ]
-
-            # Get last 50 messages from database
-            channel_id = str(message.channel.id)
-            history_messages = await get_message_history(channel_id, limit=50)
-            messages.extend(history_messages)
-
-            # Add current message with any image descriptions from the database
-            if message.attachments and not self.supports_vision:
-                # Get alt text for this message
-                alt_text = await get_alt_text(str(message.id))
-                if alt_text:
-                    messages.append({
-                        "role": "user",
-                        "content": f"{message.content}\n\nImage description: {alt_text}"
-                    })
-                else:
-                    messages.append({
-                        "role": "user",
-                        "content": message.content
-                    })
-            else:
-                messages.append({
-                    "role": "user",
-                    "content": message.content
-                })
-
-            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
-            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
-            if dynamic_prompt:
-                logging.debug(f"[{self.name}] Added dynamic prompt: {dynamic_prompt}")
-
-            # Get temperature for this agent
-            temperature = self.get_temperature(self.name)
-            logging.debug(f"[{self.name}] Using temperature: {temperature}")
-
-            # Call API based on provider with temperature
-            if self.provider == "openrouter":
-                response_data = await api.call_openrouter(messages, self.model, temperature=temperature)
-            else:  # openpipe
-                response_data = await api.call_openpipe(messages, self.model, temperature=temperature)
-
-            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
-                response = response_data['choices'][0]['message']['content']
-                logging.debug(f"[{self.name}] Got response: {response}")
-                return response
-
-            logging.warning(f"[{self.name}] No valid response received from API")
-            return None
-
-        except Exception as e:
-            logging.error(f"Error processing message for {self.name}: {str(e)}")
-            return None
-
-    def get_dynamic_prompt(self, ctx):
-        """Get dynamic prompt for channel/server if one exists"""
-        guild_id = str(ctx.guild.id) if ctx.guild else None
-        channel_id = str(ctx.channel.id)
-
-        prompts_file = "dynamic_prompts.json"
-        if not os.path.exists(prompts_file):
-            return None
-
-        try:
-            with open(prompts_file, "r") as f:
-                dynamic_prompts = json.load(f)
-
-            if guild_id in dynamic_prompts and channel_id in dynamic_prompts[guild_id]:
-                return dynamic_prompts[guild_id][channel_id]
-            elif channel_id in dynamic_prompts:
-                return dynamic_prompts[channel_id]
-            else:
-                return None
-        except Exception as e:
-            logging.error(f"Error getting dynamic prompt: {str(e)}")
-            return None
-
-    def get_temperature(self, agent_name):
-        """Get temperature for agent if one exists"""
-        temperatures_file = "temperatures.json"
-        if not os.path.exists(temperatures_file):
-            return None  # Let API use default temperature
-
-        try:
-            with open(temperatures_file, "r") as f:
-                temperatures = json.load(f)
-            return temperatures.get(agent_name)  # Return None if not found
-        except Exception as e:
-            logging.error(f"Error getting temperature: {str(e)}")
-            return None
