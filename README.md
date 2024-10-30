@@ -6,6 +6,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 ### Core Features
 - **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
+- **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow
 - **Shared Context Database**: SQLite-based persistent conversation history shared between all models
 - **Image Processing**: Automatic image description and analysis
 - **File Handling**: Support for text files and images
@@ -131,7 +132,7 @@ grok tell me a joke
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
 - **Context Management**: SQLite-based conversation history
-- **API Integration**: OpenRouter and OpenPipe connections
+- **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
 - **Image Processing**: Vision model integration
 - **Settings Management**: Handles dynamic system prompts

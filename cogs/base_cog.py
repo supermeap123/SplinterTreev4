@@ -166,19 +166,13 @@ class BaseCog(commands.Cog):
             temperature = self.get_temperature(self.name)
             logging.debug(f"[{self.name}] Using temperature: {temperature}")
 
-            # Call API based on provider with temperature
+            # Call API based on provider with temperature and streaming
             if self.provider == "openrouter":
-                response_data = await api.call_openrouter(messages, self.model, temperature=temperature)
+                response_data = await api.call_openrouter(messages, self.model, temperature=temperature, stream=True)
             else:  # openpipe
-                response_data = await api.call_openpipe(messages, self.model, temperature=temperature)
+                response_data = await api.call_openpipe(messages, self.model, temperature=temperature, stream=True)
 
-            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
-                response = response_data['choices'][0]['message']['content']
-                logging.debug(f"[{self.name}] Got response: {response}")
-                return response
-
-            logging.warning(f"[{self.name}] No valid response received from API")
-            return None
+            return response_data
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {str(e)}")
@@ -232,13 +226,13 @@ class BaseCog(commands.Cog):
                             await message.add_reaction('⚠️')
                         return
 
-                # Generate response
-                logging.info(f"[{self.name}] Generating response")
-                response = await self.generate_response(message)
+                # Generate streaming response
+                logging.info(f"[{self.name}] Generating streaming response")
+                response_stream = await self.generate_response(message)
 
-                if response:
-                    # Send the response
-                    sent_message = await self.handle_response(response, message)
+                if response_stream:
+                    # Send the streaming response
+                    sent_message = await self.handle_streaming_response(response_stream, message)
                     if sent_message:
                         # Log interaction
                         try:
@@ -247,14 +241,14 @@ class BaseCog(commands.Cog):
                                 guild_id=message.guild.id if message.guild else None,
                                 persona_name=self.name,
                                 user_message=message.content,
-                                assistant_reply=response,
-                                emotion=analyze_emotion(response),
+                                assistant_reply=sent_message.content,
+                                emotion=analyze_emotion(sent_message.content),
                                 channel_id=str(message.channel.id)
                             )
                             logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
                         except Exception as e:
                             logging.error(f"[{self.name}] Failed to log interaction: {str(e)}", exc_info=True)
-                        return response, None
+                        return sent_message.content, None
                     else:
                         logging.error(f"[{self.name}] No response received from API")
                         if can_add_reactions:
@@ -282,8 +276,8 @@ class BaseCog(commands.Cog):
                     logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
                 return None, None
 
-    async def handle_response(self, response_text, message, referenced_message=None):
-        """Handle the response formatting and sending"""
+    async def handle_streaming_response(self, response_stream, message):
+        """Handle streaming response formatting and sending"""
         try:
             # Check permissions
             permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
@@ -297,50 +291,68 @@ class BaseCog(commands.Cog):
             # Check if message content is spoilered using ||content|| format
             is_spoilered = message.content.startswith('||') and message.content.endswith('||')
 
-            # Format response with model name
-            prefixed_response = f"[{self.name}] {response_text}"
-
-            # Create reroll view
-            view = RerollView(self, message, response_text)
-
+            # Initialize response with model name prefix
+            current_response = f"[{self.name}] "
             sent_message = None
+            buffer = ""
+            buffer_size = 3  # Number of sentences to accumulate before sending
+
             if is_spoilered:
-                # Send response as a DM to the user
                 try:
+                    # Create DM channel
                     user = message.author
                     dm_channel = await user.create_dm()
-                    async with message.channel.typing():
-                        if len(prefixed_response) > 2000:
-                            # Create and send markdown file
-                            file = await self.create_response_file(prefixed_response, str(message.id))
-                            sent_message = await dm_channel.send(
-                                f"[{self.name}] Response was too long. Full response is in the attached file:",
-                                file=file,
-                                view=view
-                            )
-                        else:
-                            sent_message = await dm_channel.send(prefixed_response, view=view)
+                    sent_message = await dm_channel.send(current_response)
                 except discord.Forbidden:
                     logging.warning(f"Cannot send DM to user {message.author}")
                     can_dm = False
+                    is_spoilered = False  # Fall back to channel message
 
             if not is_spoilered or (is_spoilered and not can_dm and can_send):
-                async with message.channel.typing():
-                    if len(prefixed_response) > 2000:
-                        # Create and send markdown file
-                        file = await self.create_response_file(prefixed_response, str(message.id))
-                        sent_message = await message.reply(
-                            f"[{self.name}] Response was too long. Full response is in the attached file:",
-                            file=file,
-                            view=view
-                        )
-                    else:
-                        sent_message = await message.reply(prefixed_response, view=view)
+                sent_message = await message.reply(current_response)
+
+            async for chunk in response_stream:
+                if chunk:
+                    buffer += chunk
+                    sentences = re.split(r'(?<=[.!?])\s+', buffer)
+                    
+                    if len(sentences) >= buffer_size:
+                        # Join complete sentences
+                        to_send = ' '.join(sentences[:-1])
+                        buffer = sentences[-1]
+                        
+                        current_response += to_send + ' '
+                        if len(current_response) <= 2000:
+                            await sent_message.edit(content=current_response)
+                        else:
+                            # Create and send markdown file for long responses
+                            file = await self.create_response_file(current_response, str(message.id))
+                            sent_message = await message.reply(
+                                f"[{self.name}] Response was too long. Full response is in the attached file:",
+                                file=file
+                            )
+                            current_response = ""  # Reset for potential additional content
+
+            # Send any remaining content
+            if buffer:
+                current_response += buffer
+                if len(current_response) <= 2000:
+                    await sent_message.edit(content=current_response)
+                else:
+                    file = await self.create_response_file(current_response, str(message.id))
+                    sent_message = await message.reply(
+                        f"[{self.name}] Response was too long. Full response is in the attached file:",
+                        file=file
+                    )
+
+            # Add reroll view
+            view = RerollView(self, message, current_response)
+            await sent_message.edit(view=view)
 
             # Add reaction based on emotion analysis
             try:
                 if permissions.add_reactions:
-                    emotion = analyze_emotion(response_text)
+                    emotion = analyze_emotion(current_response)
                     if emotion:
                         await message.add_reaction(emotion)
             except Exception as e:
@@ -349,7 +361,7 @@ class BaseCog(commands.Cog):
             return sent_message
 
         except Exception as e:
-            logging.error(f"Error sending response for {self.name}: {str(e)}")
+            logging.error(f"Error sending streaming response for {self.name}: {str(e)}")
             try:
                 if permissions.add_reactions:
                     await message.add_reaction('❌')
