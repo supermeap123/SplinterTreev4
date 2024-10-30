@@ -35,13 +35,13 @@ class API:
         self.db_conn = sqlite3.connect('databases/interaction_logs.db')
         self.db_cursor = self.db_conn.cursor()
 
-    async def _make_openrouter_request(self, messages, model, temperature, max_tokens):
-        """Asynchronous OpenRouter API call"""
+    async def _make_openrouter_request(self, messages, model, temperature, max_tokens, edit_message_func=None):
+        """Asynchronous OpenRouter API call with stream processing"""
         logging.debug(f"[API] Making OpenRouter request to model: {model}")
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         requested_at = int(time.time() * 1000)
-        completion = await self.client.chat.completions.create(
+        stream = await self.client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
@@ -51,6 +51,9 @@ class API:
             presence_penalty=0,
             stream=True
         )
+        
+        # Process the stream
+        full_response = await self._process_stream(stream, edit_message_func)
         received_at = int(time.time() * 1000)
 
         # Log request to database
@@ -63,12 +66,12 @@ class API:
                 "temperature": temperature,
                 "max_tokens": max_tokens
             },
-            resp_payload=completion,
+            resp_payload={"choices": [{"message": {"content": full_response}}]},
             status_code=200,
             tags={"source": "openrouter"}
         )
 
-        return completion
+        return full_response
 
     async def _process_stream(self, stream, edit_message_func=None) -> str:
         """Process streaming response with fancy sentence-by-sentence editing"""
@@ -148,11 +151,8 @@ class API:
                         logging.debug(f"[API] Message type: text")
                         logging.debug(f"[API] Content: {msg.get('content')}")
 
-                # Make API call
-                stream = await self._make_openrouter_request(messages, full_model, temperature, max_tokens)
-
-                # Process the stream
-                full_response = await self._process_stream(stream, edit_message_func)
+                # Make API call and process stream
+                full_response = await self._make_openrouter_request(messages, full_model, temperature, max_tokens, edit_message_func)
 
                 # Convert to dict format for consistency
                 response_dict = {
