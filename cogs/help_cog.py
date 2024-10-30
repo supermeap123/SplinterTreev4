@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion
@@ -66,8 +67,8 @@ class HelpCog(BaseCog):
                 
         return help_text
 
-    @commands.slash_command(name="help", description="Display help information about SplinterTree")
-    async def help_command(self, ctx):
+    @app_commands.command(name="help", description="Display help information about SplinterTree")
+    async def help_command(self, interaction: discord.Interaction):
         """Send a comprehensive help message with all available features"""
         # Get dynamically loaded models
         vision_models, models = self.get_all_models()
@@ -107,14 +108,14 @@ When setting a custom system prompt, you can use these variables:
 
 **Need more help?** Use /help to see this message again.
 """
-        await ctx.respond(help_message)
+        await interaction.response.send_message(help_message)
 
-    @commands.slash_command(name="listmodels", description="List all available AI models and their details")
-    async def list_models_command(self, ctx):
+    @app_commands.command(name="listmodels", description="List all available AI models and their details")
+    async def list_models_command(self, interaction: discord.Interaction):
         """Send a list of all available models and their trigger words"""
         vision_models, models = self.get_all_models()
         model_list = self.format_model_list(vision_models, models)
-        await ctx.respond(model_list)
+        await interaction.response.send_message(model_list)
 
 async def setup(bot):
     # Register the cog with its proper name
