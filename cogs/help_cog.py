@@ -12,6 +12,8 @@ class HelpCog(BaseCog):
             name="Help",
             nickname="Help",
             trigger_words=['splintertree_help', 'help', 'commands'],
+            model="help",  # Added required model parameter
+            provider="none",  # Added provider since it's required
             prompt_file="help",
             supports_vision=False
         )
