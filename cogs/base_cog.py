@@ -295,7 +295,6 @@ class BaseCog(commands.Cog):
             current_response = f"[{self.name}] "
             sent_message = None
             buffer = ""
-            buffer_size = 3  # Number of sentences to accumulate before sending
 
             if is_spoilered:
                 try:
@@ -316,9 +315,10 @@ class BaseCog(commands.Cog):
                     buffer += chunk
                     sentences = re.split(r'(?<=[.!?])\s+', buffer)
                     
-                    if len(sentences) >= buffer_size:
+                    # If we have 3 or more sentences, send them
+                    if len(sentences) >= 3:
                         # Join complete sentences
-                        to_send = ' '.join(sentences[:-1])
+                        to_send = ' '.join(sentences[:-1])  # Keep the last incomplete sentence in buffer
                         buffer = sentences[-1]
                         
                         current_response += to_send + ' '
@@ -333,8 +333,12 @@ class BaseCog(commands.Cog):
                             )
                             current_response = ""  # Reset for potential additional content
 
-            # Send any remaining content
+            # Send any remaining content, ensuring it ends with a complete sentence
             if buffer:
+                # Check if buffer ends with sentence-ending punctuation
+                if not re.search(r'[.!?]$', buffer):
+                    # Wait briefly for more content that might complete the sentence
+                    await asyncio.sleep(0.5)
                 current_response += buffer
                 if len(current_response) <= 2000:
                     await sent_message.edit(content=current_response)
