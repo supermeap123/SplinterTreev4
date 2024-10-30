@@ -69,13 +69,47 @@ class API:
 
         return completion
 
+    async def _process_stream(self, stream, edit_message_func=None) -> str:
+        """Process streaming response with fancy sentence-by-sentence editing"""
+        buffer = ""
+        current_sentence = ""
+        last_edit_time = time.time()
+        edit_interval = 0.5  # Edit message every 0.5 seconds
+        
+        # Regex for sentence boundaries
+        sentence_end = re.compile(r'[.!?]\s+')
+
+        for chunk in stream:
+            if hasattr(chunk.choices[0].delta, 'content'):
+                content = chunk.choices[0].delta.content
+                if content:
+                    buffer += content
+                    current_sentence += content
+
+                    # Check for complete sentences
+                    sentences = sentence_end.split(buffer)
+                    
+                    # If we have multiple sentences, update buffer
+                    if len(sentences) > 1:
+                        buffer = sentences[-1]
+                        
+                    # Periodically edit the message with the current progress
+                    current_time = time.time()
+                    if current_time - last_edit_time >= edit_interval:
+                        if edit_message_func and buffer.strip():
+                            await edit_message_func(buffer.strip())
+                        last_edit_time = current_time
+
+        # Return the complete response
+        return buffer.strip()
+
     @backoff.on_exception(
         backoff.expo,
         (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout),
         max_tries=3,
         max_time=30
     )
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None):
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, edit_message_func=None):
         try:
             # Check if any message contains vision content
             has_vision_content = any(
@@ -121,13 +155,8 @@ class API:
                     partial(self._make_openrouter_request, messages, full_model, temperature, max_tokens)
                 )
 
-                # Process stream and build response
-                full_response = ""
-                async for chunk in stream:
-                    if hasattr(chunk.choices[0].delta, 'content'):
-                        content = chunk.choices[0].delta.content
-                        if content:
-                            full_response += content
+                # Process the stream
+                full_response = await self._process_stream(stream, edit_message_func)
 
                 # Convert to dict format for consistency
                 response_dict = {
@@ -165,7 +194,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7):
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, edit_message_func=None):
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -189,15 +218,9 @@ class API:
                     presence_penalty=0,
                     stream=True
                 )
-                
-                # Process stream and build response
-                full_response = ""
-                async for chunk in stream:
-                    if hasattr(chunk.choices[0].delta, 'content'):
-                        content = chunk.choices[0].delta.content
-                        if content:
-                            full_response += content
 
+                # Process the stream
+                full_response = await self._process_stream(stream, edit_message_func)
                 received_at = int(time.time() * 1000)
 
                 # Create completion object for reporting
