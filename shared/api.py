@@ -41,7 +41,7 @@ class API:
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         requested_at = int(time.time() * 1000)
-        stream = await self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
@@ -53,7 +53,7 @@ class API:
         )
         
         # Process the stream
-        full_response = await self._process_stream(stream, edit_message_func)
+        full_response = await self._process_stream(response, edit_message_func)
         received_at = int(time.time() * 1000)
 
         # Log request to database
@@ -73,7 +73,7 @@ class API:
 
         return full_response
 
-    async def _process_stream(self, stream, edit_message_func=None) -> str:
+    async def _process_stream(self, response, edit_message_func=None) -> str:
         """Process streaming response with fancy sentence-by-sentence editing"""
         buffer = ""
         current_sentence = ""
@@ -83,7 +83,7 @@ class API:
         # Regex for sentence boundaries
         sentence_end = re.compile(r'[.!?]\s+')
 
-        async for chunk in stream:
+        async for chunk in response:
             if chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 buffer += content
