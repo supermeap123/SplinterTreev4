@@ -34,6 +34,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Llama-2**: Open-source model with vision capabilities
 - **NoroMaid-20B**: Advanced conversational model
 - **MythoMax-L2-13B**: Versatile language model
+- **Grok Beta**: xAI's latest conversational model
 
 ### OpenPipe Models
 - **Hermes**: Specialized conversation model
@@ -109,7 +110,7 @@ When setting custom system prompts, you can use these variables:
 
 ### Triggering Models
 - **Random Model**: Mention the bot or use "splintertree" keyword
-- **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", etc.)
+- **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", "grok", etc.)
 - **Image Analysis**: Simply attach an image to your message
 - **File Processing**: Attach .txt or .md files
 
@@ -119,6 +120,7 @@ When setting custom system prompts, you can use these variables:
 splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
+grok tell me a joke
 
 # Setting a custom system prompt
 /set_system_prompt agent:Claude-3 prompt:"You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
