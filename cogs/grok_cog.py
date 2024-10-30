@@ -7,7 +7,7 @@ class GrokCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="GrokCog",  # Changed to match class name
+            name="Grok",  # Changed to match qualified_name
             nickname="Grok",
             trigger_words=['grok', 'grok beta', 'xai'],
             model="x-ai/grok-beta",
@@ -16,29 +16,20 @@ class GrokCog(BaseCog):
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[GrokCog] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[GrokCog] Using provider: {self.provider}")
-        logging.debug(f"[GrokCog] Trigger words: {self.trigger_words}")
+        logging.debug(f"[Grok] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Grok] Using provider: {self.provider}")
+        logging.debug(f"[Grok] Trigger words: {self.trigger_words}")
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "GrokCog"
+        return "Grok"
 
-    async def handle_message(self, message):
-        """Override handle_message to ensure proper async flow"""
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Handle incoming messages"""
         if message.author == self.bot.user:
             return
-
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
-
-        if not is_triggered:
-            return
-
-        logging.debug(f"[GrokCog] Received message: {message.content}")
-        logging.debug(f"[GrokCog] Message author: {message.author}")
 
         # Add message to context before processing
         if self.context_cog:
@@ -48,7 +39,7 @@ class GrokCog(BaseCog):
                 user_id = str(message.author.id)
                 content = message.content
                 is_assistant = False
-                persona_name = self.nickname  # Use nickname for display
+                persona_name = self.name
                 emotion = None
 
                 await self.context_cog.add_message_to_context(
@@ -61,20 +52,20 @@ class GrokCog(BaseCog):
                     emotion=emotion
                 )
             except Exception as e:
-                logging.error(f"[GrokCog] Failed to add message to context: {str(e)}")
+                logging.error(f"[Grok] Failed to add message to context: {str(e)}")
 
-        # Continue with normal message processing
+        # Let base_cog handle message processing
         await super().handle_message(message)
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        logging.info("[GrokCog] Starting cog setup...")
+        logging.info("[Grok] Starting cog setup...")
         cog = GrokCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[GrokCog] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[GrokCog] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        logging.info(f"[Grok] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Grok] Cog is loaded and listening for triggers: {cog.trigger_words}")
         return cog
     except Exception as e:
-        logging.error(f"[GrokCog] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Grok] Failed to register cog: {str(e)}", exc_info=True)
         raise
