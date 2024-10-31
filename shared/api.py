@@ -26,7 +26,7 @@ class API:
             keepalive_expiry=30.0
         )
         
-        # Initialize OpenAI client
+        # Initialize OpenPipe client
         self.client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
         logging.info("[API] Initialized with OpenPipe configuration")
 

@@ -60,6 +60,36 @@ last_used_cogs = {}
 # Track processed messages to prevent double handling
 processed_messages = set()
 
+# File to persist processed messages
+PROCESSED_MESSAGES_FILE = os.path.join(BOT_DIR, 'processed_messages.json')
+
+def load_processed_messages():
+    """Load processed messages from file"""
+    global processed_messages
+    if os.path.exists(PROCESSED_MESSAGES_FILE):
+        try:
+            with open(PROCESSED_MESSAGES_FILE, 'r') as f:
+                processed_messages = set(json.load(f))
+            logging.info(f"Loaded {len(processed_messages)} processed messages from file")
+        except Exception as e:
+            logging.error(f"Error loading processed messages: {str(e)}")
+
+def save_processed_messages():
+    """Save processed messages to file"""
+    try:
+        with open(PROCESSED_MESSAGES_FILE, 'w') as f:
+            json.dump(list(processed_messages), f)
+        logging.info(f"Saved {len(processed_messages)} processed messages to file")
+    except Exception as e:
+        logging.error(f"Error saving processed messages: {str(e)}")
+
+def get_history_file(channel_id: str) -> str:
+    """Get the history file path for a channel"""
+    history_dir = os.path.join(BOT_DIR, 'history')
+    if not os.path.exists(history_dir):
+        os.makedirs(history_dir)
+    return os.path.join(history_dir, f'history_{channel_id}.json')
+
 def get_uptime():
     """Get bot uptime as a formatted string"""
     if start_time is None:
@@ -232,6 +262,25 @@ async def on_message(message):
     # Process commands first
     await bot.process_commands(message)
 
+    # Check if message is a reply to a bot message
+    if message.reference and message.reference.message_id:
+        try:
+            replied_msg = await message.channel.fetch_message(message.reference.message_id)
+            if replied_msg.author == bot.user:
+                # Extract model name from the replied message
+                model_name = get_model_from_message(replied_msg.content)
+                if model_name:
+                    # Get corresponding cog
+                    cog = get_cog_by_name(model_name)
+                    if cog:
+                        logging.debug(f"Using {model_name} cog to handle reply")
+                        await cog.handle_message(message, full_content)
+                        processed_messages.add(message.id)
+                        save_processed_messages()  # Save processed messages after handling
+                        return
+        except Exception as e:
+            logging.error(f"Error handling reply: {str(e)}")
+
     # Check for bot mention or keywords
     msg_content = full_content.lower()
     is_pinged = bot.user in message.mentions
@@ -250,6 +299,7 @@ async def on_message(message):
 
     # Mark message as processed
     processed_messages.add(message.id)
+    save_processed_messages()  # Save processed messages after handling
 
     # Clean up old processed messages (keep last 1000)
     if len(processed_messages) > 1000:
@@ -265,10 +315,11 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"⏳ This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.")
     else:
-        logging.error(f"Command error: {str(error)}", exc_info=True)
+        logging.error(f"Command error: {str(e)}", exc_info=True)
         await ctx.reply("❌ An error occurred while executing the command.")
 
 # Run bot
 if __name__ == "__main__":
     logging.debug("Starting bot...")
+    load_processed_messages()  # Load processed messages on startup
     bot.run(TOKEN)
