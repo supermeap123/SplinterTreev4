@@ -25,6 +25,12 @@ LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 # Context windows (can be updated dynamically)
 CONTEXT_WINDOWS = {}
 
+# Default context window
+DEFAULT_CONTEXT_WINDOW = 10
+
+# Maximum context window
+MAX_CONTEXT_WINDOW = 50
+
 # Other configuration variables can be added here as needed
 # Error Messages
 ERROR_MESSAGES = {
