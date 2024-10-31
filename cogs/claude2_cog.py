@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
 
 class Claude2Cog(BaseCog):
     def __init__(self, bot):
@@ -11,15 +10,15 @@ class Claude2Cog(BaseCog):
             name="Claude-2",
             nickname="Claude",
             trigger_words=['claude', 'claude 2'],
-            model="anthropic/claude-2",  # Keeping the model line as instructed
-            provider="openrouter",  # Updating the provider as per the instructions
+            model="anthropic/claude-2",
+            provider="openrouter",
             prompt_file="claude2",
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[Claude-2] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Claude-2] Using provider: {self.provider}")
-        logging.debug(f"[Claude-2] Vision support: {self.supports_vision}")
+        logging.debug(f"[{self.name}] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[{self.name}] Using provider: {self.provider}")
+        logging.debug(f"[{self.name}] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
@@ -53,17 +52,19 @@ class Claude2Cog(BaseCog):
                     emotion=emotion
                 )
             except Exception as e:
-                logging.error(f"[Claude-2] Failed to add message to context: {str(e)}")
+                logging.error(f"[{self.name}] Failed to add message to context: {str(e)}")
 
-        # Let base_cog handle image processing first
+        # Let base_cog handle message processing
         await super().handle_message(message)
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
+        logging.info(f"[Claude-2] Starting cog setup...")
         cog = Claude2Cog(bot)
         await bot.add_cog(cog)
         logging.info(f"[Claude-2] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Claude-2] Cog is loaded and listening for triggers: {cog.trigger_words}")
         return cog
     except Exception as e:
         logging.error(f"[Claude-2] Failed to register cog: {str(e)}", exc_info=True)

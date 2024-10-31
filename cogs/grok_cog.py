@@ -7,7 +7,7 @@ class GrokCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Grok",  # Changed to match qualified_name
+            name="Grok",
             nickname="Grok",
             trigger_words=['grok', 'grok beta', 'xai'],
             model="x-ai/grok-beta",
@@ -16,9 +16,9 @@ class GrokCog(BaseCog):
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[Grok] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Grok] Using provider: {self.provider}")
-        logging.debug(f"[Grok] Trigger words: {self.trigger_words}")
+        logging.debug(f"[{self.name}] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[{self.name}] Using provider: {self.provider}")
+        logging.debug(f"[{self.name}] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
@@ -52,7 +52,7 @@ class GrokCog(BaseCog):
                     emotion=emotion
                 )
             except Exception as e:
-                logging.error(f"[Grok] Failed to add message to context: {str(e)}")
+                logging.error(f"[{self.name}] Failed to add message to context: {str(e)}")
 
         # Let base_cog handle message processing
         await super().handle_message(message)
@@ -60,7 +60,7 @@ class GrokCog(BaseCog):
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        logging.info("[Grok] Starting cog setup...")
+        logging.info(f"[Grok] Starting cog setup...")
         cog = GrokCog(bot)
         await bot.add_cog(cog)
         logging.info(f"[Grok] Registered cog with qualified_name: {cog.qualified_name}")
