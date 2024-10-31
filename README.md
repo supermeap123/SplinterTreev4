@@ -35,7 +35,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Llama-2**: Open-source model with vision capabilities
 - **NoroMaid-20B**: Advanced conversational model
 - **MythoMax-L2-13B**: Versatile language model
-- **Grok Beta**: xAI's latest conversational model
+- **Grok**: xAI's latest conversational model
 
 ### OpenPipe Models
 - **Hermes**: Specialized conversation model
@@ -131,10 +131,16 @@ grok tell me a joke
 
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
+  - Handles message processing
+  - Manages streaming responses
+  - Provides vision support for compatible models
+  - Implements reroll functionality
+  - Manages temperature settings
+  - Handles error cases and permissions
 - **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
-- **Image Processing**: Vision model integration
+- **Image Processing**: Integrated vision support in base cog
 - **Settings Management**: Handles dynamic system prompts
 
 ### Directory Structure
@@ -143,7 +149,11 @@ SplinterTreev4/
 ├── bot.py              # Main bot implementation
 ├── config.py           # Configuration settings
 ├── cogs/               # Model-specific implementations
-│   ├── base_cog.py    # Base cog implementation
+│   ├── base_cog.py    # Base cog with shared functionality
+│   │   ├── Message Processing
+│   │   ├── Vision Support
+│   │   ├── Streaming
+│   │   └── Error Handling
 │   ├── context_cog.py # Context management
 │   ├── settings_cog.py # Settings management
 │   └── [model]_cog.py # Individual model cogs
@@ -151,6 +161,8 @@ SplinterTreev4/
 │   ├── schema.sql     # Database schema
 │   └── interaction_logs.db # Conversation history
 └── shared/            # Shared utilities
+    ├── api.py        # API client implementations
+    └── utils.py      # Utility functions
 ```
 
 ## 🔧 Development
@@ -158,8 +170,28 @@ SplinterTreev4/
 ### Adding New Models
 1. Create a new cog file in `cogs/`
 2. Inherit from `BaseCog`
-3. Configure model-specific settings
-4. The default system prompt template will be used
+3. Configure model-specific settings:
+   ```python
+   class NewModelCog(BaseCog):
+       def __init__(self, bot):
+           super().__init__(
+               bot=bot,
+               name="Model-Name",
+               nickname="Nickname",
+               trigger_words=['trigger1', 'trigger2'],
+               model="provider/model-id",
+               provider="openrouter",  # or "openpipe"
+               prompt_file="prompt_name",
+               supports_vision=False  # or True for vision-capable models
+           )
+   ```
+4. The base cog provides all core functionality including:
+   - Message processing
+   - Vision support (if enabled)
+   - Streaming responses
+   - Error handling
+   - Temperature management
+   - Context integration
 
 ### Custom Prompts
 Channel-specific prompts are stored in `dynamic_prompts.json`:
