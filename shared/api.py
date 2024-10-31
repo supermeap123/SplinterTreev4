@@ -26,8 +26,12 @@ class API:
             keepalive_expiry=30.0
         )
         
+        # Initialize OpenAI client with OPENAI_API_KEY
+        self.client = OpenAI(api_key=OPENAI_API_KEY, timeout=self.timeout)
+        logging.info("[API] Initialized with OpenAI configuration")
+
         # Initialize OpenPipe client
-        self.client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
+        self.openpipe_client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
@@ -173,7 +177,7 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         requested_at = int(time.time() * 1000)
-        completion = self.client.chat.completions.create(
+        completion = self.openpipe_client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
