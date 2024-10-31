@@ -18,6 +18,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **PST Timezone Preference**: All time-related operations use Pacific Standard Time (PST) by default
 - **User ID Resolution**: Automatically resolves Discord user IDs to usernames in messages
 - **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
+- **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -124,6 +125,7 @@ When setting custom system prompts, you can use these variables:
 - **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", "grok", etc.)
 - **Image Analysis**: Simply attach an image to your message
 - **File Processing**: Attach .txt or .md files
+- **Attachment-Only Processing**: Send a message with only attachments (images, text files) without any text
 
 ### Examples
 ```
@@ -132,6 +134,8 @@ splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
 grok tell me a joke
+[Send a message with only an image attachment for automatic analysis]
+[Send a message with only a .txt file attachment for automatic processing]
 
 # Setting a custom system prompt
 !set_system_prompt Claude-3 "You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."

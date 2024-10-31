@@ -187,6 +187,16 @@ async def resolve_user_id(user_id):
     user = await bot.fetch_user(user_id)
     return user.name if user else str(user_id)
 
+async def process_attachment(attachment):
+    """Process a single attachment and return its content"""
+    if attachment.filename.endswith(('.txt', '.md')):
+        content = await attachment.read()
+        return content.decode('utf-8')
+    elif attachment.content_type.startswith('image/'):
+        return f"[Image: {attachment.filename}]"
+    else:
+        return f"[Attachment: {attachment.filename}]"
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -205,31 +215,38 @@ async def on_message(message):
     for mention in message.mentions:
         content_with_usernames = content_with_usernames.replace(f'<@{mention.id}>', f'@{mention.name}')
 
+    # Process attachments
+    attachment_contents = []
+    for attachment in message.attachments:
+        attachment_content = await process_attachment(attachment)
+        attachment_contents.append(attachment_content)
+
+    # Combine message content and attachment contents
+    full_content = content_with_usernames
+    if attachment_contents:
+        full_content += "\n" + "\n".join(attachment_contents)
+
     # Debug logging for message content and attachments
-    logging.debug(f"Received message in channel {message.channel.id}: {content_with_usernames}")
-    if message.attachments:
-        logging.debug(f"Message has {len(message.attachments)} attachments")
-        for att in message.attachments:
-            logging.debug(f"Attachment: {att.filename} ({att.content_type})")
+    logging.debug(f"Received message in channel {message.channel.id}: {full_content}")
 
     # Process commands first
     await bot.process_commands(message)
 
     # Check for bot mention or keywords
-    msg_content = content_with_usernames.lower()
+    msg_content = full_content.lower()
     is_pinged = bot.user in message.mentions
     has_keyword = "splintertree" in msg_content
 
     # Only handle mentions/keywords if no specific trigger was found
-    if (is_pinged or has_keyword):
+    if (is_pinged or has_keyword) or (not content_with_usernames and attachment_contents):
         # Check if Claude2 cog is available
         claude2_cog = discord.utils.get(bot.cogs.values(), name='Claude-2')
         if claude2_cog:
-            await claude2_cog.handle_message(message)
+            await claude2_cog.handle_message(message, full_content)
         else:
             # If Claude2 is not available, use a random cog
             cog = random.choice(loaded_cogs)
-            await cog.handle_message(message)
+            await cog.handle_message(message, full_content)
 
     # Mark message as processed
     processed_messages.add(message.id)
