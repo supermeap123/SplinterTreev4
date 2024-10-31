@@ -113,6 +113,7 @@ async def setup_cogs():
         if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']]:
             try:
                 module_name = filename[:-3]  # Remove .py
+                logging.debug(f"Attempting to load cog: {module_name}")
                 await bot.load_extension(f'cogs.{module_name}')
                 
                 # Get the actual cog instance
@@ -125,8 +126,11 @@ async def setup_cogs():
                 else:
                     class_name = parts[0].capitalize() + 'Cog'
                 
+                logging.debug(f"Looking for cog class: {class_name}")
+                
                 # Try to find the cog by checking each loaded cog
                 for loaded_cog in bot.cogs.values():
+                    logging.debug(f"Checking loaded cog: {loaded_cog.__class__.__name__}")
                     if (hasattr(loaded_cog, 'name') and loaded_cog.name == class_name.replace('Cog', '')):
                         cog = loaded_cog
                         break
@@ -144,6 +148,15 @@ async def setup_cogs():
     try:
         await bot.load_extension('cogs.help_cog')
         logging.info("Loaded help cog")
+        
+        # Ensure help command is accessible
+        help_cog = bot.get_cog('HelpCog')
+        if help_cog:
+            bot.add_command(help_cog.help_command)
+            bot.add_command(help_cog.list_models_command)
+            logging.info("Help commands registered successfully")
+        else:
+            logging.error("Failed to find HelpCog after loading")
     except Exception as e:
         logging.error(f"Failed to load help cog: {str(e)}", exc_info=True)
 
