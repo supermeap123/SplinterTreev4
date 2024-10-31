@@ -11,10 +11,10 @@ class SydneyCog(BaseCog):
             name="Sydney",
             nickname="Sydney", 
             trigger_words=['sydney', 'syd', 'mama kunty'],
-            model="Sydney-Court",  # Correct model name
+            model="openpipe:Sydney-Court",  # Updated model name
             provider="openpipe",
             prompt_file="sydney_prompts",
-            supports_vision=False
+            supports_vision=True  # Enable vision support
         )
         self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
@@ -55,7 +55,7 @@ class SydneyCog(BaseCog):
             except Exception as e:
                 logging.error(f"[Sydney] Failed to add message to context: {str(e)}")
 
-        # Let base_cog handle image processing first
+        # Let base_cog handle message processing
         await super().handle_message(message)
 
 async def setup(bot):

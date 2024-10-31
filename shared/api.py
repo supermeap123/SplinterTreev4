@@ -295,12 +295,22 @@ class API:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
-            # Ensure temperature is not None
-            if temperature is None:
-                temperature = 1
+            # Check if any message contains vision content
+            has_vision_content = any(
+                isinstance(msg.get('content'), list) and 
+                any(content.get('type') == 'image_url' for content in msg['content'])
+                for msg in messages
+            )
+            logging.debug(f"[API] Message contains vision content: {has_vision_content}")
 
-            # Use max_completion_tokens if provided, otherwise use max_tokens
-            max_tokens = max_completion_tokens or max_tokens or 1000
+            # Configure parameters based on content type
+            if max_tokens is None:
+                max_tokens = 2000 if has_vision_content else 1000
+            
+            # Use provided temperature or default based on content type
+            if temperature is None:
+                temperature = 0.5 if has_vision_content else 0.7
+            logging.debug(f"[API] Using max_tokens={max_tokens}, temperature={temperature}")
 
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options)
