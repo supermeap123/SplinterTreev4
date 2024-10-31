@@ -185,9 +185,7 @@ async def setup_cogs():
         # Ensure help command is accessible
         help_cog = bot.get_cog('HelpCog')
         if help_cog:
-            bot.add_command(help_cog.help_command)
-            bot.add_command(help_cog.list_models_command)
-            logging.info("Help commands registered successfully")
+            logging.info("Help cog loaded successfully")
         else:
             logging.error("Failed to find HelpCog after loading")
     except Exception as e:
@@ -315,7 +313,7 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"⏳ This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.")
     else:
-        logging.error(f"Command error: {str(e)}", exc_info=True)
+        logging.error(f"Command error: {str(error)}", exc_info=True)
         await ctx.reply("❌ An error occurred while executing the command.")
 
 # Run bot
