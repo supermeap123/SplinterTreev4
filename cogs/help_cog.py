@@ -54,7 +54,7 @@ class HelpCog(commands.Cog):
                 
         return help_text
 
-    @commands.command(name="help")
+    @commands.command(name="splintertree_help")
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
         # Get dynamically loaded models
@@ -79,7 +79,7 @@ class HelpCog(commands.Cog):
 5. Use the reroll button to get alternative responses if needed
 
 **Available Commands:**
-• `!help` - Show this help message
+• `splintertree_help` - Show this help message
 • `!listmodels` - Show all available models
 • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
 • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
