@@ -36,7 +36,9 @@ class HelpCog(BaseCog):
                     'name': cog.name,
                     'nickname': cog.nickname,
                     'trigger_words': cog.trigger_words,
-                    'supports_vision': getattr(cog, 'supports_vision', False)
+                    'supports_vision': getattr(cog, 'supports_vision', False),
+                    'model': getattr(cog, 'model', 'Unknown'),
+                    'provider': getattr(cog, 'provider', 'Unknown')
                 }
                 
                 if model_info['supports_vision']:
@@ -55,7 +57,7 @@ class HelpCog(BaseCog):
             help_text += "**Vision-Capable Models:**\n"
             for model in vision_models:
                 triggers = ", ".join(model['trigger_words'])
-                help_text += f"• **{model['name']}** - Vision-enabled AI model\n"
+                help_text += f"• **{model['name']}** ({model['model']} via {model['provider']})\n"
                 help_text += f"  *Triggers:* {triggers}\n"
                 help_text += f"  *Special:* Can analyze images and provide descriptions\n\n"
         
@@ -64,7 +66,7 @@ class HelpCog(BaseCog):
             help_text += "**Large Language Models:**\n"
             for model in models:
                 triggers = ", ".join(model['trigger_words'])
-                help_text += f"• **{model['name']}** - AI language model\n"
+                help_text += f"• **{model['name']}** ({model['model']} via {model['provider']})\n"
                 help_text += f"  *Triggers:* {triggers}\n\n"
                 
         return help_text
@@ -84,6 +86,7 @@ class HelpCog(BaseCog):
 • **Context Memory** - Models remember conversation history for better context
 • **Image Analysis** - Use vision-capable models for image descriptions and analysis
 • **Custom System Prompts** - Set custom prompts for each AI agent
+• **Agent Cloning** - Create custom variants of existing agents with unique system prompts
 
 **💡 Tips:**
 1. Models will respond when you mention their trigger words
@@ -97,6 +100,7 @@ class HelpCog(BaseCog):
 • /listmodels - Show a list of all available models
 • /set_system_prompt - Set a custom system prompt for an AI agent
 • /reset_system_prompt - Reset an AI agent's system prompt to default
+• /clone_agent - Create a new agent based on an existing one with a custom system prompt (Admin only)
 
 **System Prompt Variables:**
 When setting a custom system prompt, you can use these variables:

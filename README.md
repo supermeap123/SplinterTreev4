@@ -14,6 +14,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Emotion Analysis**: Reactions based on message sentiment
 - **Status Updates**: Rotating status showing uptime, last interaction, and current model
 - **Dynamic System Prompts**: Customizable per-channel system prompts with variable support
+- **Agent Cloning**: Create custom variants of existing agents with unique system prompts
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -98,6 +99,7 @@ python bot.py
 - `/listmodels`: Show all available AI models
 - `/set_system_prompt`: Set a custom system prompt for an AI agent
 - `/reset_system_prompt`: Reset an AI agent's system prompt to default
+- `/clone_agent`: Create a new agent based on an existing one with a custom system prompt (Admin only)
 
 ### System Prompt Variables
 When setting custom system prompts, you can use these variables:
@@ -125,6 +127,9 @@ grok tell me a joke
 
 # Setting a custom system prompt
 /set_system_prompt agent:Claude-3 prompt:"You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
+
+# Cloning an agent with a custom system prompt
+/clone_agent agent:Claude-3 new_name:ScienceGPT prompt:"You are {MODEL_ID}, a science expert focused on explaining complex concepts in simple terms. You always use analogies and real-world examples in your explanations."
 ```
 
 ## 🏗️ Architecture
@@ -137,6 +142,7 @@ grok tell me a joke
   - Implements reroll functionality
   - Manages temperature settings
   - Handles error cases and permissions
+  - Supports agent cloning
 - **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
@@ -192,6 +198,7 @@ SplinterTreev4/
    - Error handling
    - Temperature management
    - Context integration
+   - Agent cloning
 
 ### Custom Prompts
 Channel-specific prompts are stored in `dynamic_prompts.json`:

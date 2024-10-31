@@ -72,6 +72,47 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    @commands.command(name="clone_agent")
+    @commands.has_permissions(administrator=True)
+    async def clone_agent(self, ctx, agent_name: str, new_name: str, *, system_prompt: str):
+        """Clone an existing agent with a new name and system prompt"""
+        try:
+            # Find the original agent cog
+            original_cog = None
+            for cog in self.bot.cogs.values():
+                if isinstance(cog, BaseCog) and cog.name.lower() == agent_name.lower():
+                    original_cog = cog
+                    break
+
+            if not original_cog:
+                await ctx.send(f"❌ Agent '{agent_name}' not found.")
+                return
+
+            # Create new trigger words based on new name
+            new_trigger_words = [new_name.lower()]
+
+            # Create new cog instance with same model but new name and prompt
+            new_cog = type(original_cog)(
+                bot=self.bot,
+                name=new_name,
+                nickname=new_name,
+                trigger_words=new_trigger_words,
+                model=original_cog.model,
+                provider=original_cog.provider,
+                supports_vision=original_cog.supports_vision
+            )
+
+            # Set the custom system prompt
+            new_cog.raw_prompt = system_prompt
+
+            # Add the new cog to the bot
+            await self.bot.add_cog(new_cog)
+            await ctx.send(f"✅ Successfully cloned {agent_name} as {new_name} with custom system prompt.")
+
+        except Exception as e:
+            logging.error(f"Error cloning agent: {str(e)}")
+            await ctx.send(f"❌ Failed to clone agent: {str(e)}")
+
     async def generate_image_description(self, image_url):
         """Generate a description for the given image URL"""
         if not self.supports_vision:
