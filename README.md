@@ -6,6 +6,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 ### Core Features
 - **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
+- **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow
 - **Shared Context Database**: SQLite-based persistent conversation history shared between all models
 - **Image Processing**: Automatic image description and analysis
 - **File Handling**: Support for text files and images
@@ -13,6 +14,11 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Emotion Analysis**: Reactions based on message sentiment
 - **Status Updates**: Rotating status showing uptime, last interaction, and current model
 - **Dynamic System Prompts**: Customizable per-channel system prompts with variable support
+- **Agent Cloning**: Create custom variants of existing agents with unique system prompts
+- **PST Timezone Preference**: All time-related operations use Pacific Standard Time (PST) by default
+- **User ID Resolution**: Automatically resolves Discord user IDs to usernames in messages
+- **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
+- **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -34,6 +40,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Llama-2**: Open-source model with vision capabilities
 - **NoroMaid-20B**: Advanced conversational model
 - **MythoMax-L2-13B**: Versatile language model
+- **Grok**: xAI's latest conversational model
 
 ### OpenPipe Models
 - **Hermes**: Specialized conversation model
@@ -91,27 +98,34 @@ python bot.py
 
 ## 📝 Usage
 
-### Slash Commands
-- `/help`: Show comprehensive help information
-- `/listmodels`: Show all available AI models
-- `/set_system_prompt`: Set a custom system prompt for an AI agent
-- `/reset_system_prompt`: Reset an AI agent's system prompt to default
+### Core Commands
+- `!listmodels` - Show all available models
+- `!set_system_prompt <agent> <prompt>` - Set a custom system prompt for an AI agent
+- `!reset_system_prompt <agent>` - Reset an AI agent's system prompt to default
+- `!clone_agent <agent> <new_name> <system_prompt>` - Create a new agent based on an existing one (Admin only)
+
+### Context Management Commands
+- `!setcontext <size>` - Set the number of previous messages to include in context (Admin only)
+- `!getcontext` - View current context window size
+- `!resetcontext` - Reset context window to default size (Admin only)
+- `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
 
 ### System Prompt Variables
 When setting custom system prompts, you can use these variables:
 - `{MODEL_ID}`: The AI model's name
 - `{USERNAME}`: The user's Discord display name
 - `{DISCORD_USER_ID}`: The user's Discord ID
-- `{TIME}`: Current local time
-- `{TZ}`: Local timezone
+- `{TIME}`: Current local time (in PST)
+- `{TZ}`: Local timezone (PST)
 - `{SERVER_NAME}`: Current Discord server name
 - `{CHANNEL_NAME}`: Current channel name
 
 ### Triggering Models
-- **Random Model**: Mention the bot or use "splintertree" keyword
-- **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", etc.)
+- **Default Model (Claude-2)**: Mention the bot or use "splintertree" keyword
+- **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", "grok", etc.)
 - **Image Analysis**: Simply attach an image to your message
 - **File Processing**: Attach .txt or .md files
+- **Attachment-Only Processing**: Send a message with only attachments (images, text files) without any text
 
 ### Examples
 ```
@@ -119,19 +133,37 @@ When setting custom system prompts, you can use these variables:
 splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
+grok tell me a joke
+[Send a message with only an image attachment for automatic analysis]
+[Send a message with only a .txt file attachment for automatic processing]
 
 # Setting a custom system prompt
-/set_system_prompt agent:Claude-3 prompt:"You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
+!set_system_prompt Claude-3 "You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
+
+# Cloning an agent with a custom system prompt
+!clone_agent Claude-3 ScienceGPT "You are {MODEL_ID}, a science expert focused on explaining complex concepts in simple terms. You always use analogies and real-world examples in your explanations."
+
+# Managing conversation context
+!setcontext 50  # Set context to last 50 messages
+!getcontext     # Check current context size
+!clearcontext 24  # Clear messages older than 24 hours
 ```
 
 ## 🏗️ Architecture
 
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
+  - Handles message processing
+  - Manages streaming responses
+  - Provides vision support for compatible models
+  - Implements reroll functionality
+  - Manages temperature settings
+  - Handles error cases and permissions
+  - Supports agent cloning
 - **Context Management**: SQLite-based conversation history
-- **API Integration**: OpenRouter and OpenPipe connections
+- **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
-- **Image Processing**: Vision model integration
+- **Image Processing**: Integrated vision support in base cog
 - **Settings Management**: Handles dynamic system prompts
 
 ### Directory Structure
@@ -140,7 +172,11 @@ SplinterTreev4/
 ├── bot.py              # Main bot implementation
 ├── config.py           # Configuration settings
 ├── cogs/               # Model-specific implementations
-│   ├── base_cog.py    # Base cog implementation
+│   ├── base_cog.py    # Base cog with shared functionality
+│   │   ├── Message Processing
+│   │   ├── Vision Support
+│   │   ├── Streaming
+│   │   └── Error Handling
 │   ├── context_cog.py # Context management
 │   ├── settings_cog.py # Settings management
 │   └── [model]_cog.py # Individual model cogs
@@ -148,6 +184,8 @@ SplinterTreev4/
 │   ├── schema.sql     # Database schema
 │   └── interaction_logs.db # Conversation history
 └── shared/            # Shared utilities
+    ├── api.py        # API client implementations
+    └── utils.py      # Utility functions
 ```
 
 ## 🔧 Development
@@ -155,8 +193,29 @@ SplinterTreev4/
 ### Adding New Models
 1. Create a new cog file in `cogs/`
 2. Inherit from `BaseCog`
-3. Configure model-specific settings
-4. The default system prompt template will be used
+3. Configure model-specific settings:
+   ```python
+   class NewModelCog(BaseCog):
+       def __init__(self, bot):
+           super().__init__(
+               bot=bot,
+               name="Model-Name",
+               nickname="Nickname",
+               trigger_words=['trigger1', 'trigger2'],
+               model="provider/model-id",
+               provider="openrouter",  # or "openpipe"
+               prompt_file="prompt_name",
+               supports_vision=False  # or True for vision-capable models
+           )
+   ```
+4. The base cog provides all core functionality including:
+   - Message processing
+   - Vision support (if enabled)
+   - Streaming responses
+   - Error handling
+   - Temperature management
+   - Context integration
+   - Agent cloning
 
 ### Custom Prompts
 Channel-specific prompts are stored in `dynamic_prompts.json`:

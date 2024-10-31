@@ -1,26 +1,12 @@
 import discord
 from discord.ext import commands
 import logging
-from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
 
-class HelpCog(BaseCog):
+class HelpCog(commands.Cog):
     def __init__(self, bot):
-        super().__init__(
-            bot=bot,
-            name="Help",
-            nickname="Help",
-            trigger_words=['splintertree_help', 'help', 'commands'],
-            prompt_file="help",
-            supports_vision=False
-        )
+        self.bot = bot
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[Help] Initialized with raw_prompt: {self.raw_prompt}")
-
-    @property
-    def qualified_name(self):
-        """Override qualified_name to match the expected cog name"""
-        return "Help"
+        logging.debug("[Help] Initialized")
 
     def get_all_models(self):
         """Get all models and their details from registered cogs"""
@@ -28,12 +14,14 @@ class HelpCog(BaseCog):
         vision_models = []
         
         for cog in self.bot.cogs.values():
-            if isinstance(cog, BaseCog) and cog.name != "Help":
+            if hasattr(cog, 'name') and hasattr(cog, 'model') and cog.name != "Help":
                 model_info = {
                     'name': cog.name,
-                    'nickname': cog.nickname,
-                    'trigger_words': cog.trigger_words,
-                    'supports_vision': getattr(cog, 'supports_vision', False)
+                    'nickname': getattr(cog, 'nickname', cog.name),
+                    'trigger_words': getattr(cog, 'trigger_words', []),
+                    'supports_vision': getattr(cog, 'supports_vision', False),
+                    'model': getattr(cog, 'model', 'Unknown'),
+                    'provider': getattr(cog, 'provider', 'Unknown')
                 }
                 
                 if model_info['supports_vision']:
@@ -52,7 +40,7 @@ class HelpCog(BaseCog):
             help_text += "**Vision-Capable Models:**\n"
             for model in vision_models:
                 triggers = ", ".join(model['trigger_words'])
-                help_text += f"• **{model['name']}** - Vision-enabled AI model\n"
+                help_text += f"• **{model['name']}** [{model['model']} via {model['provider']}]\n"
                 help_text += f"  *Triggers:* {triggers}\n"
                 help_text += f"  *Special:* Can analyze images and provide descriptions\n\n"
         
@@ -61,68 +49,93 @@ class HelpCog(BaseCog):
             help_text += "**Large Language Models:**\n"
             for model in models:
                 triggers = ", ".join(model['trigger_words'])
-                help_text += f"• **{model['name']}** - AI language model\n"
+                help_text += f"• **{model['name']}** [{model['model']} via {model['provider']}]\n"
                 help_text += f"  *Triggers:* {triggers}\n\n"
                 
         return help_text
 
-    @commands.slash_command(name="help", description="Display help information about SplinterTree")
+    @commands.command(name="splintertree_help", aliases=["help"])
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
-        # Get dynamically loaded models
-        vision_models, models = self.get_all_models()
-        model_list = self.format_model_list(vision_models, models)
-        
-        # Add special features and tips
-        help_message = f"""{model_list}
-**📝 Special Features:**
-• **Response Reroll** - Click the 🎲 button to get a different response
-• **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
-• **Context Memory** - Models remember conversation history for better context
-• **Image Analysis** - Use vision-capable models for image descriptions and analysis
-• **Custom System Prompts** - Set custom prompts for each AI agent
+        try:
+            # Get dynamically loaded models
+            vision_models, models = self.get_all_models()
+            model_list = self.format_model_list(vision_models, models)
+            
+            # Add special features and tips
+            help_message = f"""{model_list}
+    **📝 Special Features:**
+    • **Response Reroll** - Click the 🎲 button to get a different response
+    • **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
+    • **Context Memory** - Models remember conversation history for better context
+    • **Image Analysis** - Use vision-capable models for image descriptions and analysis
+    • **Custom System Prompts** - Set custom prompts for each AI agent
+    • **Agent Cloning** - Create custom variants of existing agents with unique system prompts
 
-**💡 Tips:**
-1. Models will respond when you mention their trigger words
-2. Each model has unique strengths - try different ones for different tasks
-3. For private responses, format your message like: ||your message here||
-4. Images are automatically analyzed when sent with messages
-5. Use the reroll button to get alternative responses if needed
+    **💡 Tips:**
+    1. Models will respond when you mention their trigger words
+    2. Each model has unique strengths - try different ones for different tasks
+    3. For private responses, format your message like: ||your message here||
+    4. Images are automatically analyzed when sent with messages
+    5. Use the reroll button to get alternative responses if needed
 
-**Available Slash Commands:**
-• /help - Show this help message
-• /listmodels - Show a list of all available models
-• /set_system_prompt - Set a custom system prompt for an AI agent
-• /reset_system_prompt - Reset an AI agent's system prompt to default
+    **Available Commands:**
+    • `splintertree_help` or `help` - Show this help message
+    • `!listmodels` - Show all available models
+    • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
+    • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
+    • `!clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
+    • `!setcontext size` - Set the number of previous messages to include in context (Admin only)
+    • `!getcontext` - View current context window size
+    • `!resetcontext` - Reset context window to default size (Admin only)
+    • `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
 
-**System Prompt Variables:**
-When setting a custom system prompt, you can use these variables:
-• {MODEL_ID} - The AI model's name
-• {USERNAME} - The user's Discord display name
-• {DISCORD_USER_ID} - The user's Discord ID
-• {TIME} - Current local time
-• {TZ} - Local timezone
-• {SERVER_NAME} - Current Discord server name
-• {CHANNEL_NAME} - Current channel name
+    **System Prompt Variables:**
+    When setting custom system prompts, you can use these variables:
+    • {MODEL_ID} - The AI model's name
+    • {USERNAME} - The user's Discord display name
+    • {DISCORD_USER_ID} - The user's Discord ID
+    • {TIME} - Current local time
+    • {TZ} - Local timezone
+    • {SERVER_NAME} - Current Discord server name
+    • {CHANNEL_NAME} - Current channel name
+    """
+            
+            # Split the message if it's too long
+            if len(help_message) > 2000:
+                messages = []
+                while help_message:
+                    if len(help_message) > 2000:
+                        split_index = help_message.rfind('\n', 0, 2000)
+                        if split_index == -1:
+                            split_index = 2000
+                        messages.append(help_message[:split_index])
+                        help_message = help_message[split_index:].lstrip()
+                    else:
+                        messages.append(help_message)
+                        help_message = ''
+                
+                for message in messages:
+                    await ctx.send(message)
+            else:
+                await ctx.send(help_message)
+            
+            logging.info(f"[Help] Sent help message to user {ctx.author.name}")
+        except Exception as e:
+            logging.error(f"[Help] Error sending help message: {str(e)}", exc_info=True)
+            await ctx.send("An error occurred while fetching the help message. Please try again later.")
 
-**Need more help?** Use /help to see this message again.
-"""
-        await ctx.respond(help_message)
-
-    @commands.slash_command(name="listmodels", description="List all available AI models and their details")
+    @commands.command(name="listmodels")
     async def list_models_command(self, ctx):
         """Send a list of all available models and their trigger words"""
-        vision_models, models = self.get_all_models()
-        model_list = self.format_model_list(vision_models, models)
-        await ctx.respond(model_list)
+        try:
+            vision_models, models = self.get_all_models()
+            model_list = self.format_model_list(vision_models, models)
+            await ctx.send(model_list)
+            logging.info(f"[Help] Sent model list to user {ctx.author.name}")
+        except Exception as e:
+            logging.error(f"[Help] Error sending model list: {str(e)}", exc_info=True)
+            await ctx.send("An error occurred while fetching the model list. Please try again later.")
 
 async def setup(bot):
-    # Register the cog with its proper name
-    try:
-        cog = HelpCog(bot)
-        await bot.add_cog(cog)
-        logging.info(f"[Help] Registered cog with qualified_name: {cog.qualified_name}")
-        return cog
-    except Exception as e:
-        logging.error(f"[Help] Failed to register cog: {str(e)}", exc_info=True)
-        raise
+    await bot.add_cog(HelpCog(bot))

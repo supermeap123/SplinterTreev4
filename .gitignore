@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Explicitly ignore cogs/__pycache__
+cogs/__pycache__/
+
+# Rest of the .gitignore content remains the same
 # C extensions
 *.so
 
@@ -161,3 +165,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 /history
+
+# Ignore databases/interaction_logs.db
+databases/interaction_logs.db

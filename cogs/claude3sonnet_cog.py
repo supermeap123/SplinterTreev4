@@ -11,7 +11,7 @@ class Claude3SonnetCog(BaseCog):
             name="Claude-3-Sonnet",
             nickname="Claude",
             trigger_words=['claude', 'claude 3', 'sonnet'],
-            model="anthropic/claude-3.5-sonnet:beta",  
+            model="anthropic/claude-3.5-sonnet:beta",  # Updated model name
             provider="openrouter",
             prompt_file="claude3sonnet",
             supports_vision=True  # Enable vision support
