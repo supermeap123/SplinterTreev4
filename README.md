@@ -94,12 +94,17 @@ python bot.py
 
 ## 📝 Usage
 
-### Commands
-- `!help` - Show comprehensive help information
+### Core Commands
 - `!listmodels` - Show all available models
 - `!set_system_prompt <agent> <prompt>` - Set a custom system prompt for an AI agent
 - `!reset_system_prompt <agent>` - Reset an AI agent's system prompt to default
 - `!clone_agent <agent> <new_name> <system_prompt>` - Create a new agent based on an existing one (Admin only)
+
+### Context Management Commands
+- `!setcontext <size>` - Set the number of previous messages to include in context (Admin only)
+- `!getcontext` - View current context window size
+- `!resetcontext` - Reset context window to default size (Admin only)
+- `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
 
 ### System Prompt Variables
 When setting custom system prompts, you can use these variables:
@@ -130,6 +135,11 @@ grok tell me a joke
 
 # Cloning an agent with a custom system prompt
 !clone_agent Claude-3 ScienceGPT "You are {MODEL_ID}, a science expert focused on explaining complex concepts in simple terms. You always use analogies and real-world examples in your explanations."
+
+# Managing conversation context
+!setcontext 50  # Set context to last 50 messages
+!getcontext     # Check current context size
+!clearcontext 24  # Clear messages older than 24 hours
 ```
 
 ## 🏗️ Architecture

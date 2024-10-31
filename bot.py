@@ -257,8 +257,8 @@ async def setup_cogs():
     # Load context settings
     await load_context_settings()
 
-    # First load core cogs
-    core_cogs = ['context_cog', 'help_cog', 'settings_cog']
+    # First load settings and context cogs
+    core_cogs = ['settings_cog', 'context_cog']
     for cog in core_cogs:
         try:
             await bot.load_extension(f'cogs.{cog}')
@@ -266,28 +266,10 @@ async def setup_cogs():
         except Exception as e:
             logging.error(f"Failed to load core cog {cog}: {str(e)}", exc_info=True)
 
-    # Then load the Llama 11B cog for vision capabilities
-    try:
-        await bot.load_extension('cogs.llama32_11b_cog')
-        logging.info("Loaded Llama 11B cog for vision capabilities")
-        # Verify Llama cog is available
-        llama_cog = None
-        for cog in bot.cogs.values():
-            if isinstance(cog, commands.Cog) and getattr(cog, 'name', '') == 'Llama-3.2-11B':
-                llama_cog = cog
-                break
-        if llama_cog:
-            logging.info("Verified Llama 11B cog is available for vision processing")
-        else:
-            logging.warning("Llama 11B cog not found in loaded cogs - vision processing may be unavailable")
-    except Exception as e:
-        logging.error(f"Failed to load Llama 11B cog: {str(e)}", exc_info=True)
-        logging.warning("Vision processing capabilities will be unavailable")
-
-    # Then load all other cogs
+    # Then load all model cogs
     cogs_dir = os.path.join(BOT_DIR, 'cogs')
     for filename in os.listdir(cogs_dir):
-        if filename.endswith('_cog.py') and filename not in ['base_cog.py', 'llama32_11b_cog.py'] + [f"{cog}.py" for cog in core_cogs]:
+        if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']]:
             try:
                 module_name = filename[:-3]  # Remove .py
                 await bot.load_extension(f'cogs.{module_name}')
@@ -316,6 +298,13 @@ async def setup_cogs():
                     logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}", exc_info=True)
+
+    # Finally load help cog after all other cogs are loaded
+    try:
+        await bot.load_extension('cogs.help_cog')
+        logging.info("Loaded help cog")
+    except Exception as e:
+        logging.error(f"Failed to load help cog: {str(e)}", exc_info=True)
 
     logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
     for cog in loaded_cogs:

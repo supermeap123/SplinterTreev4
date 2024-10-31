@@ -1,28 +1,12 @@
 import discord
 from discord.ext import commands
 import logging
-from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
 
-class HelpCog(BaseCog):
+class HelpCog(commands.Cog):
     def __init__(self, bot):
-        super().__init__(
-            bot=bot,
-            name="Help",
-            nickname="Help",
-            trigger_words=['splintertree_help', 'help', 'commands'],
-            model="help",  # Added required model parameter
-            provider="none",  # Added provider since it's required
-            prompt_file="help",
-            supports_vision=False
-        )
+        self.bot = bot
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[Help] Initialized with raw_prompt: {self.raw_prompt}")
-
-    @property
-    def qualified_name(self):
-        """Override qualified_name to match the expected cog name"""
-        return "Help"
+        logging.debug("[Help] Initialized")
 
     def get_all_models(self):
         """Get all models and their details from registered cogs"""
@@ -30,11 +14,11 @@ class HelpCog(BaseCog):
         vision_models = []
         
         for cog in self.bot.cogs.values():
-            if isinstance(cog, BaseCog) and cog.name != "Help":
+            if hasattr(cog, 'name') and hasattr(cog, 'model') and cog.name != "Help":
                 model_info = {
                     'name': cog.name,
-                    'nickname': cog.nickname,
-                    'trigger_words': cog.trigger_words,
+                    'nickname': getattr(cog, 'nickname', cog.name),
+                    'trigger_words': getattr(cog, 'trigger_words', []),
                     'supports_vision': getattr(cog, 'supports_vision', False),
                     'model': getattr(cog, 'model', 'Unknown'),
                     'provider': getattr(cog, 'provider', 'Unknown')
@@ -100,6 +84,10 @@ class HelpCog(BaseCog):
 • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
 • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
 • `!clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
+• `!setcontext size` - Set the number of previous messages to include in context (Admin only)
+• `!getcontext` - View current context window size
+• `!resetcontext` - Reset context window to default size (Admin only)
+• `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
 
 **System Prompt Variables:**
 When setting custom system prompts, you can use these variables:
@@ -110,8 +98,6 @@ When setting custom system prompts, you can use these variables:
 • {TZ} - Local timezone
 • {SERVER_NAME} - Current Discord server name
 • {CHANNEL_NAME} - Current channel name
-
-**Need more help?** Use !help to see this message again.
 """
         await ctx.send(help_message)
 
@@ -123,12 +109,4 @@ When setting custom system prompts, you can use these variables:
         await ctx.send(model_list)
 
 async def setup(bot):
-    # Register the cog with its proper name
-    try:
-        cog = HelpCog(bot)
-        await bot.add_cog(cog)
-        logging.info(f"[Help] Registered cog with qualified_name: {cog.qualified_name}")
-        return cog
-    except Exception as e:
-        logging.error(f"[Help] Failed to register cog: {str(e)}", exc_info=True)
-        raise
+    await bot.add_cog(HelpCog(bot))
