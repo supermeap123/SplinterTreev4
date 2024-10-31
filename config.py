@@ -23,3 +23,65 @@ LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 CONTEXT_WINDOWS = {}
 
 # Other configuration variables can be added here as needed
+# Error Messages
+ERROR_MESSAGES = {
+    'credits_depleted': "⚠️ Credits depleted. Please contact the bot administrator.",
+    'invalid_api_key': "🔑 Invalid API key. Please contact the bot administrator.",
+    'rate_limit': "⏳ Rate limit exceeded. Please try again later.",
+    'network_error': "🌐 Network error. Please try again later.",
+    'unknown_error': "❌ An error occurred. Please try again later.",
+    'reporting_error': "📝 Unable to log interaction, but response was successful."
+}
+# Keyword Blocklist
+BLOCKED_KEYWORDS = [
+    # Content warnings
+    "nsfw",
+    "porn",
+    "hentai",
+    "sex",
+    "nude",
+    "explicit",
+    "adult",
+    "xxx",
+    "r18",
+    "erotic",
+    "lewd",
+    "gore",
+    "violence",
+    "death",
+    "suicide",
+    "kill",
+    "murder",
+    "blood",
+    "torture",
+    "abuse",
+    "rape",
+    "drugs",
+    "cocaine",
+    "heroin",
+    "meth",
+    "illegal",
+    "hack",
+    "crack",
+    "pirate",
+    "torrent",
+    "warez",
+    "stolen",
+    "leak",
+    "exploit",
+    
+    # Specific blocked terms
+    "pig42",
+    "pig 42",
+    "pig420377",
+    "robespeeair",
+    "robespeair",
+    "robespear",
+    "andwogynous",
+    "androgynous",
+    "shitpostew",
+    "shitposter",
+    "cutedeity",
+    "anstarmus",
+    "foss home lab lord",
+]
