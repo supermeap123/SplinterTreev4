@@ -9,6 +9,7 @@ class SettingsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.dynamic_prompts_file = "dynamic_prompts.json"
+        self.name = "Settings"  # Add this line to set the name attribute
 
     @app_commands.command(
         name="set_system_prompt",

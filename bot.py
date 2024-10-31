@@ -225,6 +225,14 @@ async def process_attachment(attachment):
     else:
         return f"[Attachment: {attachment.filename}]"
 
+def get_cog_by_name(name):
+    """Get a cog by name or class name"""
+    for cog in bot.cogs.values():
+        if (hasattr(cog, 'name') and cog.name.lower() == name.lower()) or \
+           cog.__class__.__name__.lower() == f"{name.lower()}cog":
+            return cog
+    return None
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -287,7 +295,7 @@ async def on_message(message):
     # Only handle mentions/keywords if no specific trigger was found
     if (is_pinged or has_keyword) or (not content_with_usernames and attachment_contents):
         # Check if Claude2 cog is available
-        claude2_cog = discord.utils.get(bot.cogs.values(), name='Claude-2')
+        claude2_cog = get_cog_by_name('Claude-2')
         if claude2_cog:
             await claude2_cog.handle_message(message, full_content)
         else:
