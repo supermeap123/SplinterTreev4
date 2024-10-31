@@ -9,7 +9,7 @@ from openai import OpenAI
 import backoff
 import httpx
 from functools import partial
-from config import OPENPIPE_API_URL, OPENPIPE_API_KEY
+from config import OPENPIPE_API_URL, OPENPIPE_API_KEY, OPENAI_API_KEY
 
 class API:
     def __init__(self):
@@ -31,8 +31,13 @@ class API:
         logging.info("[API] Initialized with OpenPipe configuration")
 
         # Connect to SQLite database
-        self.db_conn = sqlite3.connect('databases/interaction_logs.db')
-        self.db_cursor = self.db_conn.cursor()
+        try:
+            self.db_conn = sqlite3.connect('databases/interaction_logs.db')
+            self.db_cursor = self.db_conn.cursor()
+        except Exception as e:
+            logging.error(f"[API] Failed to connect to database: {str(e)}")
+            self.db_conn = None
+            self.db_cursor = None
 
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
         """Asynchronous OpenRouter API streaming call"""
@@ -268,6 +273,10 @@ class API:
     async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None):
         """Report interaction metrics"""
         try:
+            if self.db_conn is None or self.db_cursor is None:
+                logging.error("[API] Database connection not available. Skipping logging.")
+                return
+
             # Add timestamp to tags
             if tags is None:
                 tags = {}
@@ -286,7 +295,12 @@ class API:
             logging.error(f"[API] Failed to report interaction: {str(e)}")
 
     def __del__(self):
-        # Close database connection
-        self.db_conn.close()
+        # Close database connection if it exists
+        if hasattr(self, 'db_conn') and self.db_conn:
+            try:
+                self.db_conn.close()
+                logging.debug("[API] Database connection closed")
+            except Exception as e:
+                logging.error(f"[API] Error closing database connection: {str(e)}")
 
 api = API()
