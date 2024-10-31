@@ -185,7 +185,7 @@ class API:
                 logging.error(f"[API] OpenRouter error: {error_message}")
                 raise Exception(f"OpenRouter API error: {error_message}")
 
-    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens):
+    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options):
         """Asynchronous OpenPipe API streaming call"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
@@ -193,9 +193,18 @@ class API:
         completion = self.openpipe_client.chat.completions.create(
             model=model,
             messages=messages,
-            temperature=temperature if temperature is not None else 1,
+            temperature=temperature,
             max_tokens=max_tokens,
-            stream=True
+            n=n,
+            top_p=top_p,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+            logprobs=logprobs,
+            top_logprobs=top_logprobs,
+            stop=stop,
+            response_format=response_format,
+            stream=True,
+            stream_options=stream_options
         )
 
         full_response = ""
@@ -223,7 +232,16 @@ class API:
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
+                "n": n,
+                "top_p": top_p,
+                "presence_penalty": presence_penalty,
+                "frequency_penalty": frequency_penalty,
+                "logprobs": logprobs,
+                "top_logprobs": top_logprobs,
+                "stop": stop,
+                "response_format": response_format,
+                "stream_options": stream_options
             },
             resp_payload=completion_obj,
             status_code=200,
@@ -236,7 +254,7 @@ class API:
         max_tries=3,
         max_time=30
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False, n: int = 1, max_tokens: int = None, max_completion_tokens: int = None, top_p: float = None, presence_penalty: float = None, frequency_penalty: float = None, logprobs: bool = None, top_logprobs: int = None, stop: Union[str, List[str]] = None, response_format: Dict[str, str] = None, stream_options: Dict[str, bool] = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -248,18 +266,27 @@ class API:
             if temperature is None:
                 temperature = 1
 
-            max_tokens = 1000  # Default max_tokens value
+            # Use max_completion_tokens if provided, otherwise use max_tokens
+            max_tokens = max_completion_tokens or max_tokens or 1000
 
             try:
                 if stream:
-                    return self._stream_openpipe_request(messages, model, temperature, max_tokens)
+                    return self._stream_openpipe_request(messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options)
                 else:
                     # Non-streaming request
                     completion = self.openpipe_client.chat.completions.create(
                         model=model,
                         messages=messages,
                         temperature=temperature,
-                        max_tokens=max_tokens
+                        max_tokens=max_tokens,
+                        n=n,
+                        top_p=top_p,
+                        presence_penalty=presence_penalty,
+                        frequency_penalty=frequency_penalty,
+                        logprobs=logprobs,
+                        top_logprobs=top_logprobs,
+                        stop=stop,
+                        response_format=response_format
                     )
 
                     return {
