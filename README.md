@@ -81,7 +81,7 @@ python bot.py
 
 Note: The database schema will be automatically applied when the bot starts. There's no need for manual database initialization.
 
-**Important Update**: The bot now uses the latest OpenPipe completions endpoint, ensuring improved performance and compatibility with OpenPipe models. The OpenPipe API URL parsing has been updated to handle base URLs correctly.
+**Important Update**: The bot now uses the latest OpenPipe completions endpoint, ensuring improved performance and compatibility with OpenPipe models. The OpenPipe API URL parsing has been updated to handle base URLs correctly, resolving previous 404 errors and improving overall stability.
 
 ## ⚙️ Configuration
 
@@ -89,6 +89,7 @@ Note: The database schema will be automatically applied when the bot starts. The
 - `DISCORD_TOKEN`: Your Discord bot token
 - `OPENROUTER_API_KEY`: OpenRouter API key
 - `OPENPIPE_API_KEY`: OpenPipe API key
+- `OPENPIPE_API_URL`: OpenPipe API URL (ensure this is set correctly)
 
 ### Configuration Files
 - `config.py`: Main configuration settings
