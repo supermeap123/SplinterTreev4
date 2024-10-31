@@ -12,6 +12,7 @@ import re
 import aiohttp
 import asyncio
 import tempfile
+import shlex
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -74,9 +75,29 @@ class BaseCog(commands.Cog):
 
     @commands.command(name="clone_agent")
     @commands.has_permissions(administrator=True)
-    async def clone_agent(self, ctx, agent_name: str, new_name: str, *, system_prompt: str):
-        """Clone an existing agent with a new name and system prompt"""
+    async def clone_agent(self, ctx, *, args=None):
+        """Clone an existing agent with a new name and system prompt
+        Usage: !clone_agent <agent_name> <new_name> <system_prompt>"""
         try:
+            if not args:
+                await ctx.send("❌ Please provide the agent name, new name, and system prompt.")
+                return
+
+            # Parse arguments using shlex to handle quoted strings
+            try:
+                parsed_args = shlex.split(args)
+            except ValueError as e:
+                await ctx.send(f"❌ Error parsing arguments: {str(e)}")
+                return
+
+            if len(parsed_args) < 3:
+                await ctx.send("❌ Please provide all required arguments: agent_name, new_name, and system_prompt.")
+                return
+
+            agent_name = parsed_args[0]
+            new_name = parsed_args[1]
+            system_prompt = " ".join(parsed_args[2:])
+
             # Find the original agent cog
             original_cog = None
             for cog in self.bot.cogs.values():

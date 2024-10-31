@@ -94,12 +94,12 @@ python bot.py
 
 ## 📝 Usage
 
-### Slash Commands
-- `/help`: Show comprehensive help information
-- `/listmodels`: Show all available AI models
-- `/set_system_prompt`: Set a custom system prompt for an AI agent
-- `/reset_system_prompt`: Reset an AI agent's system prompt to default
-- `/clone_agent`: Create a new agent based on an existing one with a custom system prompt (Admin only)
+### Commands
+- `!help` - Show comprehensive help information
+- `!listmodels` - Show all available models
+- `!set_system_prompt <agent> <prompt>` - Set a custom system prompt for an AI agent
+- `!reset_system_prompt <agent>` - Reset an AI agent's system prompt to default
+- `!clone_agent <agent> <new_name> <system_prompt>` - Create a new agent based on an existing one (Admin only)
 
 ### System Prompt Variables
 When setting custom system prompts, you can use these variables:
@@ -126,10 +126,10 @@ gemini analyze this image [attached image]
 grok tell me a joke
 
 # Setting a custom system prompt
-/set_system_prompt agent:Claude-3 prompt:"You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
+!set_system_prompt Claude-3 "You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
 
 # Cloning an agent with a custom system prompt
-/clone_agent agent:Claude-3 new_name:ScienceGPT prompt:"You are {MODEL_ID}, a science expert focused on explaining complex concepts in simple terms. You always use analogies and real-world examples in your explanations."
+!clone_agent Claude-3 ScienceGPT "You are {MODEL_ID}, a science expert focused on explaining complex concepts in simple terms. You always use analogies and real-world examples in your explanations."
 ```
 
 ## 🏗️ Architecture
