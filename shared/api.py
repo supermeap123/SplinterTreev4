@@ -7,6 +7,7 @@ import sqlite3
 from typing import Dict, Any, List, Union, AsyncGenerator
 import aiohttp
 import backoff
+from urllib.parse import urlparse
 from config import OPENPIPE_API_URL, OPENPIPE_API_KEY, OPENROUTER_API_KEY
 
 class API:
@@ -15,8 +16,14 @@ class API:
         self.session = aiohttp.ClientSession()
         
         # Initialize OpenPipe client
-        self.openpipe_client = aiohttp.ClientSession(base_url=OPENPIPE_API_URL)
-        logging.info("[API] Initialized with OpenPipe configuration")
+        try:
+            parsed_url = urlparse(OPENPIPE_API_URL)
+            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            self.openpipe_client = aiohttp.ClientSession(base_url=base_url)
+            logging.info("[API] Initialized with OpenPipe configuration")
+        except Exception as e:
+            logging.error(f"[API] Failed to initialize OpenPipe client: {str(e)}")
+            self.openpipe_client = None
 
         # Connect to SQLite database and apply schema
         try:
@@ -189,9 +196,12 @@ class API:
 
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options):
         """Asynchronous OpenPipe API streaming call"""
+        if not self.openpipe_client:
+            raise Exception("OpenPipe client is not initialized")
+
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
-        url = f"{OPENPIPE_API_URL}/chat/completions"
+        url = "/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENPIPE_API_KEY}",
             "Content-Type": "application/json"
@@ -272,6 +282,9 @@ class API:
         max_time=60
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False, n: int = 1, max_tokens: int = None, max_completion_tokens: int = None, top_p: float = None, presence_penalty: float = None, frequency_penalty: float = None, logprobs: bool = None, top_logprobs: int = None, stop: Union[str, List[str]] = None, response_format: Dict[str, str] = None, stream_options: Dict[str, bool] = None) -> Union[Dict, AsyncGenerator[str, None]]:
+        if not self.openpipe_client:
+            raise Exception("OpenPipe client is not initialized")
+
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -290,7 +303,7 @@ class API:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options)
             else:
                 # Non-streaming request
-                url = f"{OPENPIPE_API_URL}/chat/completions"
+                url = "/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {OPENPIPE_API_KEY}",
                     "Content-Type": "application/json"
@@ -369,7 +382,8 @@ class API:
 
     async def close(self):
         await self.session.close()
-        await self.openpipe_client.close()
+        if self.openpipe_client:
+            await self.openpipe_client.close()
         if self.db_conn:
             self.db_conn.close()
 
