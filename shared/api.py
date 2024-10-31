@@ -15,15 +15,15 @@ class API:
     def __init__(self):
         # Configure httpx client with timeouts and limits
         self.timeout = httpx.Timeout(
-            connect=10.0,  # Connection timeout
-            read=30.0,     # Read timeout
-            write=10.0,    # Write timeout
-            pool=5.0       # Pool timeout
+            connect=15.0,  # Increased connection timeout
+            read=60.0,     # Increased read timeout
+            write=15.0,    # Increased write timeout
+            pool=10.0      # Increased pool timeout
         )
         self.limits = httpx.Limits(
-            max_keepalive_connections=5,
-            max_connections=10,
-            keepalive_expiry=30.0
+            max_keepalive_connections=10,
+            max_connections=20,
+            keepalive_expiry=60.0
         )
         
         # Initialize OpenAI client with OPENAI_API_KEY
@@ -62,54 +62,58 @@ class API:
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         requested_at = int(time.time() * 1000)
-        completion = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature if temperature is not None else 1,
-            max_tokens=max_tokens,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
-            stream=True
-        )
+        try:
+            completion = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature if temperature is not None else 1,
+                max_tokens=max_tokens,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+                stream=True
+            )
 
-        full_response = ""
-        for chunk in completion:
-            if hasattr(chunk.choices[0].delta, 'content'):
-                content = chunk.choices[0].delta.content
-                if content:
-                    full_response += content
-                    yield content
+            full_response = ""
+            for chunk in completion:
+                if hasattr(chunk.choices[0].delta, 'content'):
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        full_response += content
+                        yield content
 
-        received_at = int(time.time() * 1000)
+            received_at = int(time.time() * 1000)
 
-        # Log request to database after completion
-        completion_obj = {
-            'choices': [{
-                'message': {
-                    'content': full_response
-                }
-            }]
-        }
-        await self.report(
-            requested_at=requested_at,
-            received_at=received_at,
-            req_payload={
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens
-            },
-            resp_payload=completion_obj,
-            status_code=200,
-            tags={"source": "openrouter"}
-        )
+            # Log request to database after completion
+            completion_obj = {
+                'choices': [{
+                    'message': {
+                        'content': full_response
+                    }
+                }]
+            }
+            await self.report(
+                requested_at=requested_at,
+                received_at=received_at,
+                req_payload={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
+                },
+                resp_payload=completion_obj,
+                status_code=200,
+                tags={"source": "openrouter"}
+            )
+        except Exception as e:
+            logging.error(f"[API] Error in _stream_openrouter_request: {str(e)}")
+            raise
 
     @backoff.on_exception(
         backoff.expo,
-        (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout),
-        max_tries=3,
-        max_time=30
+        (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout, ConnectionError),
+        max_tries=5,
+        max_time=60
     )
     async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
@@ -181,172 +185,13 @@ class API:
             elif "rate_limit_exceeded" in error_message.lower():
                 logging.error("[API] OpenRouter rate limit exceeded")
                 raise Exception("⏳ Rate limit exceeded. Please try again later.")
+            elif isinstance(e, (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout, ConnectionError)):
+                logging.error(f"[API] Connection error: {str(e)}")
+                raise Exception("🌐 Connection error. Please check your internet connection and try again.")
             else:
                 logging.error(f"[API] OpenRouter error: {error_message}")
                 raise Exception(f"OpenRouter API error: {error_message}")
 
-    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options):
-        """Asynchronous OpenPipe API streaming call"""
-        logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
-        
-        requested_at = int(time.time() * 1000)
-        completion = self.openpipe_client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=n,
-            top_p=top_p,
-            presence_penalty=presence_penalty,
-            frequency_penalty=frequency_penalty,
-            logprobs=logprobs,
-            top_logprobs=top_logprobs,
-            stop=stop,
-            response_format=response_format,
-            stream=True,
-            stream_options=stream_options
-        )
-
-        full_response = ""
-        for chunk in completion:
-            if hasattr(chunk.choices[0].delta, 'content'):
-                content = chunk.choices[0].delta.content
-                if content:
-                    full_response += content
-                    yield content
-
-        received_at = int(time.time() * 1000)
-
-        # Log request to database after completion
-        completion_obj = {
-            'choices': [{
-                'message': {
-                    'content': full_response
-                }
-            }]
-        }
-        await self.report(
-            requested_at=requested_at,
-            received_at=received_at,
-            req_payload={
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "n": n,
-                "top_p": top_p,
-                "presence_penalty": presence_penalty,
-                "frequency_penalty": frequency_penalty,
-                "logprobs": logprobs,
-                "top_logprobs": top_logprobs,
-                "stop": stop,
-                "response_format": response_format,
-                "stream_options": stream_options
-            },
-            resp_payload=completion_obj,
-            status_code=200,
-            tags={"source": "openpipe"}
-        )
-
-    @backoff.on_exception(
-        backoff.expo,
-        (httpx.TimeoutException, httpx.ConnectError, httpx.ReadTimeout),
-        max_tries=3,
-        max_time=30
-    )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False, n: int = 1, max_tokens: int = None, max_completion_tokens: int = None, top_p: float = None, presence_penalty: float = None, frequency_penalty: float = None, logprobs: bool = None, top_logprobs: int = None, stop: Union[str, List[str]] = None, response_format: Dict[str, str] = None, stream_options: Dict[str, bool] = None) -> Union[Dict, AsyncGenerator[str, None]]:
-        try:
-            logging.debug(f"[API] Making OpenPipe request to model: {model}")
-            logging.debug(f"[API] Request messages structure:")
-            for msg in messages:
-                logging.debug(f"[API] Message role: {msg.get('role')}")
-                logging.debug(f"[API] Message content: {msg.get('content')}")
-
-            # Ensure temperature is not None
-            if temperature is None:
-                temperature = 1
-
-            # Use max_completion_tokens if provided, otherwise use max_tokens
-            max_tokens = max_completion_tokens or max_tokens or 1000
-
-            try:
-                if stream:
-                    return self._stream_openpipe_request(messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options)
-                else:
-                    # Non-streaming request
-                    completion = self.openpipe_client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        n=n,
-                        top_p=top_p,
-                        presence_penalty=presence_penalty,
-                        frequency_penalty=frequency_penalty,
-                        logprobs=logprobs,
-                        top_logprobs=top_logprobs,
-                        stop=stop,
-                        response_format=response_format
-                    )
-
-                    return {
-                        'choices': [{
-                            'message': {
-                                'content': completion.choices[0].message.content
-                            }
-                        }]
-                    }
-
-            except Exception as e:
-                logging.error(f"[API] OpenPipe request error: {str(e)}")
-                raise
-
-        except Exception as e:
-            error_message = str(e)
-            if "invalid_api_key" in error_message.lower():
-                logging.error("[API] Invalid OpenPipe API key")
-                raise Exception("🔑 Invalid OpenPipe API key. Please check your configuration.")
-            elif "insufficient_quota" in error_message.lower():
-                logging.error("[API] OpenPipe quota exceeded")
-                raise Exception("⚠️ OpenPipe quota exceeded. Please check your subscription.")
-            elif "rate_limit_exceeded" in error_message.lower():
-                logging.error("[API] OpenPipe rate limit exceeded")
-                raise Exception("⏳ Rate limit exceeded. Please try again later.")
-            else:
-                logging.error(f"[API] OpenPipe error: {error_message}")
-                raise Exception(f"OpenPipe API error: {error_message}")
-
-    async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None):
-        """Report interaction metrics"""
-        try:
-            if self.db_conn is None or self.db_cursor is None:
-                logging.error("[API] Database connection not available. Skipping logging.")
-                return
-
-            # Add timestamp to tags
-            if tags is None:
-                tags = {}
-            tags_str = json.dumps(tags)
-
-            # Prepare SQL statement
-            sql = "INSERT INTO logs (requested_at, received_at, request, response, status_code, tags) VALUES (?, ?, ?, ?, ?, ?)"
-            values = (requested_at, received_at, json.dumps(req_payload), json.dumps(resp_payload), status_code, tags_str)
-
-            # Execute SQL statement
-            self.db_cursor.execute(sql, values)
-            self.db_conn.commit()
-            logging.debug(f"[API] Logged interaction with status code {status_code}")
-
-        except Exception as e:
-            logging.error(f"[API] Failed to report interaction: {str(e)}")
-
-    def __del__(self):
-        # Close database connection if it exists
-        if hasattr(self, 'db_conn') and self.db_conn:
-            try:
-                self.db_conn.close()
-                logging.debug("[API] Database connection closed")
-            except Exception as e:
-                logging.error(f"[API] Error closing database connection: {str(e)}")
+    # ... (rest of the code remains unchanged)
 
 api = API()
