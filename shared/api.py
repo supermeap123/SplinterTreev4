@@ -185,7 +185,7 @@ class API:
                 logging.error(f"[API] OpenRouter error: {error_message}")
                 raise Exception(f"OpenRouter API error: {error_message}")
 
-    async def _stream_openpipe_request(self, messages, model, temperature):
+    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens):
         """Asynchronous OpenPipe API streaming call"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
@@ -194,10 +194,7 @@ class API:
             model=model,
             messages=messages,
             temperature=temperature if temperature is not None else 1,
-            max_tokens=1000,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+            max_tokens=max_tokens,
             stream=True
         )
 
@@ -226,7 +223,7 @@ class API:
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 1000
+                "max_tokens": max_tokens
             },
             resp_payload=completion_obj,
             status_code=200,
@@ -247,23 +244,28 @@ class API:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
-            try:
-                # Ensure temperature is not None
-                if temperature is None:
-                    temperature = 1
+            # Ensure temperature is not None
+            if temperature is None:
+                temperature = 1
 
+            max_tokens = 1000  # Default max_tokens value
+
+            try:
                 if stream:
-                    return self._stream_openpipe_request(messages, model, temperature)
+                    return self._stream_openpipe_request(messages, model, temperature, max_tokens)
                 else:
-                    # Collect all chunks for non-streaming response
-                    full_response = ""
-                    async for chunk in self._stream_openpipe_request(messages, model, temperature):
-                        full_response += chunk
+                    # Non-streaming request
+                    completion = self.openpipe_client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
 
                     return {
                         'choices': [{
                             'message': {
-                                'content': full_response
+                                'content': completion.choices[0].message.content
                             }
                         }]
                     }

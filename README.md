@@ -81,6 +81,8 @@ python bot.py
 
 Note: The database schema will be automatically applied when the bot starts. There's no need for manual database initialization.
 
+**Important Update**: The bot now uses the latest OpenPipe completions endpoint, ensuring improved performance and compatibility with OpenPipe models.
+
 ## ⚙️ Configuration
 
 ### Environment Variables
