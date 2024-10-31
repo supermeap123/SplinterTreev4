@@ -11,6 +11,10 @@ __pycache__/
 *.sqlite3
 interaction_logs.jsonl
 history_per_channel.json
+databases/interaction_logs.db
+
+# History folder
+history/
 
 # Environment variables
 .env
