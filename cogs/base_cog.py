@@ -78,9 +78,6 @@ class BaseCog(commands.Cog):
 
     async def generate_image_description(self, image_url):
         """Generate a description for the given image URL"""
-        if not self.supports_vision:
-            return None
-            
         try:
             logging.info(f"[{self.name}] Starting image description generation for URL: {image_url}")
             
@@ -200,13 +197,16 @@ class BaseCog(commands.Cog):
             messages.extend(history_messages)
 
             # Add current message with any image descriptions
-            if message.attachments and not self.supports_vision:
+            if message.attachments:
                 # Get alt text for this message
                 alt_text = await get_alt_text(str(message.id))
                 if alt_text:
                     messages.append({
                         "role": "user",
-                        "content": f"{message.content}\n\nImage description: {alt_text}"
+                        "content": [
+                            {"type": "text", "text": message.content},
+                            {"type": "text", "text": f"Image description: {alt_text}"}
+                        ]
                     })
                 else:
                     messages.append({
@@ -276,8 +276,8 @@ class BaseCog(commands.Cog):
                     logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
                     return
 
-                # Process images first if there are any attachments and model supports vision
-                if message.attachments and self.supports_vision:
+                # Process images if there are any attachments
+                if message.attachments:
                     logging.info(f"[{self.name}] Found {len(message.attachments)} attachments")
                     image_attachments = [
                         att for att in message.attachments 
@@ -318,15 +318,6 @@ class BaseCog(commands.Cog):
                                     if can_add_reactions:
                                         await message.add_reaction('❌')
                                     continue
-                # For non-vision models, wait for image processing
-                elif message.attachments:
-                    logging.info(f"[{self.name}] Message has attachments and model doesn't support vision, waiting for processing")
-                    processing_success = await self.wait_for_image_processing(message)
-                    if not processing_success:
-                        logging.warning(f"[{self.name}] Image processing failed or timed out")
-                        if can_add_reactions:
-                            await message.add_reaction('⚠️')
-                        return
 
                 # Generate streaming response
                 logging.info(f"[{self.name}] Generating streaming response")
@@ -495,3 +486,14 @@ class BaseCog(commands.Cog):
                 logging.error(f"Failed to delete temp file: {str(e)}")
         asyncio.create_task(delete_temp_file())
         return file
+
+async def setup(bot):
+    # Register the cog with its proper name
+    try:
+        cog = BaseCog(bot)
+        await bot.add_cog(cog)
+        logging.info(f"[BaseCog] Registered cog with qualified_name: {cog.qualified_name}")
+        return cog
+    except Exception as e:
+        logging.error(f"[BaseCog] Failed to register cog: {str(e)}", exc_info=True)
+        raise

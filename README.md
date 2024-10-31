@@ -8,7 +8,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
 - **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow
 - **Shared Context Database**: SQLite-based persistent conversation history shared between all models
-- **Image Processing**: Automatic image description and analysis
+- **Universal Image Processing**: Automatic image description and analysis for all models, regardless of native vision support
 - **File Handling**: Support for text files and images
 - **Response Reroll**: Button to generate alternative responses
 - **Emotion Analysis**: Reactions based on message sentiment
@@ -22,7 +22,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Automatic Database Initialization**: Schema is automatically applied on bot startup
 
 ### Special Capabilities
-- **Vision Processing**: Direct image analysis with compatible models
+- **Enhanced Vision Processing**: All models can now process and respond to images, with descriptions provided for non-vision models
 - **Context Management**: Per-channel message history with configurable window size
 - **Cross-Model Context**: Models can see and reference each other's responses
 - **File Processing**: Automatic content extraction from text files
@@ -124,7 +124,7 @@ When setting custom system prompts, you can use these variables:
 ### Triggering Models
 - **Default Model (Claude-2)**: Mention the bot or use "splintertree" keyword
 - **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", "grok", etc.)
-- **Image Analysis**: Simply attach an image to your message
+- **Image Analysis**: Simply attach an image to your message (works with all models)
 - **File Processing**: Attach .txt or .md files
 - **Attachment-Only Processing**: Send a message with only attachments (images, text files) without any text
 
@@ -135,7 +135,7 @@ splintertree explain quantum computing
 claude what is the meaning of life?
 gemini analyze this image [attached image]
 grok tell me a joke
-[Send a message with only an image attachment for automatic analysis]
+[Send a message with only an image attachment for automatic analysis with any model]
 [Send a message with only a .txt file attachment for automatic processing]
 
 # Setting a custom system prompt
@@ -156,7 +156,7 @@ grok tell me a joke
 - **Base Cog**: Foundation for all model implementations
   - Handles message processing
   - Manages streaming responses
-  - Provides vision support for compatible models
+  - Provides universal image processing support for all models
   - Implements reroll functionality
   - Manages temperature settings
   - Handles error cases and permissions
@@ -164,7 +164,7 @@ grok tell me a joke
 - **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
-- **Image Processing**: Integrated vision support in base cog
+- **Image Processing**: Integrated vision support in base cog for all models
 - **Settings Management**: Handles dynamic system prompts
 - **Database Initialization**: Automatic schema application on startup
 
@@ -212,7 +212,7 @@ SplinterTreev4/
    ```
 4. The base cog provides all core functionality including:
    - Message processing
-   - Vision support (if enabled)
+   - Universal image processing support
    - Streaming responses
    - Error handling
    - Temperature management

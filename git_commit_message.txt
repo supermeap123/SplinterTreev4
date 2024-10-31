@@ -1,0 +1,7 @@
+Implement universal image processing for all models
+
+- Updated base_cog.py to process images for all models, regardless of native vision support
+- Modified image description generation to work with all models
+- Updated README.md to reflect new universal image processing capabilities
+- Ensured consistent handling of image attachments across all model types
+- Improved documentation on image analysis and attachment handling in README
