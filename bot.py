@@ -10,6 +10,7 @@ import aiohttp
 import json
 from datetime import datetime, timedelta, timezone
 import re
+import pytz
 
 # Configure logging
 logging.basicConfig(
@@ -63,7 +64,9 @@ def get_uptime():
     """Get bot uptime as a formatted string"""
     if start_time is None:
         return "Unknown"
-    uptime = datetime.now(timezone.utc) - start_time
+    pst = pytz.timezone('US/Pacific')
+    current_time = datetime.now(pst)
+    uptime = current_time - start_time.astimezone(pst)
     days = uptime.days
     hours, remainder = divmod(uptime.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -167,7 +170,8 @@ async def setup_cogs():
 @bot.event
 async def on_ready():
     global start_time
-    start_time = datetime.now(timezone.utc)
+    pst = pytz.timezone('US/Pacific')
+    start_time = datetime.now(pst)
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
     
     # Set initial "Booting..." status
@@ -177,6 +181,11 @@ async def on_ready():
     
     # Set initial uptime status after loading
     await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
+
+async def resolve_user_id(user_id):
+    """Resolve a user ID to a username"""
+    user = await bot.fetch_user(user_id)
+    return user.name if user else str(user_id)
 
 @bot.event
 async def on_message(message):
@@ -189,10 +198,15 @@ async def on_message(message):
 
     # Update last interaction
     last_interaction['user'] = message.author.display_name
-    last_interaction['time'] = datetime.now(timezone.utc)
+    last_interaction['time'] = datetime.now(pytz.timezone('US/Pacific'))
+
+    # Resolve user IDs to usernames
+    content_with_usernames = message.content
+    for mention in message.mentions:
+        content_with_usernames = content_with_usernames.replace(f'<@{mention.id}>', f'@{mention.name}')
 
     # Debug logging for message content and attachments
-    logging.debug(f"Received message in channel {message.channel.id}: {message.content}")
+    logging.debug(f"Received message in channel {message.channel.id}: {content_with_usernames}")
     if message.attachments:
         logging.debug(f"Message has {len(message.attachments)} attachments")
         for att in message.attachments:
@@ -202,23 +216,18 @@ async def on_message(message):
     await bot.process_commands(message)
 
     # Check for bot mention or keywords
-    msg_content = message.content.lower()
+    msg_content = content_with_usernames.lower()
     is_pinged = bot.user in message.mentions
     has_keyword = "splintertree" in msg_content
 
     # Only handle mentions/keywords if no specific trigger was found
     if (is_pinged or has_keyword):
-        # Check if any specific model was triggered
-        specific_trigger = False
-        for cog in bot.cogs.values():
-            if hasattr(cog, 'trigger_words'):
-                if any(word in msg_content for word in cog.trigger_words):
-                    specific_trigger = True
-                    await cog.handle_message(message)
-                    break
-
-        # If no specific model was triggered, use a random cog
-        if not specific_trigger:
+        # Check if Claude2 cog is available
+        claude2_cog = discord.utils.get(bot.cogs.values(), name='Claude-2')
+        if claude2_cog:
+            await claude2_cog.handle_message(message)
+        else:
+            # If Claude2 is not available, use a random cog
             cog = random.choice(loaded_cogs)
             await cog.handle_message(message)
 

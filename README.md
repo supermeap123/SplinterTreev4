@@ -15,6 +15,9 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Status Updates**: Rotating status showing uptime, last interaction, and current model
 - **Dynamic System Prompts**: Customizable per-channel system prompts with variable support
 - **Agent Cloning**: Create custom variants of existing agents with unique system prompts
+- **PST Timezone Preference**: All time-related operations use Pacific Standard Time (PST) by default
+- **User ID Resolution**: Automatically resolves Discord user IDs to usernames in messages
+- **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -111,13 +114,13 @@ When setting custom system prompts, you can use these variables:
 - `{MODEL_ID}`: The AI model's name
 - `{USERNAME}`: The user's Discord display name
 - `{DISCORD_USER_ID}`: The user's Discord ID
-- `{TIME}`: Current local time
-- `{TZ}`: Local timezone
+- `{TIME}`: Current local time (in PST)
+- `{TZ}`: Local timezone (PST)
 - `{SERVER_NAME}`: Current Discord server name
 - `{CHANNEL_NAME}`: Current channel name
 
 ### Triggering Models
-- **Random Model**: Mention the bot or use "splintertree" keyword
+- **Default Model (Claude-2)**: Mention the bot or use "splintertree" keyword
 - **Specific Model**: Use model-specific triggers (e.g., "claude", "gemini", "grok", etc.)
 - **Image Analysis**: Simply attach an image to your message
 - **File Processing**: Attach .txt or .md files
