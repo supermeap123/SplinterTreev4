@@ -9,4 +9,4 @@ python-magic>=0.4.24
 backoff>=2.2.1
 httpx>=0.25.0
 aiosqlite>=0.20.0
-pytz>=2021.1
+pytz
