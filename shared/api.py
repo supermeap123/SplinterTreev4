@@ -34,14 +34,27 @@ class API:
         self.openpipe_client = OpenAI(api_key=OPENPIPE_API_KEY, base_url=OPENPIPE_API_URL, timeout=self.timeout)
         logging.info("[API] Initialized with OpenPipe configuration")
 
-        # Connect to SQLite database
+        # Connect to SQLite database and apply schema
         try:
             self.db_conn = sqlite3.connect('databases/interaction_logs.db')
             self.db_cursor = self.db_conn.cursor()
+            self._apply_schema()
+            logging.info("[API] Connected to database and applied schema")
         except Exception as e:
-            logging.error(f"[API] Failed to connect to database: {str(e)}")
+            logging.error(f"[API] Failed to connect to database or apply schema: {str(e)}")
             self.db_conn = None
             self.db_cursor = None
+
+    def _apply_schema(self):
+        try:
+            with open('databases/schema.sql', 'r') as schema_file:
+                schema_sql = schema_file.read()
+            self.db_cursor.executescript(schema_sql)
+            self.db_conn.commit()
+            logging.info("[API] Successfully applied database schema")
+        except Exception as e:
+            logging.error(f"[API] Failed to apply database schema: {str(e)}")
+            raise
 
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
         """Asynchronous OpenRouter API streaming call"""

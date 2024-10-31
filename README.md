@@ -19,6 +19,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **User ID Resolution**: Automatically resolves Discord user IDs to usernames in messages
 - **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
 - **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
+- **Automatic Database Initialization**: Schema is automatically applied on bot startup
 
 ### Special Capabilities
 - **Vision Processing**: Direct image analysis with compatible models
@@ -73,15 +74,12 @@ pip install -r requirements.txt
 - Copy `.env.example` to `.env`
 - Add your API keys and configuration
 
-4. Initialize database:
-```bash
-sqlite3 databases/interaction_logs.db < databases/schema.sql
-```
-
-5. Run the bot:
+4. Run the bot:
 ```bash
 python bot.py
 ```
+
+Note: The database schema will be automatically applied when the bot starts. There's no need for manual database initialization.
 
 ## ⚙️ Configuration
 
@@ -165,6 +163,7 @@ grok tell me a joke
 - **File Processing**: Handles various file types
 - **Image Processing**: Integrated vision support in base cog
 - **Settings Management**: Handles dynamic system prompts
+- **Database Initialization**: Automatic schema application on startup
 
 ### Directory Structure
 ```
@@ -231,6 +230,9 @@ Channel-specific prompts are stored in `dynamic_prompts.json`:
 The SQLite database includes tables for:
 - `messages`: Stores all conversation messages
 - `context_windows`: Stores per-channel context settings
+- `logs`: Stores interaction logs for API calls
+
+The schema is automatically applied when the bot starts, ensuring the database is always up-to-date.
 
 ## 📄 License
 
