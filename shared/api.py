@@ -18,12 +18,11 @@ class API:
         # Initialize OpenPipe client
         try:
             parsed_url = urlparse(OPENPIPE_API_URL)
-            base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
-            self.openpipe_client = aiohttp.ClientSession(base_url=base_url)
-            logging.info("[API] Initialized with OpenPipe configuration")
+            self.openpipe_base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+            logging.info(f"[API] Initialized with OpenPipe base URL: {self.openpipe_base_url}")
         except Exception as e:
-            logging.error(f"[API] Failed to initialize OpenPipe client: {str(e)}")
-            self.openpipe_client = None
+            logging.error(f"[API] Failed to parse OpenPipe API URL: {str(e)}")
+            self.openpipe_base_url = None
 
         # Connect to SQLite database and apply schema
         try:
@@ -196,12 +195,12 @@ class API:
 
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options):
         """Asynchronous OpenPipe API streaming call"""
-        if not self.openpipe_client:
-            raise Exception("OpenPipe client is not initialized")
+        if not self.openpipe_base_url:
+            raise Exception("OpenPipe base URL is not initialized")
 
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
-        url = "/chat/completions"
+        url = f"{self.openpipe_base_url}/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENPIPE_API_KEY}",
             "Content-Type": "application/json"
@@ -219,12 +218,13 @@ class API:
             "top_logprobs": top_logprobs,
             "stop": stop,
             "response_format": response_format,
-            "stream": True,
-            "stream_options": stream_options
+            "stream": True
         }
+        if stream_options:
+            data["stream_options"] = stream_options
 
         requested_at = int(time.time() * 1000)
-        async with self.openpipe_client.post(url, headers=headers, json=data) as response:
+        async with self.session.post(url, headers=headers, json=data) as response:
             if response.status != 200:
                 error_text = await response.text()
                 logging.error(f"[API] OpenPipe API error: {response.status} - {error_text}")
@@ -282,8 +282,8 @@ class API:
         max_time=60
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False, n: int = 1, max_tokens: int = None, max_completion_tokens: int = None, top_p: float = None, presence_penalty: float = None, frequency_penalty: float = None, logprobs: bool = None, top_logprobs: int = None, stop: Union[str, List[str]] = None, response_format: Dict[str, str] = None, stream_options: Dict[str, bool] = None) -> Union[Dict, AsyncGenerator[str, None]]:
-        if not self.openpipe_client:
-            raise Exception("OpenPipe client is not initialized")
+        if not self.openpipe_base_url:
+            raise Exception("OpenPipe base URL is not initialized")
 
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
@@ -303,7 +303,7 @@ class API:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens, n, top_p, presence_penalty, frequency_penalty, logprobs, top_logprobs, stop, response_format, stream_options)
             else:
                 # Non-streaming request
-                url = "/chat/completions"
+                url = f"{self.openpipe_base_url}/v1/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {OPENPIPE_API_KEY}",
                     "Content-Type": "application/json"
@@ -323,7 +323,7 @@ class API:
                     "response_format": response_format
                 }
 
-                async with self.openpipe_client.post(url, headers=headers, json=data) as response:
+                async with self.session.post(url, headers=headers, json=data) as response:
                     if response.status != 200:
                         error_text = await response.text()
                         logging.error(f"[API] OpenPipe API error: {response.status} - {error_text}")
@@ -382,8 +382,6 @@ class API:
 
     async def close(self):
         await self.session.close()
-        if self.openpipe_client:
-            await self.openpipe_client.close()
         if self.db_conn:
             self.db_conn.close()
 
