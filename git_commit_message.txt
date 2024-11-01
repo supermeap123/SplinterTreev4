@@ -1,3 +1,5 @@
-fix: Correctly split long help messages
+fix: update BaseCog.handle_message to accept full_content parameter
 
-The help command output was too long and would exceed the Discord character limit. This commit fixes the issue by correctly splitting the help message into multiple messages if it exceeds the character limit.
+- Modified handle_message method signature to accept optional full_content parameter
+- Fixes TypeError when handle_message was called with 3 arguments from bot.py
+- Maintains backward compatibility with existing cog implementations

@@ -285,7 +285,7 @@ class BaseCog(commands.Cog):
             logging.error(f"Error getting temperature: {str(e)}")
             return None
 
-    async def handle_message(self, message):
+    async def handle_message(self, message, full_content=None):
         """Handle incoming messages"""
         if message.author == self.bot.user:
             return
