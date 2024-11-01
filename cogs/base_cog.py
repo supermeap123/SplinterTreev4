@@ -76,6 +76,24 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    def get_temperature(self, model_name: str = None) -> float:
+        """Get temperature setting for a model"""
+        try:
+            # Load temperatures from file
+            with open('temperatures.json', 'r') as f:
+                temperatures = json.load(f)
+            
+            # Use provided model name or fall back to self.name
+            name = model_name or self.name
+            
+            # Get temperature for model, default to 0.7 if not found
+            temperature = temperatures.get(name.lower(), 0.7)
+            logging.debug(f"[{name}] Using temperature: {temperature}")
+            return float(temperature)
+        except Exception as e:
+            logging.warning(f"Failed to load temperature for {name}, using default: {str(e)}")
+            return 0.7
+
     async def generate_response(self, message):
         """Generate a response using the API client"""
         try:
@@ -133,11 +151,14 @@ class BaseCog(commands.Cog):
             else:
                 messages.append({"role": "user", "content": current_content})
 
+            # Get temperature for this model
+            temperature = self.get_temperature()
+
             # Call appropriate API based on provider
             if self.provider == "openrouter":
-                return await self.api_client.call_openrouter(messages, self.model, stream=True)
+                return await self.api_client.call_openrouter(messages, self.model, temperature=temperature, stream=True)
             elif self.provider == "openpipe":
-                return await self.api_client.call_openpipe(messages, self.model, stream=True)
+                return await self.api_client.call_openpipe(messages, self.model, temperature=temperature, stream=True)
             else:
                 raise ValueError(f"Unsupported provider: {self.provider}")
 

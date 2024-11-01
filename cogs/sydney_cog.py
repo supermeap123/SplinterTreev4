@@ -64,8 +64,8 @@ class SydneyCog(BaseCog):
             logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
             logging.debug(f"[Sydney] System prompt: {self.raw_prompt}")
 
-            # Get temperature for this agent
-            temperature = self.get_temperature(self.name)
+            # Get temperature from base_cog
+            temperature = self.get_temperature()
             logging.debug(f"[Sydney] Using temperature: {temperature}")
 
             # Call OpenPipe API and return the stream directly
