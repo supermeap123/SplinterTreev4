@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW
+from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW, OPENPIPE_API_KEY, OPENPIPE_API_URL
 import sqlite3
 import json
 import logging
@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import asyncio
 from typing import List, Dict, Optional
 import textwrap
+from openai import OpenAI
 
 class ContextCog(commands.Cog):
     def __init__(self, bot):
@@ -16,6 +17,10 @@ class ContextCog(commands.Cog):
         self._setup_database()
         self.summary_chunk_hours = 24  # Summarize every 24 hours of chat
         self.last_summary_check = {}  # Track last summary generation per channel
+        self.openai_client = OpenAI(
+            base_url=OPENPIPE_API_URL,
+            api_key=OPENPIPE_API_KEY
+        )
 
     def _setup_database(self):
         """Ensure database and tables exist"""
@@ -28,32 +33,39 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to setup database: {str(e)}")
 
     async def _generate_summary(self, messages: List[Dict]) -> str:
-        """Generate a summary of chat messages"""
+        """Generate a summary of chat messages using OpenAI/OpenPipe"""
         if not messages:
             return "No messages to summarize."
 
-        # Create a condensed representation of the conversation
-        summary_parts = []
-        current_speaker = None
-        current_messages = []
+        try:
+            # Format messages for the API
+            formatted_messages = []
+            for msg in messages:
+                speaker = "Assistant" if msg['is_assistant'] else f"User {msg['user_id']}"
+                formatted_messages.append(f"{speaker}: {msg['content']}")
 
-        for msg in messages:
-            speaker = "Assistant" if msg['is_assistant'] else f"User {msg['user_id']}"
-            if speaker != current_speaker:
-                if current_messages:
-                    combined = " ".join(current_messages)
-                    summary_parts.append(f"{current_speaker}: {combined}")
-                current_speaker = speaker
-                current_messages = [msg['content']]
-            else:
-                current_messages.append(msg['content'])
+            conversation = "\n".join(formatted_messages)
+            
+            # Create system prompt for summarization
+            system_prompt = "You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that captures the main points and key interactions of the conversation. Focus on the important topics discussed and any decisions or conclusions reached."
 
-        if current_messages:
-            combined = " ".join(current_messages)
-            summary_parts.append(f"{current_speaker}: {combined}")
+            # Make API call
+            completion = self.openai_client.chat.completions.create(
+                model="openpipe:moa-gpt-4o-v1",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Please summarize this conversation:\n\n{conversation}"}
+                ],
+                store=True,
+                metadata={"type": "discord_summary"}
+            )
 
-        summary = "\n".join(summary_parts)
-        return textwrap.shorten(summary, width=2000, placeholder="...")
+            summary = completion.choices[0].message.content
+            return summary
+
+        except Exception as e:
+            logging.error(f"Failed to generate summary: {str(e)}")
+            return "Error generating summary."
 
     async def _check_and_create_summary(self, channel_id: str):
         """Check if we need to create a new summary and create it if necessary"""

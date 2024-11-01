@@ -1,0 +1,12 @@
+feat(context): enhance context system with OpenAI-powered chat summaries
+
+- Add automatic chat summarization using OpenAI/OpenPipe API
+- Store summaries in new chat_summaries table
+- Include last 10 messages from both users and assistant in context
+- Add new commands: !summarize, !getsummaries, !clearsummaries
+- Update help documentation with new features and commands
+- Update database schema to support chat summaries
+
+This update improves context handling by automatically summarizing chat history
+using OpenAI's GPT-4 model via OpenPipe, providing intelligent historical context
+while maintaining recent interactions.
