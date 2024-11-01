@@ -188,13 +188,78 @@ class API:
                 logging.error(f"[API] OpenRouter error: {error_message}")
                 raise Exception(f"OpenRouter API error: {error_message}")
 
+    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens):
+        """Stream responses from OpenPipe API"""
+        logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
+        
+        url = "https://api.openpipe.ai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENPIPE_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature if temperature is not None else 0.7,
+            "max_tokens": max_tokens if max_tokens is not None else 1000,
+            "stream": True
+        }
+
+        requested_at = int(time.time() * 1000)
+        async with self.session.post(url, headers=headers, json=data) as response:
+            if response.status != 200:
+                error_text = await response.text()
+                logging.error(f"[API] OpenPipe API error: {response.status} - {error_text}")
+                raise Exception(f"OpenPipe API error: {response.status} - {error_text}")
+
+            async for line in response.content:
+                if line:
+                    try:
+                        line_text = line.decode('utf-8').strip()
+                        if line_text.startswith('data: '):
+                            json_line = json.loads(line_text[6:])
+                            if 'choices' in json_line and json_line['choices']:
+                                content = json_line['choices'][0].get('delta', {}).get('content')
+                                if content:
+                                    yield content
+                    except json.JSONDecodeError:
+                        logging.error(f"[API] Failed to decode JSON: {line}")
+                        continue
+                    except Exception as e:
+                        logging.error(f"[API] Error processing stream chunk: {str(e)}")
+                        continue
+
+        received_at = int(time.time() * 1000)
+
+        # Log request to database after completion
+        completion_obj = {
+            'choices': [{
+                'message': {
+                    'content': "Streaming response completed"
+                }
+            }]
+        }
+        await self.report(
+            requested_at=requested_at,
+            received_at=received_at,
+            req_payload={
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            },
+            resp_payload=completion_obj,
+            status_code=200,
+            tags={"source": "openpipe"}
+        )
+
     @backoff.on_exception(
         backoff.expo,
         (aiohttp.ClientError, asyncio.TimeoutError),
         max_tries=5,
         max_time=60
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = 0.7, stream: bool = False, n: int = 1, max_tokens: int = None, max_completion_tokens: int = None, top_p: float = None, presence_penalty: float = None, frequency_penalty: float = None, logprobs: bool = None, top_logprobs: int = None, stop: Union[str, List[str]] = None, response_format: Dict[str, str] = None, stream_options: Dict[str, bool] = None) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
             logging.debug(f"[API] Request messages structure:")
@@ -202,62 +267,35 @@ class API:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
-            # Check if any message contains vision content
-            has_vision_content = any(
-                isinstance(msg.get('content'), list) and 
-                any(content.get('type') == 'image_url' for content in msg['content'])
-                for msg in messages
-            )
-            logging.debug(f"[API] Message contains vision content: {has_vision_content}")
-
-            # Configure parameters based on content type
-            if max_tokens is None:
-                max_tokens = 2000 if has_vision_content else 1000
-            
-            # Use provided temperature or default based on content type
-            if temperature is None:
-                temperature = 0.5 if has_vision_content else 0.7
-            logging.debug(f"[API] Using max_tokens={max_tokens}, temperature={temperature}")
-
-            # Prepare the request parameters
-            request_params = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "n": n,
-                "top_p": top_p,
-                "presence_penalty": presence_penalty,
-                "frequency_penalty": frequency_penalty,
-                "logprobs": logprobs,
-                "top_logprobs": top_logprobs,
-                "stop": stop,
-                "response_format": response_format,
-                "stream": stream
-            }
-
-            # Remove None values
-            request_params = {k: v for k, v in request_params.items() if v is not None}
-
-            logging.debug(f"[API] OpenPipe request parameters: {json.dumps(request_params, indent=2)}")
-
-            # Make the API call
-            response = await self.openpipe_client.completions(**request_params)
-
             if stream:
-                async def response_generator():
-                    async for chunk in response:
-                        if chunk.choices and chunk.choices[0].text:
-                            yield chunk.choices[0].text
-                return response_generator()
+                return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
-                return {
-                    'choices': [{
-                        'message': {
-                            'content': response.choices[0].text
-                        }
-                    }]
+                url = "https://api.openpipe.ai/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {OPENPIPE_API_KEY}",
+                    "Content-Type": "application/json"
                 }
+                data = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature if temperature is not None else 0.7,
+                    "max_tokens": max_tokens if max_tokens is not None else 1000
+                }
+
+                async with self.session.post(url, headers=headers, json=data) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logging.error(f"[API] OpenPipe API error: {response.status} - {error_text}")
+                        raise Exception(f"OpenPipe API error: {response.status} - {error_text}")
+
+                    result = await response.json()
+                    return {
+                        'choices': [{
+                            'message': {
+                                'content': result['choices'][0]['message']['content']
+                            }
+                        }]
+                    }
 
         except Exception as e:
             error_message = str(e)

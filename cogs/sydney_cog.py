@@ -69,40 +69,12 @@ class SydneyCog(BaseCog):
             temperature = self.get_temperature(self.name)
             logging.debug(f"[Sydney] Using temperature: {temperature}")
 
-            # Prepare request payload
-            req_payload = {
-                "model": self.model,
-                "messages": messages,
-                "temperature": temperature,
-                "stream": True
-            }
-
-            # Record start time
-            requested_at = int(time.time() * 1000)
-
             # Call OpenPipe API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(**req_payload)
-
-            # Record end time
-            received_at = int(time.time() * 1000)
-
-            # Prepare response payload
-            resp_payload = {
-                "choices": [{
-                    "message": {
-                        "content": "Streaming response completed"
-                    }
-                }]
-            }
-
-            # Report to OpenPipe
-            await self.api_client.openpipe_client.report(
-                requested_at=requested_at,
-                received_at=received_at,
-                req_payload=req_payload,
-                resp_payload=resp_payload,
-                status_code=200,
-                metadata={"prompt_id": str(message.id)}
+            response_stream = await self.api_client.call_openpipe(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True
             )
 
             return response_stream
