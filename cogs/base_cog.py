@@ -94,36 +94,48 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load temperature for {name}, using default: {str(e)}")
             return 0.7
 
+    def format_message_content(self, content: str, context: dict) -> str:
+        """Format message content with variables"""
+        try:
+            return content.format(**context)
+        except KeyError as e:
+            logging.warning(f"Missing variable in content formatting: {e}")
+            return content
+        except Exception as e:
+            logging.error(f"Error formatting content: {e}")
+            return content
+
     async def generate_response(self, message):
         """Generate a response using the API client"""
         try:
+            # Format context variables
+            tz = ZoneInfo("America/Los_Angeles")
+            current_time = datetime.now(tz).strftime("%I:%M %p")
+            context = {
+                "MODEL_ID": self.name,
+                "USERNAME": message.author.display_name,
+                "DISCORD_USER_ID": message.author.id,
+                "TIME": current_time,
+                "TZ": "Pacific Time",
+                "SERVER_NAME": message.guild.name if message.guild else "Direct Message",
+                "CHANNEL_NAME": message.channel.name if hasattr(message.channel, 'name') else "DM"
+            }
+
+            # Format system prompt first
+            system_prompt = self.format_message_content(self.raw_prompt, context)
+            messages = [{"role": "system", "content": system_prompt}]
+
             # Get message history
             history = await get_message_history(message.channel.id)
             
-            # Format system prompt with context
-            tz = ZoneInfo("America/Los_Angeles")
-            current_time = datetime.now(tz).strftime("%I:%M %p")
-            
-            system_prompt = self.raw_prompt.format(
-                MODEL_ID=self.name,
-                USERNAME=message.author.display_name,
-                DISCORD_USER_ID=message.author.id,
-                TIME=current_time,
-                TZ="Pacific Time",
-                SERVER_NAME=message.guild.name if message.guild else "Direct Message",
-                CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
-            )
-
-            # Construct messages array
-            messages = [{"role": "system", "content": system_prompt}]
-
-            # Add history messages if available
+            # Add history messages if available, formatting any variables
             if history:
                 for entry in history[-5:]:  # Include last 5 messages for context
-                    messages.append({"role": entry["role"], "content": entry["content"]})
+                    content = self.format_message_content(entry["content"], context)
+                    messages.append({"role": entry["role"], "content": content})
 
             # Process current message content and any images
-            current_content = message.content
+            current_content = self.format_message_content(message.content, context)
             if message.attachments and self.supports_vision:
                 image_attachments = [
                     att for att in message.attachments 
@@ -293,11 +305,6 @@ class BaseCog(commands.Cog):
             # Check permissions
             permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
             can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
-            can_dm = True  # Assume DMs are possible until proven otherwise
-
-            if not can_send and not can_dm:
-                logging.error(f"[{self.name}] No available method to send response")
-                return None
 
             # Check if message content is spoilered using ||content|| format
             is_spoilered = message.content.startswith('||') and message.content.endswith('||')
@@ -305,22 +312,31 @@ class BaseCog(commands.Cog):
             # Initialize response with model name prefix
             current_response = f"[{self.name}] "
             sent_message = None
-            buffer = ""
 
+            # Try to send to DM if spoilered
             if is_spoilered:
                 try:
                     # Create DM channel
-                    user = message.author
-                    dm_channel = await user.create_dm()
+                    dm_channel = await message.author.create_dm()
+                    # Test DM permissions by sending a message
                     sent_message = await dm_channel.send(current_response)
                 except discord.Forbidden:
                     logging.warning(f"Cannot send DM to user {message.author}")
-                    can_dm = False
-                    is_spoilered = False  # Fall back to channel message
+                    # Fall back to channel message if DM fails and we can send to channel
+                    if can_send:
+                        sent_message = await message.reply(current_response)
+                    else:
+                        logging.error(f"[{self.name}] No available method to send response")
+                        return None
+            else:
+                # Send to channel if not spoilered
+                if can_send:
+                    sent_message = await message.reply(current_response)
+                else:
+                    logging.error(f"[{self.name}] Missing permission to send messages")
+                    return None
 
-            if not is_spoilered or (is_spoilered and not can_dm and can_send):
-                sent_message = await message.reply(current_response)
-
+            buffer = ""
             async for chunk in response_stream:
                 if chunk:
                     buffer += chunk
@@ -344,12 +360,8 @@ class BaseCog(commands.Cog):
                             )
                             current_response = ""  # Reset for potential additional content
 
-            # Send any remaining content, ensuring it ends with a complete sentence
+            # Send any remaining content
             if buffer:
-                # Check if buffer ends with sentence-ending punctuation
-                if not re.search(r'[.!?]$', buffer):
-                    # Wait briefly for more content that might complete the sentence
-                    await asyncio.sleep(0.5)
                 current_response += buffer
                 if len(current_response) <= 2000:
                     await sent_message.edit(content=current_response)

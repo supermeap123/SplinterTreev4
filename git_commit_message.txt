@@ -1,9 +1,9 @@
-fix: resolve cog loading issues and prevent duplicates
+fix: improve message formatting and DM handling
 
-- Add cogs_setup_complete flag to prevent multiple setup attempts
-- Add unload_all_cogs() function to properly clean up before reloading
-- Add safety check for loaded_cogs before random selection
-- Prevent multiple status updater initializations
-- Improve error handling and logging for cog loading process
+- Add format_message_content method for consistent variable formatting
+- Move system prompt formatting before history messages
+- Format variables in history messages and current content
+- Improve DM permission handling with proper fallbacks
+- Add better error handling for DM permissions
 
-This fixes the "Extension already loaded" errors and ensures cogs are properly managed during reconnections.
+This fixes issues with system prompt variables not being rendered and improves the reliability of DM summarizing.
