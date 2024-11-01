@@ -103,6 +103,7 @@ Note: The database schema will be automatically applied when the bot starts. The
 
 ### Core Commands
 - `!listmodels` - Show all available models
+- `!uptime` - Shows how long the bot has been running
 - `!set_system_prompt <agent> <prompt>` - Set a custom system prompt for an AI agent
 - `!reset_system_prompt <agent>` - Reset an AI agent's system prompt to default
 - `!clone_agent <agent> <new_name> <system_prompt>` - Create a new agent based on an existing one (Admin only)

@@ -2,10 +2,34 @@ import discord
 from discord.ext import commands
 import logging
 import shlex
+from datetime import datetime
 
 class ManagementCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.start_time = datetime.utcnow()
+
+    @commands.command(name="uptime")
+    async def uptime(self, ctx):
+        """Shows how long the bot has been running"""
+        current_time = datetime.utcnow()
+        delta = current_time - self.start_time
+        
+        days = delta.days
+        hours, remainder = divmod(delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        
+        uptime_str = []
+        if days > 0:
+            uptime_str.append(f"{days} days")
+        if hours > 0:
+            uptime_str.append(f"{hours} hours")
+        if minutes > 0:
+            uptime_str.append(f"{minutes} minutes")
+        if seconds > 0 or not uptime_str:
+            uptime_str.append(f"{seconds} seconds")
+            
+        await ctx.send(f"🕒 Bot has been running for {', '.join(uptime_str)}")
 
     @commands.command(name="clone_agent")
     @commands.has_permissions(administrator=True)
