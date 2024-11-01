@@ -11,7 +11,7 @@ class SydneyCog(BaseCog):
             name="Sydney",
             nickname="Sydney", 
             trigger_words=['sydney', 'syd', 'mama kunty'],
-            model="openpipe:Sydney-Court",  # We'll keep this for now, but it might need to be changed
+            model="openpipe:Sydney-Court",
             provider="openpipe",
             prompt_file="sydney_prompts",
             supports_vision=True
@@ -27,16 +27,55 @@ class SydneyCog(BaseCog):
         return "Sydney"
 
     async def generate_response(self, message):
-        """Override generate_response to use a fallback model if Sydney is unavailable"""
+        """Generate a response using OpenPipe"""
         try:
-            return await super().generate_response(message)
+            # Format system prompt
+            formatted_prompt = self.format_system_prompt(message)
+            messages = [{"role": "system", "content": formatted_prompt}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_message_history(channel_id, limit=50)
+            messages.extend(history_messages)
+
+            # Add current message with any image descriptions
+            if message.attachments:
+                # Get alt text for this message
+                alt_text = await self.context_cog.get_alt_text(str(message.id))
+                if alt_text:
+                    messages.append({
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": message.content},
+                            {"type": "text", "text": f"Image description: {alt_text}"}
+                        ]
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": message.content
+                    })
+            else:
+                messages.append({
+                    "role": "user",
+                    "content": message.content
+                })
+
+            logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
+            logging.debug(f"[Sydney] Formatted prompt: {formatted_prompt}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature(self.name)
+            logging.debug(f"[Sydney] Using temperature: {temperature}")
+
+            # Call OpenPipe API
+            response_data = await self.api_client.call_openpipe(messages, self.model, temperature=temperature, stream=True)
+
+            return response_data
+
         except Exception as e:
-            logging.error(f"[Sydney] Error generating response: {str(e)}")
-            logging.info(f"[Sydney] Falling back to default OpenRouter model")
-            # Fallback to a default OpenRouter model
-            self.model = "openai/gpt-3.5-turbo"
-            self.provider = "openrouter"
-            return await super().generate_response(message)
+            logging.error(f"Error processing message for Sydney: {str(e)}")
+            return None
 
     @commands.Cog.listener()
     async def on_message(self, message):
