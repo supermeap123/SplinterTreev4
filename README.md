@@ -20,6 +20,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
 - **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
 - **Automatic Database Initialization**: Schema is automatically applied on bot startup
+- **Improved Error Handling and Logging**: Enhanced error reporting for better troubleshooting and maintenance
 
 ### Special Capabilities
 - **Enhanced Vision Processing**: All models can now process and respond to images, with descriptions provided for non-vision models
@@ -81,7 +82,7 @@ python bot.py
 
 Note: The database schema will be automatically applied when the bot starts. There's no need for manual database initialization.
 
-**Important Update**: The bot now uses the latest OpenPipe completions endpoint, ensuring improved performance and compatibility with OpenPipe models. The OpenPipe API URL parsing has been updated to handle base URLs correctly, resolving previous 404 errors and improving overall stability.
+**Important Update**: The bot now uses OpenPipe version 4.32.0, which includes the latest completions endpoint. This ensures improved performance and compatibility with OpenPipe models. The OpenPipe API URL parsing has been updated to handle base URLs correctly, resolving previous 404 errors and improving overall stability.
 
 ## ⚙️ Configuration
 
@@ -167,6 +168,7 @@ grok tell me a joke
 - **Image Processing**: Integrated vision support in base cog for all models
 - **Settings Management**: Handles dynamic system prompts
 - **Database Initialization**: Automatic schema application on startup
+- **Error Handling and Logging**: Improved error reporting and logging for easier troubleshooting
 
 ### Directory Structure
 ```

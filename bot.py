@@ -11,6 +11,7 @@ import json
 from datetime import datetime, timedelta, timezone
 import re
 import pytz
+import traceback
 
 # Configure logging
 logging.basicConfig(
@@ -138,7 +139,8 @@ async def setup_cogs():
             await bot.load_extension(f'cogs.{cog}')
             logging.info(f"Loaded core cog: {cog}")
         except Exception as e:
-            logging.error(f"Failed to load core cog {cog}: {str(e)}", exc_info=True)
+            logging.error(f"Failed to load core cog {cog}: {str(e)}")
+            logging.error(traceback.format_exc())
 
     # Then load all model cogs
     cogs_dir = os.path.join(BOT_DIR, 'cogs')
@@ -175,7 +177,8 @@ async def setup_cogs():
                 else:
                     logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
-                logging.error(f"Failed to load cog {filename}: {str(e)}", exc_info=True)
+                logging.error(f"Failed to load cog {filename}: {str(e)}")
+                logging.error(traceback.format_exc())
 
     # Finally load help cog after all other cogs are loaded
     try:
@@ -189,7 +192,8 @@ async def setup_cogs():
         else:
             logging.error("Failed to find HelpCog after loading")
     except Exception as e:
-        logging.error(f"Failed to load help cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load help cog: {str(e)}")
+        logging.error(traceback.format_exc())
 
     logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
     for cog in loaded_cogs:
@@ -321,7 +325,8 @@ async def on_command_error(ctx, error):
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.reply(f"⏳ This command is on cooldown. Please try again in {error.retry_after:.2f} seconds.")
     else:
-        logging.error(f"Command error: {str(error)}", exc_info=True)
+        logging.error(f"Command error: {str(error)}")
+        logging.error(traceback.format_exc())
         await ctx.reply("❌ An error occurred while executing the command.")
 
 # Run bot

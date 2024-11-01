@@ -247,7 +247,7 @@ class API:
             if stream:
                 async def response_generator():
                     async for chunk in response:
-                        if chunk.choices and chunk.choices[0].delta.content:
+                        if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                             yield chunk.choices[0].delta.content
                 return response_generator()
             else:
