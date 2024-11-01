@@ -94,13 +94,13 @@ class HelpCog(commands.Cog):
 
     **System Prompt Variables:**
     When setting custom system prompts, you can use these variables:
-    • {MODEL_ID} - The AI model's name
-    • {USERNAME} - The user's Discord display name
-    • {DISCORD_USER_ID} - The user's Discord ID
-    • {TIME} - Current local time
-    • {TZ} - Local timezone
-    • {SERVER_NAME} - Current Discord server name
-    • {CHANNEL_NAME} - Current channel name
+    • {{MODEL_ID}} - The AI model's name
+    • {{USERNAME}} - The user's Discord display name
+    • {{DISCORD_USER_ID}} - The user's Discord ID
+    • {{TIME}} - Current local time
+    • {{TZ}} - Local timezone
+    • {{SERVER_NAME}} - Current Discord server name
+    • {{CHANNEL_NAME}} - Current channel name
     """
             
             for msg in [help_message[i:i + 2000] for i in range(0, len(help_message), 2000)]:

@@ -1,0 +1,9 @@
+feat: Add list_agents command and fix help documentation
+
+- Add list_agents command to ManagementCog that displays available agents in a formatted embed
+- Update help documentation to include list_agents and uptime commands
+- Fix help command by escaping curly braces in system prompt variables section
+- Improve agent listing with better formatting and organization
+- Keep both listmodels (simple list) and list_agents (detailed embed) for flexibility
+
+The list_agents command provides a more user-friendly way to view available agents with their nicknames and trigger words in a nicely formatted Discord embed.
