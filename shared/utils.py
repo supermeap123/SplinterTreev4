@@ -41,19 +41,28 @@ def analyze_emotion(text):
     # Return corresponding emoji, default to neutral
     return emotions[max_emotion[0]][1] if max_emotion[1] > 0 else emotions['neutral'][1]
 
-async def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
+async def get_message_history(channel_id: str, limit: int = 100) -> List[Dict]:
     """
     Fetch the last N messages from the database for a given channel
-    Returns list of messages in API format (role, content)
+    Returns list of messages in API format (role, content, timestamp)
     """
     try:
         db_path = 'databases/interaction_logs.db'
         async with aiosqlite.connect(db_path) as conn:
             cursor = await conn.cursor()
             
+            # Get context window size for the channel if set
+            await cursor.execute("""
+                SELECT window_size FROM context_windows
+                WHERE channel_id = ?
+            """, (str(channel_id),))
+            result = await cursor.fetchone()
+            if result:
+                limit = min(result[0], limit)  # Use channel-specific limit if available
+            
             # Get last N messages ordered by timestamp
             await cursor.execute("""
-                SELECT content, is_assistant, persona_name, timestamp
+                SELECT content, is_assistant, persona_name, timestamp, user_id
                 FROM messages 
                 WHERE channel_id = ?
                 ORDER BY timestamp DESC
@@ -64,38 +73,54 @@ async def get_message_history(channel_id: str, limit: int = 50) -> List[Dict]:
             messages = []
             seen_content = set()
             
-            for content, is_assistant, persona_name, timestamp in rows:
-                # Skip if we've seen this exact content before
-                if content in seen_content:
+            for content, is_assistant, persona_name, timestamp, user_id in rows:
+                # Skip if we've seen this exact content before (deduplication)
+                content_hash = f"{content}:{timestamp}"  # Include timestamp in hash to handle repeated identical messages
+                if content_hash in seen_content:
                     continue
-                seen_content.add(content)
+                seen_content.add(content_hash)
+                
+                # Parse timestamp
+                try:
+                    dt = datetime.fromisoformat(timestamp)
+                    formatted_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    formatted_time = timestamp  # Fallback to raw timestamp if parsing fails
+                
+                message = {
+                    "role": "assistant" if is_assistant else "user",
+                    "content": content,
+                    "timestamp": formatted_time,
+                    "user_id": user_id
+                }
                 
                 # For assistant messages
                 if is_assistant:
                     # Remove model name prefix if present
                     if content.startswith('[') and ']' in content:
                         content = content[content.index(']')+1:].strip()
+                        message["content"] = content
                     
-                    # Add name field for vision messages
-                    if persona_name == "Llama-Vision":
-                        messages.append({
-                            "role": "assistant",
-                            "name": persona_name,
-                            "content": content
-                        })
-                    else:
-                        messages.append({
-                            "role": "assistant",
-                            "content": content
-                        })
-                else:
-                    messages.append({
-                        "role": "user",
-                        "content": content
-                    })
+                    # Add name field for specific personas
+                    if persona_name:
+                        message["name"] = persona_name
+                
+                messages.append(message)
             
             # Reverse to get chronological order
             messages.reverse()
+            
+            # Add metadata about the conversation
+            if messages:
+                first_msg = datetime.fromisoformat(messages[0]["timestamp"])
+                last_msg = datetime.fromisoformat(messages[-1]["timestamp"])
+                duration = last_msg - first_msg
+                
+                messages.insert(0, {
+                    "role": "system",
+                    "content": f"This conversation has {len(messages)} messages spanning {duration.total_seconds()/60:.1f} minutes. The first message was at {messages[0]['timestamp']} and the most recent at {messages[-1]['timestamp']}."
+                })
+            
             return messages
 
     except Exception as e:

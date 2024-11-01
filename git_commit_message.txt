@@ -1,10 +1,10 @@
-fix: Add missing generate_response method to BaseCog
+enhance: Improve message history handling
 
-The generate_response method was missing from BaseCog, causing response generation to fail. Added implementation that:
-- Gets message history for context
-- Formats system prompts with current context
-- Handles both text and image inputs
-- Supports streaming responses
-- Works with both OpenRouter and OpenPipe providers
+- Increase default message history limit from 50 to 100 messages
+- Add support for channel-specific context window sizes
+- Include timestamps and user IDs in message history
+- Add conversation metadata (duration, message count)
+- Improve message deduplication by including timestamps
+- Add better error handling for timestamp parsing
 
-This fix ensures all cogs inheriting from BaseCog can properly generate responses without needing to implement their own generate_response method.
+These changes provide models with richer context about the conversation history, improving response relevance and continuity.
