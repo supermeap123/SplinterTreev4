@@ -101,25 +101,9 @@ class HelpCog(commands.Cog):
     • {CHANNEL_NAME} - Current channel name
     """
             
-            # Split the message if it's too long
-            if len(help_message) > 2000:
-                messages = []
-                while help_message:
-                    if len(help_message) > 2000:
-                        split_index = help_message.rfind('\n', 0, 2000)
-                        if split_index == -1:
-                            split_index = 2000
-                        messages.append(help_message[:split_index])
-                        help_message = help_message[split_index:].lstrip()
-                    else:
-                        messages.append(help_message)
-                        help_message = ''
-                
-                for message in messages:
-                    await ctx.send(message)
-            else:
-                await ctx.send(help_message)
-            
+            for msg in [help_message[i:i + 2000] for i in range(0, len(help_message), 2000)]:
+                await ctx.send(msg)
+
             logging.info(f"[Help] Sent help message to user {ctx.author.name}")
         except Exception as e:
             logging.error(f"[Help] Error sending help message: {str(e)}", exc_info=True)

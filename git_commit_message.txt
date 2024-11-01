@@ -1,0 +1,3 @@
+fix: Correctly split long help messages
+
+The help command output was too long and would exceed the Discord character limit. This commit fixes the issue by correctly splitting the help message into multiple messages if it exceeds the character limit.
