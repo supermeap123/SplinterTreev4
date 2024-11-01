@@ -21,6 +21,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
 - **Automatic Database Initialization**: Schema is automatically applied on bot startup
 - **Improved Error Handling and Logging**: Enhanced error reporting for better troubleshooting and maintenance
+- **OpenPipe Request Reporting**: Automatic logging of each message processed by context cogs to OpenPipe for analysis and potential model improvement
 
 ### Special Capabilities
 - **Enhanced Vision Processing**: All models can now process and respond to images, with descriptions provided for non-vision models
@@ -162,6 +163,7 @@ grok tell me a joke
   - Manages temperature settings
   - Handles error cases and permissions
   - Supports agent cloning
+  - Implements OpenPipe request reporting for each processed message
 - **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
@@ -169,6 +171,7 @@ grok tell me a joke
 - **Settings Management**: Handles dynamic system prompts
 - **Database Initialization**: Automatic schema application on startup
 - **Error Handling and Logging**: Improved error reporting and logging for easier troubleshooting
+- **OpenPipe Integration**: Automatic logging of processed messages for analysis and model improvement
 
 ### Directory Structure
 ```
@@ -180,7 +183,8 @@ SplinterTreev4/
 │   │   ├── Message Processing
 │   │   ├── Vision Support
 │   │   ├── Streaming
-│   │   └── Error Handling
+│   │   ├── Error Handling
+│   │   └── OpenPipe Reporting
 │   ├── context_cog.py # Context management
 │   ├── settings_cog.py # Settings management
 │   └── [model]_cog.py # Individual model cogs
@@ -220,6 +224,7 @@ SplinterTreev4/
    - Temperature management
    - Context integration
    - Agent cloning
+   - OpenPipe request reporting
 
 ### Custom Prompts
 Channel-specific prompts are stored in `dynamic_prompts.json`:
