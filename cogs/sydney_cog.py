@@ -12,8 +12,8 @@ class SydneyCog(BaseCog):
             name="Sydney",
             nickname="Sydney", 
             trigger_words=['sydney', 'syd', 'mama kunty'],
-            model="openpipe:Sydney-Court",
-            provider="openpipe",
+            model="anthropic/claude-2",
+            provider="openrouter",
             prompt_file="sydney_prompts",
             supports_vision=True
         )
@@ -28,7 +28,7 @@ class SydneyCog(BaseCog):
         return "Sydney"
 
     async def generate_response(self, message):
-        """Generate a response using OpenPipe"""
+        """Generate a response using OpenRouter"""
         try:
             # Format system prompt
             formatted_prompt = self.format_system_prompt(message)
@@ -69,8 +69,8 @@ class SydneyCog(BaseCog):
             temperature = self.get_temperature(self.name)
             logging.debug(f"[Sydney] Using temperature: {temperature}")
 
-            # Call OpenPipe API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(
+            # Call OpenRouter API and return the stream directly
+            response_stream = await self.api_client.call_openrouter(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
