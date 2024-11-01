@@ -78,8 +78,9 @@ class Claude3SonnetCog(BaseCog):
             logging.error(f"[Claude-3-Sonnet] Error generating image description: {str(e)}", exc_info=True)
             return None
 
-    async def handle_message(self, message):
-        """Override handle_message to ensure proper async flow"""
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Handle incoming messages"""
         if message.author == self.bot.user:
             return
 
@@ -152,7 +153,7 @@ class Claude3SonnetCog(BaseCog):
             except Exception as e:
                 logging.error(f"[Claude-3-Sonnet] Failed to add message to context: {str(e)}")
 
-        # Continue with normal message processing
+        # Let base_cog handle message processing
         await super().handle_message(message)
 
 async def setup(bot):

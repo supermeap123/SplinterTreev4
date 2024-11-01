@@ -149,33 +149,17 @@ async def setup_cogs():
             try:
                 module_name = filename[:-3]  # Remove .py
                 logging.debug(f"Attempting to load cog: {module_name}")
-                await bot.load_extension(f'cogs.{module_name}')
                 
-                # Get the actual cog instance
-                cog = None
-                # Convert module_name to expected class name format
-                parts = module_name.split('_')
-                if len(parts) > 1:
-                    # Handle special cases like claude1_1_cog -> Claude1_1Cog
-                    class_name = ''.join(part.capitalize() for part in parts[:-1]) + 'Cog'
-                else:
-                    class_name = parts[0].capitalize() + 'Cog'
+                # Load the cog extension
+                cog_instance = await bot.load_extension(f'cogs.{module_name}')
                 
-                logging.debug(f"Looking for cog class: {class_name}")
-                
-                # Try to find the cog by checking each loaded cog
-                for loaded_cog in bot.cogs.values():
-                    logging.debug(f"Checking loaded cog: {loaded_cog.__class__.__name__}")
-                    if (hasattr(loaded_cog, 'name') and loaded_cog.name == class_name.replace('Cog', '')):
-                        cog = loaded_cog
+                # Get the cog from bot.cogs using the module name
+                for cog in bot.cogs.values():
+                    if isinstance(cog, commands.Cog) and hasattr(cog, 'name'):
+                        loaded_cogs.append(cog)
+                        logging.info(f"Loaded cog: {cog.name}")
                         break
                 
-                if cog:
-                    loaded_cogs.append(cog)
-                    logging.info(f"Loaded cog: {getattr(cog, 'name', class_name)}")
-                    logging.debug(f"Added {getattr(cog, 'name', class_name)} to loaded_cogs list")
-                else:
-                    logging.warning(f"Failed to get cog instance for {module_name}")
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
                 logging.error(traceback.format_exc())
@@ -235,6 +219,12 @@ def get_cog_by_name(name):
         if (hasattr(cog, 'name') and cog.name.lower() == name.lower()) or \
            cog.__class__.__name__.lower() == f"{name.lower()}cog":
             return cog
+    return None
+
+def get_model_from_message(content):
+    """Extract model name from message content"""
+    if content.startswith('[') and ']' in content:
+        return content[1:content.index(']')]
     return None
 
 @bot.event
