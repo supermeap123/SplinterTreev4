@@ -3,17 +3,17 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 
-class Claude3OpusCog(BaseCog):
+class MoaCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Claude-3-Opus",  # Matches name in temperatures.json
-            nickname="Opus",  # Changed to be more specific
-            trigger_words=['opus', 'claude3opus', 'claude 3 opus'],  # Removed overlapping triggers
-            model="anthropic/claude-3-opus:beta",
-            provider="openrouter",
-            prompt_file="claude3opus",
-            supports_vision=True
+            name="MOA",
+            nickname="moa",
+            trigger_words=['moa'],
+            model="openpipe:moa-gpt-4o-v1",
+            provider="openpipe",
+            prompt_file="consolidated_prompts",
+            supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[{self.name}] Initialized with raw_prompt: {self.raw_prompt}")
@@ -29,8 +29,8 @@ class Claude3OpusCog(BaseCog):
 
 async def setup(bot):
     try:
-        logging.info(f"[{self.name}] Starting cog setup...")
-        cog = Claude3OpusCog(bot)
+        logging.info(f"[MOA] Starting cog setup...")
+        cog = MoaCog(bot)
         await bot.add_cog(cog)
         logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
         logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")

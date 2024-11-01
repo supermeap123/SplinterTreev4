@@ -76,6 +76,12 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    def is_triggered(self, message_content: str) -> bool:
+        """Check if this cog should respond to the message"""
+        msg_content = message_content.lower()
+        # Check if message contains any of the trigger words
+        return any(trigger.lower() in msg_content for trigger in self.trigger_words)
+
     async def generate_image_description(self, image_url):
         """Generate a description for the given image URL"""
         try:
@@ -128,256 +134,120 @@ class BaseCog(commands.Cog):
             logging.error(f"[{self.name}] Error generating image description: {str(e)}", exc_info=True)
             return None
 
-    async def wait_for_image_processing(self, message, timeout=30):
-        """Wait for image processing to complete and alt text to be stored"""
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            async with self._image_processing_lock:
-                # Check if alt text exists for this message
-                alt_text = await get_alt_text(str(message.id))
-                if alt_text:
-                    return True
-            # Wait a bit before checking again
-            await asyncio.sleep(1)
-        return False
-
-    def get_dynamic_prompt(self, ctx):
-        """Get dynamic prompt for channel/server if one exists"""
-        guild_id = str(ctx.guild.id) if ctx.guild else None
-        channel_id = str(ctx.channel.id)
-
-        prompts_file = "dynamic_prompts.json"
-        if not os.path.exists(prompts_file):
-            return None
-
-        try:
-            with open(prompts_file, "r") as f:
-                dynamic_prompts = json.load(f)
-
-            if guild_id in dynamic_prompts and channel_id in dynamic_prompts[guild_id]:
-                return dynamic_prompts[guild_id][channel_id]
-            elif channel_id in dynamic_prompts:
-                return dynamic_prompts[channel_id]
-            else:
-                return None
-        except Exception as e:
-            logging.error(f"Error getting dynamic prompt: {str(e)}")
-            return None
-
-    def format_system_prompt(self, message):
-        """Format system prompt with variables"""
-        local_tz = datetime.now().astimezone().tzinfo
-        current_time = datetime.now(local_tz)
-
-        # Get dynamic prompt or use default
-        dynamic_prompt = self.get_dynamic_prompt(message)
-        prompt_template = dynamic_prompt if dynamic_prompt else self.raw_prompt
-
-        # Format prompt with variables
-        return prompt_template.format(
-            MODEL_ID=self.name,
-            USERNAME=message.author.display_name,
-            DISCORD_USER_ID=message.author.id,
-            TIME=current_time.strftime("%I:%M %p"),
-            TZ=str(local_tz),
-            SERVER_NAME=message.guild.name if message.guild else "Direct Message",
-            CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
-        )
-
-    async def generate_response(self, message):
-        """Generate a response without handling it"""
-        try:
-            # Format system prompt
-            formatted_prompt = self.format_system_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
-
-            # Get last 50 messages from database
-            channel_id = str(message.channel.id)
-            history_messages = await get_message_history(channel_id, limit=50)
-            messages.extend(history_messages)
-
-            # Add current message with any image descriptions
-            if message.attachments:
-                # Get alt text for this message
-                alt_text = await get_alt_text(str(message.id))
-                if alt_text:
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": message.content},
-                            {"type": "text", "text": f"Image description: {alt_text}"}
-                        ]
-                    })
-                else:
-                    messages.append({
-                        "role": "user",
-                        "content": message.content
-                    })
-            else:
-                messages.append({
-                    "role": "user",
-                    "content": message.content
-                })
-
-            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
-            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
-
-            # Get temperature for this agent
-            temperature = self.get_temperature(self.name)
-            logging.debug(f"[{self.name}] Using temperature: {temperature}")
-
-            # Call API based on provider with temperature and streaming
-            if self.provider == "openrouter":
-                response_data = await self.api_client.call_openrouter(
-                    messages=messages,
-                    model=self.model,
-                    temperature=temperature,
-                    stream=True
-                )
-            else:  # openpipe
-                response_data = await self.api_client.call_openpipe(
-                    messages=messages,
-                    model=self.model,
-                    temperature=temperature,
-                    stream=True
-                )
-
-            return response_data
-
-        except Exception as e:
-            logging.error(f"Error processing message for {self.name}: {str(e)}")
-            return None
-
-    def get_temperature(self, agent_name):
-        """Get temperature for agent if one exists"""
-        temperatures_file = "temperatures.json"
-        if not os.path.exists(temperatures_file):
-            return None  # Let API use default temperature
-
-        try:
-            with open(temperatures_file, "r") as f:
-                temperatures = json.load(f)
-            return temperatures.get(agent_name)  # Return None if not found
-        except Exception as e:
-            logging.error(f"Error getting temperature: {str(e)}")
-            return None
-
     async def handle_message(self, message, full_content=None):
         """Handle incoming messages"""
         if message.author == self.bot.user:
             return
 
+        # Only proceed if this cog is triggered by the message
+        if not self.is_triggered(message.content):
+            return
+
         logging.info(f"[{self.name}] Handling message from {message.author}: {message.content[:100]}...")
         logging.debug(f"[{self.name}] Message has {len(message.attachments)} attachments")
 
-        # Check if message triggers this cog
-        msg_content = message.content.lower()
-        is_triggered = any(word in msg_content for word in self.trigger_words)
+        # Check permissions
+        permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
+        can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
+        can_add_reactions = permissions.add_reactions if hasattr(permissions, 'add_reactions') else True
 
-        if is_triggered:
-            logging.debug(f"[{self.name}] Triggered by message: {message.content}")
-            try:
-                # Check permissions
-                permissions = message.channel.permissions_for(message.guild.me if message.guild else self.bot.user)
-                can_send = permissions.send_messages if hasattr(permissions, 'send_messages') else True
-                can_add_reactions = permissions.add_reactions if hasattr(permissions, 'add_reactions') else True
+        if not can_send:
+            logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
+            return
 
-                if not can_send:
-                    logging.warning(f"[{self.name}] Missing permission to send messages in channel {message.channel.id}")
-                    return
-
-                # Process images if there are any attachments
-                if message.attachments:
-                    logging.info(f"[{self.name}] Found {len(message.attachments)} attachments")
-                    image_attachments = [
-                        att for att in message.attachments 
-                        if att.content_type and att.content_type.startswith('image/')
-                    ]
-                    logging.info(f"[{self.name}] Found {len(image_attachments)} image attachments")
-                    
-                    if image_attachments:
-                        logging.info(f"[{self.name}] Starting image processing")
-                        async with message.channel.typing():
-                            for attachment in image_attachments:
-                                try:
-                                    logging.debug(f"[{self.name}] Processing attachment: {attachment.filename} ({attachment.content_type})")
-                                    description = await self.generate_image_description(attachment.url)
-                                    if description:
-                                        logging.info(f"[{self.name}] Generated description for {attachment.filename}")
-                                        # Store alt text in database
-                                        success = await store_alt_text(
-                                            message_id=str(message.id),
-                                            channel_id=str(message.channel.id),
-                                            alt_text=description,
-                                            attachment_url=attachment.url
-                                        )
-                                        if success:
-                                            logging.info(f"[{self.name}] Successfully stored alt text for {attachment.filename}")
-                                            if can_add_reactions:
-                                                await message.add_reaction('🖼️')
-                                        else:
-                                            logging.error(f"[{self.name}] Failed to store alt text for {attachment.filename}")
-                                            if can_add_reactions:
-                                                await message.add_reaction('⚠️')
-                                    else:
-                                        logging.error(f"[{self.name}] Failed to generate description for {attachment.filename}")
+        try:
+            # Process images if there are any attachments
+            if message.attachments:
+                logging.info(f"[{self.name}] Found {len(message.attachments)} attachments")
+                image_attachments = [
+                    att for att in message.attachments 
+                    if att.content_type and att.content_type.startswith('image/')
+                ]
+                logging.info(f"[{self.name}] Found {len(image_attachments)} image attachments")
+                
+                if image_attachments:
+                    logging.info(f"[{self.name}] Starting image processing")
+                    async with message.channel.typing():
+                        for attachment in image_attachments:
+                            try:
+                                logging.debug(f"[{self.name}] Processing attachment: {attachment.filename} ({attachment.content_type})")
+                                description = await self.generate_image_description(attachment.url)
+                                if description:
+                                    logging.info(f"[{self.name}] Generated description for {attachment.filename}")
+                                    # Store alt text in database
+                                    success = await store_alt_text(
+                                        message_id=str(message.id),
+                                        channel_id=str(message.channel.id),
+                                        alt_text=description,
+                                        attachment_url=attachment.url
+                                    )
+                                    if success:
+                                        logging.info(f"[{self.name}] Successfully stored alt text for {attachment.filename}")
                                         if can_add_reactions:
-                                            await message.add_reaction('❌')
-                                except Exception as e:
-                                    logging.error(f"[{self.name}] Error processing image {attachment.filename}: {str(e)}", exc_info=True)
+                                            await message.add_reaction('🖼️')
+                                    else:
+                                        logging.error(f"[{self.name}] Failed to store alt text for {attachment.filename}")
+                                        if can_add_reactions:
+                                            await message.add_reaction('⚠️')
+                                else:
+                                    logging.error(f"[{self.name}] Failed to generate description for {attachment.filename}")
                                     if can_add_reactions:
                                         await message.add_reaction('❌')
-                                    continue
+                            except Exception as e:
+                                logging.error(f"[{self.name}] Error processing image {attachment.filename}: {str(e)}", exc_info=True)
+                                if can_add_reactions:
+                                    await message.add_reaction('❌')
+                                continue
 
-                # Generate streaming response
-                logging.info(f"[{self.name}] Generating streaming response")
-                response_stream = await self.generate_response(message)
+            # Generate streaming response
+            logging.info(f"[{self.name}] Generating streaming response")
+            response_stream = await self.generate_response(message)
 
-                if response_stream:
-                    # Send the streaming response
-                    sent_message = await self.handle_streaming_response(response_stream, message)
-                    if sent_message:
-                        # Log interaction
-                        try:
-                            await log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=sent_message.content,
-                                emotion=analyze_emotion(sent_message.content),
-                                channel_id=str(message.channel.id)
-                            )
-                            logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
-                        except Exception as e:
-                            logging.error(f"[{self.name}] Failed to log interaction: {str(e)}")
-                        return sent_message.content, None
-                    else:
-                        logging.error(f"[{self.name}] No response received from API")
-                        if can_add_reactions:
-                            await message.add_reaction('❌')
-                        if can_send:
-                            await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
-                        return None, None
-
-            except Exception as e:
-                logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
-                try:
+            if response_stream:
+                # Send the streaming response
+                sent_message = await self.handle_streaming_response(response_stream, message)
+                if sent_message:
+                    # Log interaction
+                    try:
+                        await log_interaction(
+                            user_id=message.author.id,
+                            guild_id=message.guild.id if message.guild else None,
+                            persona_name=self.name,
+                            user_message=message.content,
+                            assistant_reply=sent_message.content,
+                            emotion=analyze_emotion(sent_message.content),
+                            channel_id=str(message.channel.id)
+                        )
+                        logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
+                    except Exception as e:
+                        logging.error(f"[{self.name}] Failed to log interaction: {str(e)}")
+                    return sent_message.content, None
+                else:
+                    logging.error(f"[{self.name}] No response received from API")
                     if can_add_reactions:
                         await message.add_reaction('❌')
                     if can_send:
-                        error_msg = str(e)
-                        if "insufficient_quota" in error_msg.lower():
-                            await message.reply("⚠️ API quota exceeded. Please try again later.")
-                        elif "invalid_api_key" in error_msg.lower():
-                            await message.reply("🔑 API configuration error. Please contact the bot administrator.")
-                        elif "rate_limit_exceeded" in error_msg.lower():
-                            await message.reply("⏳ Rate limit exceeded. Please try again later.")
-                        else:
-                            await message.reply(f"[{self.name}] An error occurred while processing your request.")
-                except discord.errors.Forbidden:
-                    logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
-                return None, None
+                        await message.reply(f"[{self.name}] Failed to generate a response. Please try again.")
+                    return None, None
+
+        except Exception as e:
+            logging.error(f"[{self.name}] Error in message handling: {str(e)}", exc_info=True)
+            try:
+                if can_add_reactions:
+                    await message.add_reaction('❌')
+                if can_send:
+                    error_msg = str(e)
+                    if "insufficient_quota" in error_msg.lower():
+                        await message.reply("⚠️ API quota exceeded. Please try again later.")
+                    elif "invalid_api_key" in error_msg.lower():
+                        await message.reply("🔑 API configuration error. Please contact the bot administrator.")
+                    elif "rate_limit_exceeded" in error_msg.lower():
+                        await message.reply("⏳ Rate limit exceeded. Please try again later.")
+                    else:
+                        await message.reply(f"[{self.name}] An error occurred while processing your request.")
+            except discord.errors.Forbidden:
+                logging.error(f"[{self.name}] Missing permissions to send error message or add reaction")
+            return None, None
 
     async def handle_streaming_response(self, response_stream, message):
         """Handle streaming response formatting and sending"""
