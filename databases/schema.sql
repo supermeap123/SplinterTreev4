@@ -29,9 +29,21 @@ CREATE TABLE IF NOT EXISTS image_alt_text (
     attachment_url TEXT NOT NULL
 );
 
+-- Chat summaries storage
+CREATE TABLE IF NOT EXISTS chat_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_id TEXT NOT NULL,
+    start_timestamp DATETIME NOT NULL,
+    end_timestamp DATETIME NOT NULL,
+    summary TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_persona ON messages(persona_name);
 CREATE INDEX IF NOT EXISTS idx_alt_text_channel ON image_alt_text(channel_id);
+CREATE INDEX IF NOT EXISTS idx_summaries_channel ON chat_summaries(channel_id);
+CREATE INDEX IF NOT EXISTS idx_summaries_timestamp ON chat_summaries(end_timestamp);

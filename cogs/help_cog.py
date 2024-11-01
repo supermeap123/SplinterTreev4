@@ -85,6 +85,7 @@ class HelpCog(commands.Cog):
     • **Image Analysis** - Use vision-capable models for image descriptions and analysis
     • **Custom System Prompts** - Set custom prompts for each AI agent
     • **Agent Cloning** - Create custom variants of existing agents with unique system prompts
+    • **Chat Summaries** - Automatically summarizes chat history for better context
 
     **💡 Tips:**
     1. Models will respond when you mention their trigger words
@@ -92,6 +93,7 @@ class HelpCog(commands.Cog):
     3. For private responses, format your message like: ||your message here||
     4. Images are automatically analyzed when sent with messages
     5. Use the reroll button to get alternative responses if needed
+    6. Chat summaries help maintain context over longer conversations
 
     **Available Commands:**
     • `splintertree_help` or `help` - Show this help message
@@ -105,6 +107,9 @@ class HelpCog(commands.Cog):
     • `!getcontext` - View current context window size
     • `!resetcontext` - Reset context window to default size (Admin only)
     • `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
+    • `!summarize` - Force create a summary for the current channel (Admin only)
+    • `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
+    • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
 
     **System Prompt Variables:**
     When setting custom system prompts, you can use these variables:
