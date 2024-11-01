@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
+from shared.utils import log_interaction, analyze_emotion
+import time
 
 class GrokCog(BaseCog):
     def __init__(self, bot):
@@ -12,7 +14,7 @@ class GrokCog(BaseCog):
             trigger_words=['grok', 'grok beta', 'xai'],
             model="x-ai/grok-beta",
             provider="openrouter",
-            prompt_file="grok",
+            prompt_file="consolidated_prompts",
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
@@ -23,7 +25,40 @@ class GrokCog(BaseCog):
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Grok"
+        return self.name
+
+    async def generate_response(self, message):
+        """Generate a response using OpenRouter"""
+        try:
+            # Use system prompt directly from base_cog
+            messages = [{"role": "system", "content": self.raw_prompt}]
+
+            # Add current message only
+            messages.append({
+                "role": "user",
+                "content": message.content
+            })
+
+            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
+            logging.debug(f"[{self.name}] System prompt: {self.raw_prompt}")
+
+            # Get temperature from base_cog
+            temperature = self.get_temperature()
+            logging.debug(f"[{self.name}] Using temperature: {temperature}")
+
+            # Call OpenRouter API and return the stream directly
+            response_stream = await self.api_client.call_openrouter(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True
+            )
+
+            return response_stream
+
+        except Exception as e:
+            logging.error(f"Error processing message for {self.name}: {str(e)}")
+            return None
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -31,41 +66,17 @@ class GrokCog(BaseCog):
         if message.author == self.bot.user:
             return
 
-        # Add message to context before processing
-        if self.context_cog:
-            try:
-                channel_id = str(message.channel.id)
-                guild_id = str(message.guild.id) if message.guild else None
-                user_id = str(message.author.id)
-                content = message.content
-                is_assistant = False
-                persona_name = self.name
-                emotion = None
-
-                await self.context_cog.add_message_to_context(
-                    channel_id=channel_id,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    content=content,
-                    is_assistant=is_assistant,
-                    persona_name=persona_name,
-                    emotion=emotion
-                )
-            except Exception as e:
-                logging.error(f"[{self.name}] Failed to add message to context: {str(e)}")
-
         # Let base_cog handle message processing
         await super().handle_message(message)
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         logging.info(f"[Grok] Starting cog setup...")
         cog = GrokCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Grok] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[Grok] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
         return cog
     except Exception as e:
-        logging.error(f"[Grok] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
         raise

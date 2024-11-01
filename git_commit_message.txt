@@ -1,9 +1,8 @@
-refactor: use OpenPipeAI client for all API requests
+fix: simplify context handling to prevent duplication
 
-- Removed AsyncOpenAI dependency
-- Use OpenPipeAI client for both OpenPipe and OpenRouter requests
-- Maintain all existing functionality including streaming and logging
-- Keep store=true parameter for OpenPipe requests
-- Keep detailed debug logging
+- Modify get_context_messages to only return latest summary
+- Remove message history from context to prevent duplication
+- Keep message storage for summary generation
+- Maintain all other functionality
 
-This change simplifies the API client dependencies while maintaining all functionality.
+This change prevents context glitches and message duplication in API calls.

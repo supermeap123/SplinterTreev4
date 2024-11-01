@@ -16,19 +16,13 @@ class API:
         # Initialize aiohttp session
         self.session = aiohttp.ClientSession()
         
-        # Initialize OpenPipe client using drop-in replacement
-        self.openpipe_client = OpenPipeAI(
+        # Initialize OpenPipe client for both OpenPipe and OpenRouter
+        self.client = OpenPipeAI(
             api_key=OPENPIPE_API_KEY,
             openpipe={
                 "api_key": OPENPIPE_API_KEY,
                 "base_url": OPENPIPE_API_URL
             }
-        )
-
-        # Initialize OpenRouter client using OpenPipe client
-        self.openrouter_client = OpenPipeAI(
-            api_key=OPENROUTER_API_KEY,
-            base_url="https://openrouter.ai/api/v1"
         )
 
         # Connect to SQLite database and apply schema
@@ -54,12 +48,18 @@ class API:
             raise
 
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
-        """Stream responses from OpenRouter API using OpenPipe client"""
+        """Stream responses from OpenRouter API"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
         logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
         
         try:
-            stream = await self.openrouter_client.chat.completions.create(
+            # Create a new client instance with OpenRouter configuration
+            openrouter_client = OpenPipeAI(
+                api_key=OPENROUTER_API_KEY,
+                base_url="https://openrouter.ai/api/v1"
+            )
+            
+            stream = await openrouter_client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature if temperature is not None else 1,
@@ -140,9 +140,15 @@ class API:
             if stream:
                 return self._stream_openrouter_request(messages, model, temperature, max_tokens)
             else:
+                # Create a new client instance with OpenRouter configuration
+                openrouter_client = OpenPipeAI(
+                    api_key=OPENROUTER_API_KEY,
+                    base_url="https://openrouter.ai/api/v1"
+                )
+                
                 # Non-streaming request
                 requested_at = int(time.time() * 1000)
-                response = await self.openrouter_client.chat.completions.create(
+                response = await openrouter_client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
@@ -200,14 +206,12 @@ class API:
         logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         try:
-            stream = await self.openpipe_client.chat.completions.create(
+            stream = await self.client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
-                stream=True,
-                store=True,
-                metadata={"source": "discord_bot"}
+                stream=True
             )
             requested_at = int(time.time() * 1000)
             
@@ -259,13 +263,11 @@ class API:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
                 requested_at = int(time.time() * 1000)
-                response = await self.openpipe_client.chat.completions.create(
+                response = await self.client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature if temperature is not None else 0.7,
-                    max_tokens=max_tokens if max_tokens is not None else 1000,
-                    store=True,
-                    metadata={"source": "discord_bot"}
+                    max_tokens=max_tokens if max_tokens is not None else 1000
                 )
                 received_at = int(time.time() * 1000)
 

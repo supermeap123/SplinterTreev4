@@ -70,9 +70,7 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Please summarize this conversation:\n\n{conversation}"}
-                ],
-                store=True,
-                metadata={"type": "discord_summary"}
+                ]
             )
 
             summary = completion.choices[0].message.content
@@ -194,45 +192,17 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                     FROM chat_summaries
                     WHERE channel_id = ?
                     ORDER BY end_timestamp DESC
-                    LIMIT 3
+                    LIMIT 1
                 """, (channel_id,))
-                summaries = cursor.fetchall()
+                summary = cursor.fetchone()
 
-                # Get recent messages
-                cursor.execute("""
-                    SELECT 
-                        timestamp,
-                        user_id,
-                        persona_name,
-                        content,
-                        is_assistant,
-                        emotion
-                    FROM messages
-                    WHERE channel_id = ?
-                    ORDER BY timestamp DESC
-                    LIMIT ?
-                """, (channel_id, limit))
-
-                messages = []
-                
-                # Add system message with summary if available
-                if summaries:
-                    latest_summary = summaries[0]
-                    messages.append({
+                # Return only the summary as context
+                if summary:
+                    return [{
                         "role": "system",
-                        "content": f"Previous conversation summary: {latest_summary['summary']}"
-                    })
-
-                # Add recent messages in chronological order
-                rows = cursor.fetchall()
-                for row in reversed(rows):  # Reverse to get chronological order
-                    message = {
-                        "role": "assistant" if row['is_assistant'] else "user",
-                        "content": row['content']
-                    }
-                    messages.append(message)
-
-                return messages
+                        "content": f"Previous conversation summary: {summary['summary']}"
+                    }]
+                return []
 
         except Exception as e:
             logging.error(f"Failed to get context messages: {str(e)}")

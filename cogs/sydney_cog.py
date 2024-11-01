@@ -33,11 +33,6 @@ class SydneyCog(BaseCog):
             # Use system prompt directly from base_cog
             messages = [{"role": "system", "content": self.raw_prompt}]
 
-            # Get last 50 messages from database
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
-            messages.extend(history_messages)
-
             # Add current message with any image descriptions
             if message.attachments:
                 # Get alt text for this message
@@ -87,29 +82,6 @@ class SydneyCog(BaseCog):
         """Handle incoming messages"""
         if message.author == self.bot.user:
             return
-
-        # Add message to context before processing
-        if self.context_cog:
-            try:
-                channel_id = str(message.channel.id)
-                guild_id = str(message.guild.id) if message.guild else None
-                user_id = str(message.author.id)
-                content = message.content
-                is_assistant = False
-                persona_name = self.name
-                emotion = None
-
-                await self.context_cog.add_message_to_context(
-                    channel_id=channel_id,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    content=content,
-                    is_assistant=is_assistant,
-                    persona_name=persona_name,
-                    emotion=emotion
-                )
-            except Exception as e:
-                logging.error(f"[Sydney] Failed to add message to context: {str(e)}")
 
         # Let base_cog handle message processing
         await super().handle_message(message)
