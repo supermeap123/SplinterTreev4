@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 import shlex
 from datetime import datetime
+from .base_cog import BaseCog
 
 class ManagementCog(commands.Cog):
     def __init__(self, bot):
@@ -30,6 +31,48 @@ class ManagementCog(commands.Cog):
             uptime_str.append(f"{seconds} seconds")
             
         await ctx.send(f"🕒 Bot has been running for {', '.join(uptime_str)}")
+
+    @commands.command(name="list_agents")
+    async def list_agents(self, ctx):
+        """Lists all available AI agents and their trigger words"""
+        agents = []
+        for cog in self.bot.cogs.values():
+            if isinstance(cog, BaseCog):
+                trigger_words = ", ".join(cog.trigger_words)
+                agents.append(f"**{cog.name}** ({cog.nickname})\nTrigger words: {trigger_words}")
+
+        if not agents:
+            await ctx.send("No AI agents are currently available.")
+            return
+
+        # Create an embed for better formatting
+        embed = discord.Embed(
+            title="Available AI Agents",
+            description="Here are all the available AI agents and their trigger words:",
+            color=discord.Color.blue()
+        )
+
+        # Split agents into fields (Discord has a 25 field limit)
+        for i in range(0, len(agents), 25):
+            chunk = agents[i:i+25]
+            # Join the chunk with double newlines for better spacing
+            chunk_text = "\n\n".join(chunk)
+            # If this isn't the first chunk, add a field
+            if i == 0:
+                embed.description += f"\n\n{chunk_text}"
+            else:
+                # Split into multiple fields if needed (each field has 1024 char limit)
+                while chunk_text:
+                    if len(chunk_text) <= 1024:
+                        embed.add_field(name="More Agents", value=chunk_text, inline=False)
+                        chunk_text = ""
+                    else:
+                        # Find the last complete agent entry that fits
+                        split_index = chunk_text[:1024].rindex("\n\n")
+                        embed.add_field(name="More Agents", value=chunk_text[:split_index], inline=False)
+                        chunk_text = chunk_text[split_index+2:]
+
+        await ctx.send(embed=embed)
 
     @commands.command(name="clone_agent")
     @commands.has_permissions(administrator=True)

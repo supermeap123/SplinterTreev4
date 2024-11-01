@@ -1,5 +1,0 @@
-feat: add uptime command
-
-- Added uptime command to management_cog.py to track bot runtime
-- Updated README.md to document the new uptime command
-- Command shows days, hours, minutes, and seconds since bot startup

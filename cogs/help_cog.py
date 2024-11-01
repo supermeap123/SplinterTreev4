@@ -81,7 +81,9 @@ class HelpCog(commands.Cog):
 
     **Available Commands:**
     • `splintertree_help` or `help` - Show this help message
-    • `!listmodels` - Show all available models
+    • `!listmodels` - Show all available models (simple list)
+    • `!list_agents` - Show all available agents with detailed info (formatted embed)
+    • `!uptime` - Show how long the bot has been running
     • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
     • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
     • `!clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
