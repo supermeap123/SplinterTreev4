@@ -1,0 +1,5 @@
+feat: add MOA model
+
+Added support for the Mixture of Agents (MOA) model via OpenPipe.
+
+This commit introduces the MOA model as a new option for users.  The model is accessible through the 'moa' trigger word.  The help command and README have been updated to reflect this addition.

@@ -12,7 +12,7 @@ class HelpCog(commands.Cog):
         """Get all models and their details from registered cogs"""
         models = []
         vision_models = []
-        
+
         for cog in self.bot.cogs.values():
             if hasattr(cog, 'name') and hasattr(cog, 'model') and cog.name != "Help":
                 model_info = {
@@ -23,18 +23,18 @@ class HelpCog(commands.Cog):
                     'model': getattr(cog, 'model', 'Unknown'),
                     'provider': getattr(cog, 'provider', 'Unknown')
                 }
-                
+
                 if model_info['supports_vision']:
                     vision_models.append(model_info)
                 else:
                     models.append(model_info)
-                    
+
         return vision_models, models
 
     def format_model_list(self, vision_models, models):
         """Format the model list for display"""
         help_text = """**🤖 Available AI Models**\n\n"""
-        
+
         # Add vision-capable models
         if vision_models:
             help_text += "**Vision-Capable Models:**\n"
@@ -43,7 +43,7 @@ class HelpCog(commands.Cog):
                 help_text += f"• **{model['name']}** [{model['model']} via {model['provider']}]\n"
                 help_text += f"  *Triggers:* {triggers}\n"
                 help_text += f"  *Special:* Can analyze images and provide descriptions\n\n"
-        
+
         # Add language models
         if models:
             help_text += "**Large Language Models:**\n"
@@ -51,21 +51,21 @@ class HelpCog(commands.Cog):
                 triggers = ", ".join(model['trigger_words'])
                 help_text += f"• **{model['name']}** [{model['model']} via {model['provider']}]\n"
                 help_text += f"  *Triggers:* {triggers}\n\n"
-                
+
         return help_text
 
     def format_simple_model_list(self, vision_models, models):
         """Format a simple model list with just names and models"""
         model_list = "**Available Models:**\n"
-        
+
         # Add vision models with a 📷 indicator
         for model in vision_models:
             model_list += f"📷 {model['name']} - {model['model']}\n"
-            
+
         # Add regular models
         for model in models:
             model_list += f"💬 {model['name']} - {model['model']}\n"
-            
+
         return model_list
 
     @commands.command(name="splintertree_help", aliases=["help"])
@@ -75,7 +75,7 @@ class HelpCog(commands.Cog):
             # Get dynamically loaded models
             vision_models, models = self.get_all_models()
             model_list = self.format_model_list(vision_models, models)
-            
+
             # Add special features and tips
             help_message = f"""{model_list}
     **📝 Special Features:**
@@ -111,6 +111,7 @@ class HelpCog(commands.Cog):
     • `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
     • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
 
+
     **System Prompt Variables:**
     When setting custom system prompts, you can use these variables:
     • {{MODEL_ID}} - The AI model's name
@@ -121,7 +122,7 @@ class HelpCog(commands.Cog):
     • {{SERVER_NAME}} - Current Discord server name
     • {{CHANNEL_NAME}} - Current channel name
     """
-            
+
             for msg in [help_message[i:i + 2000] for i in range(0, len(help_message), 2000)]:
                 await ctx.send(msg)
 
