@@ -1,7 +1,0 @@
-Implement OpenPipe request reporting in context cogs
-
-- Added OpenPipe reporting functionality to BaseCog's generate_response method
-- Updated SydneyCog to include OpenPipe reporting in its overridden generate_response method
-- This change ensures that each message processed by context cogs is reported to OpenPipe for logging and potential future model training
-
-This implementation allows for better tracking and analysis of bot interactions, which can lead to improved model performance and more accurate responses in the future.

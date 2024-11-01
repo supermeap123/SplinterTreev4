@@ -83,6 +83,11 @@ class SydneyCog(BaseCog):
             # Call OpenPipe API
             response_data = await self.api_client.call_openpipe(**req_payload)
 
+            # Accumulate response chunks
+            full_response = ""
+            async for chunk in response_data:
+                full_response += chunk
+
             # Record end time
             received_at = int(time.time() * 1000)
 
@@ -105,7 +110,7 @@ class SydneyCog(BaseCog):
                 metadata={"prompt_id": str(message.id)}
             )
 
-            return response_data
+            return full_response
 
         except Exception as e:
             logging.error(f"Error processing message for Sydney: {str(e)}")
