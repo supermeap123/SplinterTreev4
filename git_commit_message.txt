@@ -1,8 +1,0 @@
-fix: Update Sydney cog to use OpenRouter provider
-
-- Changed provider from OpenPipe to OpenRouter to fix 404 errors
-- Updated model from "openpipe:Sydney-Court" to "anthropic/claude-2"
-- Maintained vision capabilities through OpenRouter's vision API
-- Fixed error handling for API responses
-
-This change resolves the 404 errors occurring when Sydney attempts to process messages by using a properly configured model endpoint through OpenRouter.
