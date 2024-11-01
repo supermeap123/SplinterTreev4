@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Union, AsyncGenerator
 import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
-from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY
+from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY, OPENPIPE_API_URL
 from openpipe import OpenAI
 
 class API:
@@ -19,7 +19,7 @@ class API:
         # Initialize OpenPipe client
         self.openpipe_client = OpenAI(
             api_key=OPENPIPE_API_KEY,
-            base_url="https://api.openpipe.ai/api/v1"
+            base_url=OPENPIPE_API_URL
         )
 
         # Connect to SQLite database and apply schema
@@ -196,6 +196,10 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
+            # Remove 'openpipe:' prefix if present
+            if model.startswith('openpipe:'):
+                model = model[9:]
+            
             stream = await self.openpipe_client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -224,6 +228,10 @@ class API:
             for msg in messages:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
+
+            # Remove 'openpipe:' prefix if present
+            if model.startswith('openpipe:'):
+                model = model[9:]
 
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
