@@ -60,8 +60,7 @@ class API:
                 messages=messages,
                 temperature=temperature if temperature is not None else 1,
                 max_tokens=max_tokens,
-                stream=True,
-                store=True  # OpenRouter supports store parameter
+                stream=True
             )
             requested_at = int(time.time() * 1000)
             
@@ -143,8 +142,7 @@ class API:
                     model=model,
                     messages=messages,
                     temperature=temperature,
-                    max_tokens=max_tokens,
-                    store=True  # OpenRouter supports store parameter
+                    max_tokens=max_tokens
                 )
                 received_at = int(time.time() * 1000)
 
@@ -202,7 +200,6 @@ class API:
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
                 stream=True
-                # Removed store parameter as OpenPipe doesn't support it
             )
             requested_at = int(time.time() * 1000)
             
@@ -261,7 +258,6 @@ class API:
                     messages=messages,
                     temperature=temperature if temperature is not None else 0.7,
                     max_tokens=max_tokens if max_tokens is not None else 1000
-                    # Removed store parameter as OpenPipe doesn't support it
                 )
                 received_at = int(time.time() * 1000)
 
