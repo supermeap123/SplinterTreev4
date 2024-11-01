@@ -213,51 +213,26 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                     LIMIT ?
                 """, (channel_id, limit))
 
-                recent_messages = []
-                for row in cursor.fetchall():
-                    recent_messages.append({
-                        'timestamp': row['timestamp'],
-                        'user_id': row['user_id'],
-                        'persona_name': row['persona_name'],
-                        'content': row['content'],
-                        'is_assistant': bool(row['is_assistant']),
-                        'emotion': row['emotion']
-                    })
-
-                # Combine summaries and recent messages
-                context = []
+                messages = []
                 
-                # Add metadata about the conversation
-                if recent_messages:
-                    first_msg = datetime.fromisoformat(recent_messages[-1]['timestamp'])
-                    last_msg = datetime.fromisoformat(recent_messages[0]['timestamp'])
-                    duration = last_msg - first_msg
-                    
-                    context.append({
-                        'timestamp': last_msg.isoformat(),
-                        'user_id': 'SYSTEM',
-                        'persona_name': None,
-                        'content': f"This conversation has {len(recent_messages)} messages spanning {duration.total_seconds()/60:.1f} minutes.",
-                        'is_assistant': False,
-                        'emotion': None
-                    })
-                
-                # Add most recent summary if available
+                # Add system message with summary if available
                 if summaries:
                     latest_summary = summaries[0]
-                    context.append({
-                        'timestamp': latest_summary['end_timestamp'],
-                        'user_id': 'SYSTEM',
-                        'persona_name': None,
-                        'content': f"Previous conversation summary: {latest_summary['summary']}",
-                        'is_assistant': False,
-                        'emotion': None
+                    messages.append({
+                        "role": "system",
+                        "content": f"Previous conversation summary: {latest_summary['summary']}"
                     })
 
                 # Add recent messages in chronological order
-                context.extend(reversed(recent_messages))
+                rows = cursor.fetchall()
+                for row in reversed(rows):  # Reverse to get chronological order
+                    message = {
+                        "role": "assistant" if row['is_assistant'] else "user",
+                        "content": row['content']
+                    }
+                    messages.append(message)
 
-                return context
+                return messages
 
         except Exception as e:
             logging.error(f"Failed to get context messages: {str(e)}")

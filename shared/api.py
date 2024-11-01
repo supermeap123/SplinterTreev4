@@ -9,21 +9,24 @@ import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
 from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY, OPENPIPE_API_URL
-from openai import AsyncOpenAI
+from openpipe import AsyncOpenAI as OpenPipeAI
 
 class API:
     def __init__(self):
         # Initialize aiohttp session
         self.session = aiohttp.ClientSession()
         
-        # Initialize OpenPipe client
-        self.openpipe_client = AsyncOpenAI(
+        # Initialize OpenPipe client using drop-in replacement
+        self.openpipe_client = OpenPipeAI(
             api_key=OPENPIPE_API_KEY,
-            base_url=OPENPIPE_API_URL
+            openpipe={
+                "api_key": OPENPIPE_API_KEY,
+                "base_url": OPENPIPE_API_URL
+            }
         )
 
-        # Initialize OpenRouter client
-        self.openrouter_client = AsyncOpenAI(
+        # Initialize OpenRouter client using OpenPipe client
+        self.openrouter_client = OpenPipeAI(
             api_key=OPENROUTER_API_KEY,
             base_url="https://openrouter.ai/api/v1"
         )
@@ -51,8 +54,9 @@ class API:
             raise
 
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
-        """Stream responses from OpenRouter API using OpenAI client"""
+        """Stream responses from OpenRouter API using OpenPipe client"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
+        logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
         
         try:
             stream = await self.openrouter_client.chat.completions.create(
@@ -192,6 +196,8 @@ class API:
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens):
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
+        logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
+        logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         try:
             stream = await self.openpipe_client.chat.completions.create(
@@ -199,7 +205,9 @@ class API:
                 messages=messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
-                stream=True
+                stream=True,
+                store=True,
+                metadata={"source": "discord_bot"}
             )
             requested_at = int(time.time() * 1000)
             
@@ -244,10 +252,8 @@ class API:
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
             logging.debug(f"[API] Making OpenPipe request to model: {model}")
-            logging.debug(f"[API] Request messages structure:")
-            for msg in messages:
-                logging.debug(f"[API] Message role: {msg.get('role')}")
-                logging.debug(f"[API] Message content: {msg.get('content')}")
+            logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
+            logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}, Stream: {stream}")
 
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
@@ -257,7 +263,9 @@ class API:
                     model=model,
                     messages=messages,
                     temperature=temperature if temperature is not None else 0.7,
-                    max_tokens=max_tokens if max_tokens is not None else 1000
+                    max_tokens=max_tokens if max_tokens is not None else 1000,
+                    store=True,
+                    metadata={"source": "discord_bot"}
                 )
                 received_at = int(time.time() * 1000)
 

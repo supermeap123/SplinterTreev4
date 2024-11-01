@@ -1,11 +1,9 @@
-docs: Improve help documentation
+refactor: use OpenPipeAI client for all API requests
 
-- Add detailed section on Context & Memory Features
-- Expand Performance Tips with context-specific guidance
-- Reorganize commands into logical groupings
-- Add more detailed explanations of smart summaries
-- Include information about context window sizes
-- Add rate limiting and performance considerations
-- Update feature descriptions to match recent improvements
+- Removed AsyncOpenAI dependency
+- Use OpenPipeAI client for both OpenPipe and OpenRouter requests
+- Maintain all existing functionality including streaming and logging
+- Keep store=true parameter for OpenPipe requests
+- Keep detailed debug logging
 
-These changes make the help documentation more comprehensive and user-friendly, better reflecting the bot's current capabilities.
+This change simplifies the API client dependencies while maintaining all functionality.

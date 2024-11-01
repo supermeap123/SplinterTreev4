@@ -1,20 +1,35 @@
 import os
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
 
+# Set up logging to track environment variable loading
+logging.getLogger('config').setLevel(logging.DEBUG)
+logger = logging.getLogger('config')
+
 # Discord bot token
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+if not DISCORD_TOKEN:
+    logger.error("DISCORD_TOKEN not found in environment")
+    raise ValueError("DISCORD_TOKEN is required")
 
 # OpenRouter API key
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+if not OPENROUTER_API_KEY:
+    logger.error("OPENROUTER_API_KEY not found in environment")
+    raise ValueError("OPENROUTER_API_KEY is required")
 
 # OpenPipe API key
 OPENPIPE_API_KEY = os.getenv('OPENPIPE_API_KEY')
+if not OPENPIPE_API_KEY:
+    logger.error("OPENPIPE_API_KEY not found in environment")
+    raise ValueError("OPENPIPE_API_KEY is required")
 
-# OpenPipe API URL
-OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/v1')
+# OpenPipe API URL - ensure it uses the correct endpoint
+OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1')
+logger.debug(f"Using OpenPipe API URL: {OPENPIPE_API_URL}")
 
 # OpenAI API key (dummy)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'sk-dummy-openai-api-key')

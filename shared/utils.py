@@ -87,23 +87,17 @@ async def get_message_history(channel_id: str, limit: int = 100) -> List[Dict]:
                 except:
                     formatted_time = timestamp  # Fallback to raw timestamp if parsing fails
                 
-                message = {
-                    "role": "assistant" if is_assistant else "user",
-                    "content": content,
-                    "timestamp": formatted_time,
-                    "user_id": user_id
-                }
-                
                 # For assistant messages
                 if is_assistant:
                     # Remove model name prefix if present
                     if content.startswith('[') and ']' in content:
                         content = content[content.index(']')+1:].strip()
-                        message["content"] = content
-                    
-                    # Add name field for specific personas
-                    if persona_name:
-                        message["name"] = persona_name
+                
+                # Create message with proper role format for OpenPipe
+                message = {
+                    "role": "assistant" if is_assistant else "user",
+                    "content": content
+                }
                 
                 messages.append(message)
             
@@ -112,13 +106,13 @@ async def get_message_history(channel_id: str, limit: int = 100) -> List[Dict]:
             
             # Add metadata about the conversation
             if messages:
-                first_msg = datetime.fromisoformat(messages[0]["timestamp"])
-                last_msg = datetime.fromisoformat(messages[-1]["timestamp"])
+                first_msg = datetime.fromisoformat(formatted_time)
+                last_msg = datetime.now()
                 duration = last_msg - first_msg
                 
                 messages.insert(0, {
                     "role": "system",
-                    "content": f"This conversation has {len(messages)} messages spanning {duration.total_seconds()/60:.1f} minutes. The first message was at {messages[0]['timestamp']} and the most recent at {messages[-1]['timestamp']}."
+                    "content": f"This conversation has {len(messages)} messages spanning {duration.total_seconds()/60:.1f} minutes."
                 })
             
             return messages

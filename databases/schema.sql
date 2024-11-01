@@ -39,6 +39,18 @@ CREATE TABLE IF NOT EXISTS chat_summaries (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- API interaction logs
+CREATE TABLE IF NOT EXISTS logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    requested_at INTEGER NOT NULL,
+    received_at INTEGER NOT NULL,
+    request TEXT NOT NULL,
+    response TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    tags TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
@@ -47,3 +59,5 @@ CREATE INDEX IF NOT EXISTS idx_messages_persona ON messages(persona_name);
 CREATE INDEX IF NOT EXISTS idx_alt_text_channel ON image_alt_text(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_channel ON chat_summaries(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_timestamp ON chat_summaries(end_timestamp);
+CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(requested_at);
+CREATE INDEX IF NOT EXISTS idx_logs_status ON logs(status_code);
