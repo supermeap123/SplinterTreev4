@@ -183,17 +183,34 @@ async def setup_cogs():
     for cog in loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
 
-@tasks.loop(seconds=30)
-async def update_status():
-    """Update bot status with current uptime"""
-    try:
-        await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
-    except Exception as e:
-        logging.error(f"Error updating status: {str(e)}")
+class StatusUpdater:
+    def __init__(self, bot):
+        self.bot = bot
+        self.status_task = None
+        self.last_status = None
+
+    async def start(self):
+        if self.status_task is None or self.status_task.done():
+            self.status_task = asyncio.create_task(self._update_status_loop())
+            logging.info("Started status update task")
+
+    async def _update_status_loop(self):
+        while True:
+            try:
+                current_uptime = get_uptime()
+                if current_uptime != self.last_status:
+                    await self.bot.change_presence(activity=discord.Game(name=f"Up for {current_uptime}"))
+                    self.last_status = current_uptime
+                    logging.debug(f"Updated status to: Up for {current_uptime}")
+            except Exception as e:
+                logging.error(f"Error updating status: {str(e)}")
+            await asyncio.sleep(10)  # Update every 10 seconds
+
+status_updater = None
 
 @bot.event
 async def on_ready():
-    global start_time
+    global start_time, status_updater
     pst = pytz.timezone('US/Pacific')
     start_time = datetime.now(pst)
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
@@ -203,9 +220,9 @@ async def on_ready():
     
     await setup_cogs()
     
-    # Start the status update task
-    if not update_status.is_running():
-        update_status.start()
+    # Initialize and start the status updater
+    status_updater = StatusUpdater(bot)
+    await status_updater.start()
 
 async def resolve_user_id(user_id):
     """Resolve a user ID to a username"""
