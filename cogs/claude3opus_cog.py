@@ -29,12 +29,10 @@ class Claude3OpusCog(BaseCog):
 
 async def setup(bot):
     try:
-        logging.info(f"[{self.name}] Starting cog setup...")
         cog = Claude3OpusCog(bot)
         await bot.add_cog(cog)
         logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
         return cog
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Claude-3-Opus] Failed to register cog: {str(e)}", exc_info=True)
         raise

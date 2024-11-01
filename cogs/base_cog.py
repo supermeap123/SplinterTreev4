@@ -102,8 +102,7 @@ class BaseCog(commands.Cog):
             # Add history messages if available
             if history:
                 for entry in history[-5:]:  # Include last 5 messages for context
-                    role = "assistant" if entry["is_bot"] else "user"
-                    messages.append({"role": role, "content": entry["content"]})
+                    messages.append({"role": entry["role"], "content": entry["content"]})
 
             # Process current message content and any images
             current_content = message.content
