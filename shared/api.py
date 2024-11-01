@@ -59,7 +59,8 @@ class API:
             "messages": messages,
             "temperature": temperature if temperature is not None else 1,
             "max_tokens": max_tokens,
-            "stream": True
+            "stream": True,
+            "store": True
         }
 
         requested_at = int(time.time() * 1000)
@@ -155,7 +156,8 @@ class API:
                     "model": model,
                     "messages": messages,
                     "temperature": temperature,
-                    "max_tokens": max_tokens
+                    "max_tokens": max_tokens,
+                    "store": True
                 }
 
                 async with self.session.post(url, headers=headers, json=data) as response:
@@ -196,16 +198,13 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
-            # Remove 'openpipe:' prefix if present
-            if model.startswith('openpipe:'):
-                model = model[9:]
-            
             stream = await self.openpipe_client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
-                stream=True
+                stream=True,
+                store=True
             )
             async for chunk in stream:
                 if chunk.choices[0].delta.content:
@@ -229,10 +228,6 @@ class API:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
-            # Remove 'openpipe:' prefix if present
-            if model.startswith('openpipe:'):
-                model = model[9:]
-
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
@@ -240,7 +235,8 @@ class API:
                     model=model,
                     messages=messages,
                     temperature=temperature if temperature is not None else 0.7,
-                    max_tokens=max_tokens if max_tokens is not None else 1000
+                    max_tokens=max_tokens if max_tokens is not None else 1000,
+                    store=True
                 )
                 return {
                     'choices': [{
