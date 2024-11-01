@@ -183,6 +183,14 @@ async def setup_cogs():
     for cog in loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
 
+@tasks.loop(seconds=30)
+async def update_status():
+    """Update bot status with current uptime"""
+    try:
+        await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
+    except Exception as e:
+        logging.error(f"Error updating status: {str(e)}")
+
 @bot.event
 async def on_ready():
     global start_time
@@ -195,8 +203,9 @@ async def on_ready():
     
     await setup_cogs()
     
-    # Set initial uptime status after loading
-    await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
+    # Start the status update task
+    if not update_status.is_running():
+        update_status.start()
 
 async def resolve_user_id(user_id):
     """Resolve a user ID to a username"""

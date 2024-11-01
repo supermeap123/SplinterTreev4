@@ -1,10 +1,10 @@
-fix: Improve !listmodels command to handle Discord character limit
+fix: Add dynamic status updates for bot uptime
 
-- Add new format_simple_model_list method for concise model listing
-- Update list_models_command to use simplified format
-- Add visual indicators for vision-capable models (📷)
-- Fix Discord 2000 character limit issue
+- Add @tasks.loop for updating status every 30 seconds
+- Start status update task in on_ready event
+- Add error handling for status updates
+- Keep uptime display current and accurate
 
-The !listmodels command now shows a streamlined list of available models
-with their underlying model strings, making it easier to read while staying
-within Discord's message length constraints.
+The bot's status now updates automatically every 30 seconds to show
+the current uptime, fixing the issue where it would remain static
+after initial boot.
