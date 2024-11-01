@@ -11,10 +11,10 @@ class SydneyCog(BaseCog):
             name="Sydney",
             nickname="Sydney", 
             trigger_words=['sydney', 'syd', 'mama kunty'],
-            model="openpipe:Sydney-Court",  # Updated model name
+            model="openpipe:Sydney-Court",  # We'll keep this for now, but it might need to be changed
             provider="openpipe",
             prompt_file="sydney_prompts",
-            supports_vision=True  # Enable vision support
+            supports_vision=True
         )
         self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
@@ -25,6 +25,18 @@ class SydneyCog(BaseCog):
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
         return "Sydney"
+
+    async def generate_response(self, message):
+        """Override generate_response to use a fallback model if Sydney is unavailable"""
+        try:
+            return await super().generate_response(message)
+        except Exception as e:
+            logging.error(f"[Sydney] Error generating response: {str(e)}")
+            logging.info(f"[Sydney] Falling back to default OpenRouter model")
+            # Fallback to a default OpenRouter model
+            self.model = "openai/gpt-3.5-turbo"
+            self.provider = "openrouter"
+            return await super().generate_response(message)
 
     @commands.Cog.listener()
     async def on_message(self, message):

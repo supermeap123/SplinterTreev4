@@ -336,6 +336,9 @@ class API:
                     "response_format": response_format
                 }
 
+                logging.debug(f"[API] OpenPipe request URL: {url}")
+                logging.debug(f"[API] OpenPipe request data: {json.dumps(data, indent=2)}")
+
                 async with self.session.post(url, headers=headers, json=data) as response:
                     if response.status != 200:
                         error_text = await response.text()
@@ -343,6 +346,7 @@ class API:
                         raise Exception(f"OpenPipe API error: {response.status} - {error_text}")
 
                     result = await response.json()
+                    logging.debug(f"[API] OpenPipe API response: {json.dumps(result, indent=2)}")
                     return {
                         'choices': [{
                             'message': {
