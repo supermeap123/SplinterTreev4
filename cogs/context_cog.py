@@ -9,6 +9,7 @@ import asyncio
 from typing import List, Dict, Optional
 import textwrap
 from openai import OpenAI
+import backoff
 
 class ContextCog(commands.Cog):
     def __init__(self, bot):
@@ -17,6 +18,7 @@ class ContextCog(commands.Cog):
         self._setup_database()
         self.summary_chunk_hours = 24  # Summarize every 24 hours of chat
         self.last_summary_check = {}  # Track last summary generation per channel
+        self.summary_locks = {}  # Lock per channel for summary generation
         self.openai_client = OpenAI(
             base_url=OPENPIPE_API_URL,
             api_key=OPENPIPE_API_KEY
@@ -32,6 +34,12 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to setup database: {str(e)}")
 
+    @backoff.on_exception(
+        backoff.expo,
+        Exception,
+        max_tries=3,
+        max_time=30
+    )
     async def _generate_summary(self, messages: List[Dict]) -> str:
         """Generate a summary of chat messages using OpenAI/OpenPipe"""
         if not messages:
@@ -47,7 +55,14 @@ class ContextCog(commands.Cog):
             conversation = "\n".join(formatted_messages)
             
             # Create system prompt for summarization
-            system_prompt = "You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that captures the main points and key interactions of the conversation. Focus on the important topics discussed and any decisions or conclusions reached."
+            system_prompt = """You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that:
+1. Captures the main points and key interactions
+2. Highlights important topics discussed
+3. Notes any decisions or conclusions reached
+4. Preserves context that might be relevant for future messages
+5. Maintains a neutral, objective tone
+
+Keep the summary clear and well-structured, but brief enough to serve as useful context."""
 
             # Make API call
             completion = self.openai_client.chat.completions.create(
@@ -65,65 +80,81 @@ class ContextCog(commands.Cog):
 
         except Exception as e:
             logging.error(f"Failed to generate summary: {str(e)}")
-            return "Error generating summary."
+            return f"Error generating summary: {str(e)}"
 
     async def _check_and_create_summary(self, channel_id: str):
         """Check if we need to create a new summary and create it if necessary"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
+        # Get or create lock for this channel
+        if channel_id not in self.summary_locks:
+            self.summary_locks[channel_id] = asyncio.Lock()
+
+        # Use lock to prevent multiple simultaneous summaries
+        async with self.summary_locks[channel_id]:
+            try:
+                # Check if we've recently checked this channel
+                now = datetime.now()
+                if channel_id in self.last_summary_check:
+                    time_since_check = (now - self.last_summary_check[channel_id]).total_seconds()
+                    if time_since_check < 3600:  # Don't check more than once per hour
+                        return
                 
-                # Get the timestamp of the last summary
-                cursor.execute("""
-                    SELECT MAX(end_timestamp) FROM chat_summaries
-                    WHERE channel_id = ?
-                """, (channel_id,))
-                last_summary = cursor.fetchone()[0]
-                
-                if last_summary:
-                    last_summary = datetime.fromisoformat(last_summary)
-                else:
-                    last_summary = datetime.now() - timedelta(hours=self.summary_chunk_hours)
+                self.last_summary_check[channel_id] = now
 
-                # Get messages since last summary
-                cursor.execute("""
-                    SELECT 
-                        timestamp, user_id, persona_name, 
-                        content, is_assistant, emotion
-                    FROM messages
-                    WHERE channel_id = ? AND timestamp > ?
-                    ORDER BY timestamp ASC
-                """, (channel_id, last_summary.isoformat()))
-
-                messages = []
-                for row in cursor.fetchall():
-                    messages.append({
-                        'timestamp': row[0],
-                        'user_id': row[1],
-                        'persona_name': row[2],
-                        'content': row[3],
-                        'is_assistant': bool(row[4]),
-                        'emotion': row[5]
-                    })
-
-                if messages:
-                    start_time = last_summary
-                    end_time = datetime.fromisoformat(messages[-1]['timestamp'])
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
                     
-                    # Only create summary if we have at least summary_chunk_hours worth of messages
-                    if (end_time - start_time) >= timedelta(hours=self.summary_chunk_hours):
-                        summary = await self._generate_summary(messages)
-                        
-                        cursor.execute("""
-                            INSERT INTO chat_summaries 
-                            (channel_id, start_timestamp, end_timestamp, summary)
-                            VALUES (?, ?, ?, ?)
-                        """, (channel_id, start_time.isoformat(), 
-                              end_time.isoformat(), summary))
-                        conn.commit()
+                    # Get the timestamp of the last summary
+                    cursor.execute("""
+                        SELECT MAX(end_timestamp) FROM chat_summaries
+                        WHERE channel_id = ?
+                    """, (channel_id,))
+                    last_summary = cursor.fetchone()[0]
+                    
+                    if last_summary:
+                        last_summary = datetime.fromisoformat(last_summary)
+                    else:
+                        last_summary = datetime.now() - timedelta(hours=self.summary_chunk_hours)
 
-        except Exception as e:
-            logging.error(f"Failed to create summary: {str(e)}")
+                    # Get messages since last summary
+                    cursor.execute("""
+                        SELECT 
+                            timestamp, user_id, persona_name, 
+                            content, is_assistant, emotion
+                        FROM messages
+                        WHERE channel_id = ? AND timestamp > ?
+                        ORDER BY timestamp ASC
+                    """, (channel_id, last_summary.isoformat()))
+
+                    messages = []
+                    for row in cursor.fetchall():
+                        messages.append({
+                            'timestamp': row[0],
+                            'user_id': row[1],
+                            'persona_name': row[2],
+                            'content': row[3],
+                            'is_assistant': bool(row[4]),
+                            'emotion': row[5]
+                        })
+
+                    if messages:
+                        start_time = last_summary
+                        end_time = datetime.fromisoformat(messages[-1]['timestamp'])
+                        
+                        # Only create summary if we have at least summary_chunk_hours worth of messages
+                        if (end_time - start_time) >= timedelta(hours=self.summary_chunk_hours):
+                            summary = await self._generate_summary(messages)
+                            
+                            cursor.execute("""
+                                INSERT INTO chat_summaries 
+                                (channel_id, start_timestamp, end_timestamp, summary)
+                                VALUES (?, ?, ?, ?)
+                            """, (channel_id, start_time.isoformat(), 
+                                  end_time.isoformat(), summary))
+                            conn.commit()
+                            logging.info(f"Created new summary for channel {channel_id}")
+
+            except Exception as e:
+                logging.error(f"Failed to create summary: {str(e)}")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -143,28 +174,31 @@ class ContextCog(commands.Cog):
                                         is_assistant, persona_name, emotion)
         
         # Check if we need to create a new summary
-        await self._check_and_create_summary(channel_id)
+        asyncio.create_task(self._check_and_create_summary(channel_id))
 
     async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
         """Get conversation context for a channel"""
         try:
             if limit is None:
                 limit = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+            
+            limit = min(limit, MAX_CONTEXT_WINDOW)  # Ensure we don't exceed maximum
 
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
 
-                # Get summaries
+                # Get relevant summaries
                 cursor.execute("""
                     SELECT summary, end_timestamp
                     FROM chat_summaries
                     WHERE channel_id = ?
                     ORDER BY end_timestamp DESC
+                    LIMIT 3
                 """, (channel_id,))
                 summaries = cursor.fetchall()
 
-                # Get last 10 messages from both users and assistant
+                # Get recent messages
                 cursor.execute("""
                     SELECT 
                         timestamp,
@@ -176,8 +210,8 @@ class ContextCog(commands.Cog):
                     FROM messages
                     WHERE channel_id = ?
                     ORDER BY timestamp DESC
-                    LIMIT 10
-                """, (channel_id,))
+                    LIMIT ?
+                """, (channel_id, limit))
 
                 recent_messages = []
                 for row in cursor.fetchall():
@@ -193,18 +227,34 @@ class ContextCog(commands.Cog):
                 # Combine summaries and recent messages
                 context = []
                 
-                # Add summaries first
-                for summary in summaries:
+                # Add metadata about the conversation
+                if recent_messages:
+                    first_msg = datetime.fromisoformat(recent_messages[-1]['timestamp'])
+                    last_msg = datetime.fromisoformat(recent_messages[0]['timestamp'])
+                    duration = last_msg - first_msg
+                    
                     context.append({
-                        'timestamp': summary['end_timestamp'],
+                        'timestamp': last_msg.isoformat(),
                         'user_id': 'SYSTEM',
                         'persona_name': None,
-                        'content': f"[SUMMARY] {summary['summary']}",
+                        'content': f"This conversation has {len(recent_messages)} messages spanning {duration.total_seconds()/60:.1f} minutes.",
+                        'is_assistant': False,
+                        'emotion': None
+                    })
+                
+                # Add most recent summary if available
+                if summaries:
+                    latest_summary = summaries[0]
+                    context.append({
+                        'timestamp': latest_summary['end_timestamp'],
+                        'user_id': 'SYSTEM',
+                        'persona_name': None,
+                        'content': f"Previous conversation summary: {latest_summary['summary']}",
                         'is_assistant': False,
                         'emotion': None
                     })
 
-                # Add recent messages
+                # Add recent messages in chronological order
                 context.extend(reversed(recent_messages))
 
                 return context
@@ -241,7 +291,8 @@ class ContextCog(commands.Cog):
         """Force create a summary for the current channel"""
         channel_id = str(ctx.channel.id)
         try:
-            await self._check_and_create_summary(channel_id)
+            async with ctx.typing():
+                await self._check_and_create_summary(channel_id)
             await ctx.reply("✅ Created new chat summary")
         except Exception as e:
             logging.error(f"Failed to force summarize: {str(e)}")

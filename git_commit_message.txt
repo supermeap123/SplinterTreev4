@@ -1,10 +1,12 @@
-enhance: Improve message history handling
+enhance: Improve conversation context handling
 
-- Increase default message history limit from 50 to 100 messages
-- Add support for channel-specific context window sizes
-- Include timestamps and user IDs in message history
-- Add conversation metadata (duration, message count)
-- Improve message deduplication by including timestamps
-- Add better error handling for timestamp parsing
+- Add per-channel locks to prevent concurrent summary generation
+- Implement backoff retry logic for summary generation
+- Improve summary system prompt for better context preservation
+- Increase message fetch limit to match utils.py (up to MAX_CONTEXT_WINDOW)
+- Add rate limiting to summary checks (once per hour per channel)
+- Include conversation metadata in context
+- Optimize summary integration by including only most recent summary
+- Add better error handling and logging throughout
 
-These changes provide models with richer context about the conversation history, improving response relevance and continuity.
+These changes improve the reliability and efficiency of context handling while ensuring better conversation continuity.
