@@ -1,0 +1,9 @@
+Update OpenPipe API usage and improve error handling
+
+- Updated shared/api.py to use the latest OpenPipe API structure
+- Changed OpenPipe API call from chat.completions.create to completions
+- Updated response handling for both streaming and non-streaming requests
+- Improved error handling and logging in shared/api.py
+- Fixed context retrieval in sydney_cog.py
+- Upgraded OpenPipe library to version 4.32.0 in requirements.txt
+- Updated README.md with new OpenPipe version information

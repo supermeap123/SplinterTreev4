@@ -242,19 +242,19 @@ class API:
             logging.debug(f"[API] OpenPipe request parameters: {json.dumps(request_params, indent=2)}")
 
             # Make the API call
-            response = await self.openpipe_client.chat.completions.create(**request_params)
+            response = await self.openpipe_client.completions(**request_params)
 
             if stream:
                 async def response_generator():
                     async for chunk in response:
-                        if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
-                            yield chunk.choices[0].delta.content
+                        if chunk.choices and chunk.choices[0].text:
+                            yield chunk.choices[0].text
                 return response_generator()
             else:
                 return {
                     'choices': [{
                         'message': {
-                            'content': response.choices[0].message.content
+                            'content': response.choices[0].text
                         }
                     }]
                 }
