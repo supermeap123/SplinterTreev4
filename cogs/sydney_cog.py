@@ -30,9 +30,8 @@ class SydneyCog(BaseCog):
     async def generate_response(self, message):
         """Generate a response using OpenPipe"""
         try:
-            # Format system prompt
-            formatted_prompt = self.format_system_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
+            # Use system prompt directly from base_cog
+            messages = [{"role": "system", "content": self.raw_prompt}]
 
             # Get last 50 messages from database
             channel_id = str(message.channel.id)
@@ -63,7 +62,7 @@ class SydneyCog(BaseCog):
                 })
 
             logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
-            logging.debug(f"[Sydney] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Sydney] System prompt: {self.raw_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature(self.name)
