@@ -54,6 +54,20 @@ class HelpCog(commands.Cog):
                 
         return help_text
 
+    def format_simple_model_list(self, vision_models, models):
+        """Format a simple model list with just names and models"""
+        model_list = "**Available Models:**\n"
+        
+        # Add vision models with a 📷 indicator
+        for model in vision_models:
+            model_list += f"📷 {model['name']} - {model['model']}\n"
+            
+        # Add regular models
+        for model in models:
+            model_list += f"💬 {model['name']} - {model['model']}\n"
+            
+        return model_list
+
     @commands.command(name="splintertree_help", aliases=["help"])
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
@@ -113,10 +127,10 @@ class HelpCog(commands.Cog):
 
     @commands.command(name="listmodels")
     async def list_models_command(self, ctx):
-        """Send a list of all available models and their trigger words"""
+        """Send a simple list of all available models"""
         try:
             vision_models, models = self.get_all_models()
-            model_list = self.format_model_list(vision_models, models)
+            model_list = self.format_simple_model_list(vision_models, models)
             await ctx.send(model_list)
             logging.info(f"[Help] Sent model list to user {ctx.author.name}")
         except Exception as e:
