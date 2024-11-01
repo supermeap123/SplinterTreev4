@@ -1,3 +1,0 @@
-fix: use OpenPipe client for API requests
-
-Changed the OpenPipe API implementation to use the initialized OpenPipe client instead of direct HTTP requests. This ensures proper authentication and request handling through the official SDK.

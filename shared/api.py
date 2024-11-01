@@ -9,7 +9,7 @@ import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
 from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY
-from openpipe import OpenPipe
+from openpipe import OpenAI
 
 class API:
     def __init__(self):
@@ -17,7 +17,10 @@ class API:
         self.session = aiohttp.ClientSession()
         
         # Initialize OpenPipe client
-        self.openpipe_client = OpenPipe(api_key=OPENPIPE_API_KEY)
+        self.openpipe_client = OpenAI(
+            api_key=OPENPIPE_API_KEY,
+            base_url="https://api.openpipe.ai/api/v1"
+        )
 
         # Connect to SQLite database and apply schema
         try:
@@ -193,13 +196,14 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
-            async for chunk in self.openpipe_client.chat.completions.create(
+            stream = await self.openpipe_client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
                 stream=True
-            ):
+            )
+            async for chunk in stream:
                 if chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
         except Exception as e:
