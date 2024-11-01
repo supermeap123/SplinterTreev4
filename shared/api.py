@@ -16,10 +16,16 @@ class API:
         # Initialize aiohttp session
         self.session = aiohttp.ClientSession()
         
-        # Initialize OpenPipe client using OpenAI SDK
+        # Initialize OpenPipe client
         self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
             base_url=OPENPIPE_API_URL
+        )
+
+        # Initialize OpenRouter client
+        self.openrouter_client = AsyncOpenAI(
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1"
         )
 
         # Connect to SQLite database and apply schema
@@ -45,66 +51,51 @@ class API:
             raise
 
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
-        """Asynchronous OpenRouter API streaming call using direct HTTP request"""
+        """Stream responses from OpenRouter API using OpenAI client"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
-        logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature if temperature is not None else 1,
-            "max_tokens": max_tokens,
-            "stream": True,
-            "store": True
-        }
+        try:
+            stream = await self.openrouter_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature if temperature is not None else 1,
+                max_tokens=max_tokens,
+                stream=True,
+                store=True
+            )
+            requested_at = int(time.time() * 1000)
+            
+            async for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
 
-        requested_at = int(time.time() * 1000)
-        async with self.session.post(url, headers=headers, json=data) as response:
-            if response.status != 200:
-                error_text = await response.text()
-                logging.error(f"[API] OpenRouter API error: {response.status} - {error_text}")
-                raise Exception(f"OpenRouter API error: {response.status} - {error_text}")
+            received_at = int(time.time() * 1000)
 
-            async for line in response.content:
-                if line:
-                    try:
-                        json_line = json.loads(line.decode('utf-8').strip('data: '))
-                        if 'choices' in json_line and json_line['choices']:
-                            content = json_line['choices'][0]['delta'].get('content')
-                            if content:
-                                yield content
-                    except json.JSONDecodeError:
-                        logging.error(f"[API] Failed to decode JSON: {line}")
-                        continue
-
-        received_at = int(time.time() * 1000)
-
-        # Log request to database after completion
-        completion_obj = {
-            'choices': [{
-                'message': {
-                    'content': "Streaming response completed"
-                }
-            }]
-        }
-        await self.report(
-            requested_at=requested_at,
-            received_at=received_at,
-            req_payload={
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens
-            },
-            resp_payload=completion_obj,
-            status_code=200,
-            tags={"source": "openrouter"}
-        )
+            # Log request to database after completion
+            completion_obj = {
+                'choices': [{
+                    'message': {
+                        'content': "Streaming response completed"
+                    }
+                }]
+            }
+            await self.report(
+                requested_at=requested_at,
+                received_at=received_at,
+                req_payload={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
+                },
+                resp_payload=completion_obj,
+                status_code=200,
+                tags={"source": "openrouter"}
+            )
+        except Exception as e:
+            error_message = str(e)
+            logging.error(f"[API] OpenRouter streaming error: {error_message}")
+            raise Exception(f"OpenRouter API error: {error_message}")
 
     @backoff.on_exception(
         backoff.expo,
@@ -147,33 +138,40 @@ class API:
                 return self._stream_openrouter_request(messages, model, temperature, max_tokens)
             else:
                 # Non-streaming request
-                url = "https://openrouter.ai/api/v1/chat/completions"
-                headers = {
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                data = {
-                    "model": model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "store": True
+                requested_at = int(time.time() * 1000)
+                response = await self.openrouter_client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    store=True
+                )
+                received_at = int(time.time() * 1000)
+
+                result = {
+                    'choices': [{
+                        'message': {
+                            'content': response.choices[0].message.content
+                        }
+                    }]
                 }
 
-                async with self.session.post(url, headers=headers, json=data) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logging.error(f"[API] OpenRouter API error: {response.status} - {error_text}")
-                        raise Exception(f"OpenRouter API error: {response.status} - {error_text}")
+                # Log the interaction
+                await self.report(
+                    requested_at=requested_at,
+                    received_at=received_at,
+                    req_payload={
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    },
+                    resp_payload=result,
+                    status_code=200,
+                    tags={"source": "openrouter"}
+                )
 
-                    result = await response.json()
-                    return {
-                        'choices': [{
-                            'message': {
-                                'content': result['choices'][0]['message']['content']
-                            }
-                        }]
-                    }
+                return result
 
         except Exception as e:
             error_message = str(e)
@@ -206,9 +204,35 @@ class API:
                 stream=True,
                 store=True
             )
+            requested_at = int(time.time() * 1000)
+            
             async for chunk in stream:
                 if chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
+
+            received_at = int(time.time() * 1000)
+
+            # Log request to database after completion
+            completion_obj = {
+                'choices': [{
+                    'message': {
+                        'content': "Streaming response completed"
+                    }
+                }]
+            }
+            await self.report(
+                requested_at=requested_at,
+                received_at=received_at,
+                req_payload={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
+                },
+                resp_payload=completion_obj,
+                status_code=200,
+                tags={"source": "openpipe"}
+            )
         except Exception as e:
             error_message = str(e)
             logging.error(f"[API] OpenPipe streaming error: {error_message}")
@@ -231,6 +255,7 @@ class API:
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
+                requested_at = int(time.time() * 1000)
                 response = await self.openpipe_client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -238,13 +263,32 @@ class API:
                     max_tokens=max_tokens if max_tokens is not None else 1000,
                     store=True
                 )
-                return {
+                received_at = int(time.time() * 1000)
+
+                result = {
                     'choices': [{
                         'message': {
                             'content': response.choices[0].message.content
                         }
                     }]
                 }
+
+                # Log the interaction
+                await self.report(
+                    requested_at=requested_at,
+                    received_at=received_at,
+                    req_payload={
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    },
+                    resp_payload=result,
+                    status_code=200,
+                    tags={"source": "openpipe"}
+                )
+
+                return result
 
         except Exception as e:
             error_message = str(e)
