@@ -78,50 +78,84 @@ class HelpCog(commands.Cog):
 
             # Add special features and tips
             help_message = f"""{model_list}
-    **📝 Special Features:**
-    • **Response Reroll** - Click the 🎲 button to get a different response
-    • **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
-    • **Context Memory** - Models remember conversation history for better context
-    • **Image Analysis** - Use vision-capable models for image descriptions and analysis
-    • **Custom System Prompts** - Set custom prompts for each AI agent
-    • **Agent Cloning** - Create custom variants of existing agents with unique system prompts
-    • **Chat Summaries** - Automatically summarizes chat history for better context
+**📝 Special Features:**
+• **Response Reroll** - Click the 🎲 button to get a different response
+• **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
+• **Smart Context** - Models remember conversation history and automatically generate summaries
+• **Image Analysis** - Vision-capable models provide detailed image descriptions
+• **Custom System Prompts** - Set unique personalities for each AI agent
+• **Agent Cloning** - Create custom variants of existing agents
+• **Adaptive Memory** - Context window size adjusts per channel
 
-    **💡 Tips:**
-    1. Models will respond when you mention their trigger words
-    2. Each model has unique strengths - try different ones for different tasks
-    3. For private responses, format your message like: ||your message here||
-    4. Images are automatically analyzed when sent with messages
-    5. Use the reroll button to get alternative responses if needed
-    6. Chat summaries help maintain context over longer conversations
+**💡 Context & Memory Features:**
+1. **Conversation Memory**
+   • Remembers up to 100 messages by default (adjustable per channel)
+   • Automatically maintains conversation flow and references
+   • Includes timestamps and user information for better context
 
-    **Available Commands:**
-    • `splintertree_help` or `help` - Show this help message
-    • `!listmodels` - Show all available models (simple list)
-    • `!list_agents` - Show all available agents with detailed info (formatted embed)
-    • `!uptime` - Show how long the bot has been running
-    • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
-    • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
-    • `!clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
-    • `!setcontext size` - Set the number of previous messages to include in context (Admin only)
-    • `!getcontext` - View current context window size
-    • `!resetcontext` - Reset context window to default size (Admin only)
-    • `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
-    • `!summarize` - Force create a summary for the current channel (Admin only)
-    • `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
-    • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
+2. **Smart Summaries**
+   • Automatically generates summaries every 24 hours
+   • Summaries preserve important context for long-running conversations
+   • Includes key decisions, topics, and interaction patterns
+   • Rate-limited to prevent excessive API usage
 
+3. **Context Management**
+   • Channel-specific context windows
+   • Automatic deduplication of repeated messages
+   • Preserves conversation metadata (duration, message count)
+   • Handles both text and image context seamlessly
 
-    **System Prompt Variables:**
-    When setting custom system prompts, you can use these variables:
-    • {{MODEL_ID}} - The AI model's name
-    • {{USERNAME}} - The user's Discord display name
-    • {{DISCORD_USER_ID}} - The user's Discord ID
-    • {{TIME}} - Current local time
-    • {{TZ}} - Local timezone
-    • {{SERVER_NAME}} - Current Discord server name
-    • {{CHANNEL_NAME}} - Current channel name
-    """
+**💬 Response Features:**
+1. **Private Responses**
+   • Use ||spoiler tags|| for private responses
+   • Bot will DM you instead of responding in channel
+   • Useful for sensitive or personal queries
+
+2. **Response Quality**
+   • Each model has unique capabilities and personality
+   • Vision models can analyze images and provide descriptions
+   • Reroll button available for alternative responses
+   • Responses include emotional context (shown via reactions)
+
+**🛠️ Available Commands:**
+
+*General Commands:*
+• `splintertree_help` or `help` - Show this help message
+• `!listmodels` - Show available models (simple list)
+• `!list_agents` - Show detailed agent information
+• `!uptime` - Show bot uptime
+
+*Context & Memory Commands:*
+• `!setcontext <size>` - Set context window size (Admin)
+• `!getcontext` - View current context settings
+• `!resetcontext` - Reset to default context size (Admin)
+• `!clearcontext [hours]` - Clear history, optional hours (Admin)
+• `!summarize` - Force create channel summary (Admin)
+• `!getsummaries [hours]` - View summaries, default 24h
+• `!clearsummaries [hours]` - Clear summaries, optional hours (Admin)
+
+*Agent Customization:*
+• `!set_system_prompt <agent> <prompt>` - Set custom prompt
+• `!reset_system_prompt <agent>` - Reset to default prompt
+• `!clone_agent <agent> <new_name> <system_prompt>` - Create custom agent (Admin)
+
+**🔧 System Prompt Variables:**
+When setting custom prompts, you can use:
+• {{MODEL_ID}} - AI model name
+• {{USERNAME}} - User's display name
+• {{DISCORD_USER_ID}} - User's Discord ID
+• {{TIME}} - Current time
+• {{TZ}} - Timezone
+• {{SERVER_NAME}} - Server name
+• {{CHANNEL_NAME}} - Channel name
+
+**⚡ Performance Tips:**
+1. Use vision models only when image analysis is needed
+2. Prefer specific models for specialized tasks
+3. Clear old context/summaries periodically
+4. Use channel-specific context windows for optimal memory
+5. Consider using summaries for long-running discussions
+"""
 
             for msg in [help_message[i:i + 2000] for i in range(0, len(help_message), 2000)]:
                 await ctx.send(msg)

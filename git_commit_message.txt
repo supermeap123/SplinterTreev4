@@ -1,12 +1,11 @@
-enhance: Improve conversation context handling
+docs: Improve help documentation
 
-- Add per-channel locks to prevent concurrent summary generation
-- Implement backoff retry logic for summary generation
-- Improve summary system prompt for better context preservation
-- Increase message fetch limit to match utils.py (up to MAX_CONTEXT_WINDOW)
-- Add rate limiting to summary checks (once per hour per channel)
-- Include conversation metadata in context
-- Optimize summary integration by including only most recent summary
-- Add better error handling and logging throughout
+- Add detailed section on Context & Memory Features
+- Expand Performance Tips with context-specific guidance
+- Reorganize commands into logical groupings
+- Add more detailed explanations of smart summaries
+- Include information about context window sizes
+- Add rate limiting and performance considerations
+- Update feature descriptions to match recent improvements
 
-These changes improve the reliability and efficiency of context handling while ensuring better conversation continuity.
+These changes make the help documentation more comprehensive and user-friendly, better reflecting the bot's current capabilities.
