@@ -1,9 +1,11 @@
-fix: improve message formatting and DM handling
+fix: update context commands with backward compatibility
 
-- Add format_message_content method for consistent variable formatting
-- Move system prompt formatting before history messages
-- Format variables in history messages and current content
-- Improve DM permission handling with proper fallbacks
-- Add better error handling for DM permissions
+- Add slash command versions of all context commands
+- Maintain backward compatibility with legacy !summarize commands
+- Add proper DM channel permission handling for both command types
+- Add proper permission checks for guild channels
+- Add command descriptions and parameter descriptions
+- Fix system prompt variable rendering in base_cog.py
+- Add shared logic handler for summarize commands
 
-This fixes issues with system prompt variables not being rendered and improves the reliability of DM summarizing.
+This allows users to use both slash commands and legacy commands while fixing permission issues.

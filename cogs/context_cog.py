@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW, OPENPIPE_API_KEY, OPENPIPE_API_URL
 import sqlite3
 import json
@@ -230,24 +231,109 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
             logging.error(f"Failed to add message to context: {str(e)}")
             return False
 
+    async def _handle_summarize(self, channel_id: str, is_dm: bool, has_permission: bool) -> bool:
+        """Common handler for summarize command logic"""
+        if not is_dm and not has_permission:
+            return False
+            
+        try:
+            await self._check_and_create_summary(channel_id)
+            return True
+        except Exception as e:
+            logging.error(f"Failed to force summarize: {str(e)}")
+            return False
+
     @commands.command(name='summarize')
-    @commands.has_permissions(manage_messages=True)
-    async def force_summarize(self, ctx):
-        """Force create a summary for the current channel"""
+    async def summarize_command(self, ctx):
+        """Force create a summary for the current channel (Legacy command)"""
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        has_permission = ctx.channel.permissions_for(ctx.author).manage_messages if not is_dm else True
+        
+        async with ctx.typing():
+            success = await self._handle_summarize(str(ctx.channel.id), is_dm, has_permission)
+        
+        if not success and not has_permission:
+            await ctx.reply("❌ You need the Manage Messages permission to use this command.")
+        elif success:
+            await ctx.reply("✅ Created new chat summary")
+        else:
+            await ctx.reply("❌ Failed to create chat summary")
+
+    @app_commands.command(
+        name='summarize',
+        description='Force create a summary for the current channel'
+    )
+    async def force_summarize(self, interaction: discord.Interaction):
+        """Force create a summary for the current channel (Slash command)"""
+        channel_id = str(interaction.channel.id)
+        is_dm = isinstance(interaction.channel, discord.DMChannel)
+        has_permission = interaction.channel.permissions_for(interaction.user).manage_messages if not is_dm else True
+        
+        if not is_dm and not has_permission:
+            await interaction.response.send_message("❌ You need the Manage Messages permission to use this command.", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+        success = await self._handle_summarize(channel_id, is_dm, has_permission)
+        
+        if success:
+            await interaction.followup.send("✅ Created new chat summary")
+        else:
+            await interaction.followup.send("❌ Failed to create chat summary")
+
+    @commands.command(name='getsummaries')
+    async def getsummaries_command(self, ctx, hours: Optional[int] = 24):
+        """Get chat summaries for this channel (Legacy command)"""
         channel_id = str(ctx.channel.id)
         try:
             async with ctx.typing():
-                await self._check_and_create_summary(channel_id)
-            await ctx.reply("✅ Created new chat summary")
-        except Exception as e:
-            logging.error(f"Failed to force summarize: {str(e)}")
-            await ctx.reply("❌ Failed to create chat summary")
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
+                    
+                    cursor.execute("""
+                        SELECT summary, start_timestamp, end_timestamp
+                        FROM chat_summaries
+                        WHERE channel_id = ? AND end_timestamp > ?
+                        ORDER BY end_timestamp DESC
+                    """, (channel_id, cutoff_time))
+                    
+                    summaries = cursor.fetchall()
+                    
+                    if not summaries:
+                        await ctx.reply("No summaries found for the specified time period.")
+                        return
 
-    @commands.command(name='getsummaries')
-    async def get_summaries(self, ctx, hours: Optional[int] = 24):
-        """Get chat summaries for this channel"""
-        channel_id = str(ctx.channel.id)
+                    response = "📝 Chat Summaries:\n\n"
+                    for summary in summaries:
+                        start_time = datetime.fromisoformat(summary[1])
+                        end_time = datetime.fromisoformat(summary[2])
+                        response += f"From {start_time.strftime('%Y-%m-%d %H:%M')} to {end_time.strftime('%Y-%m-%d %H:%M')}:\n"
+                        response += f"{summary[0]}\n\n"
+
+                    # Split response if it's too long
+                    if len(response) > 2000:
+                        parts = textwrap.wrap(response, 2000)
+                        for part in parts:
+                            await ctx.reply(part)
+                    else:
+                        await ctx.reply(response)
+
+        except Exception as e:
+            logging.error(f"Failed to get summaries: {str(e)}")
+            await ctx.reply("❌ Failed to retrieve chat summaries")
+
+    @app_commands.command(
+        name='getsummaries',
+        description='Get chat summaries for this channel'
+    )
+    @app_commands.describe(hours='Number of hours to look back (default: 24)')
+    async def get_summaries(self, interaction: discord.Interaction, hours: Optional[int] = 24):
+        """Get chat summaries for this channel (Slash command)"""
+        channel_id = str(interaction.channel.id)
         try:
+            await interaction.response.defer()
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
@@ -262,7 +348,7 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                 summaries = cursor.fetchall()
                 
                 if not summaries:
-                    await ctx.reply("No summaries found for the specified time period.")
+                    await interaction.followup.send("No summaries found for the specified time period.")
                     return
 
                 response = "📝 Chat Summaries:\n\n"
@@ -276,20 +362,66 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                 if len(response) > 2000:
                     parts = textwrap.wrap(response, 2000)
                     for part in parts:
-                        await ctx.reply(part)
+                        await interaction.followup.send(part)
                 else:
-                    await ctx.reply(response)
+                    await interaction.followup.send(response)
 
         except Exception as e:
             logging.error(f"Failed to get summaries: {str(e)}")
-            await ctx.reply("❌ Failed to retrieve chat summaries")
+            await interaction.followup.send("❌ Failed to retrieve chat summaries")
 
     @commands.command(name='clearsummaries')
     @commands.has_permissions(manage_messages=True)
-    async def clear_summaries(self, ctx, hours: Optional[int] = None):
-        """Clear chat summaries for this channel"""
+    async def clearsummaries_command(self, ctx, hours: Optional[int] = None):
+        """Clear chat summaries for this channel (Legacy command)"""
         channel_id = str(ctx.channel.id)
+        is_dm = isinstance(ctx.channel, discord.DMChannel)
+        has_permission = ctx.channel.permissions_for(ctx.author).manage_messages if not is_dm else True
+        
+        if not is_dm and not has_permission:
+            await ctx.reply("❌ You need the Manage Messages permission to use this command.")
+            return
+
         try:
+            async with ctx.typing():
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    if hours:
+                        cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
+                        cursor.execute("""
+                            DELETE FROM chat_summaries
+                            WHERE channel_id = ? AND end_timestamp < ?
+                        """, (channel_id, cutoff_time))
+                    else:
+                        cursor.execute("""
+                            DELETE FROM chat_summaries
+                            WHERE channel_id = ?
+                        """, (channel_id,))
+                    conn.commit()
+
+                await ctx.reply(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
+        except Exception as e:
+            logging.error(f"Failed to clear summaries: {str(e)}")
+            await ctx.reply("❌ Failed to clear chat summaries")
+
+    @app_commands.command(
+        name='clearsummaries',
+        description='Clear chat summaries for this channel'
+    )
+    @app_commands.describe(hours='Optional: Clear summaries older than this many hours')
+    async def clear_summaries(self, interaction: discord.Interaction, hours: Optional[int] = None):
+        """Clear chat summaries for this channel (Slash command)"""
+        channel_id = str(interaction.channel.id)
+        is_dm = isinstance(interaction.channel, discord.DMChannel)
+        has_permission = interaction.channel.permissions_for(interaction.user).manage_messages if not is_dm else True
+        
+        if not is_dm and not has_permission:
+            await interaction.response.send_message("❌ You need the Manage Messages permission to use this command.", ephemeral=True)
+            return
+
+        try:
+            await interaction.response.defer()
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 if hours:
@@ -305,10 +437,10 @@ Keep the summary clear and well-structured, but brief enough to serve as useful 
                     """, (channel_id,))
                 conn.commit()
 
-                await ctx.reply(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
+                await interaction.followup.send(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
         except Exception as e:
             logging.error(f"Failed to clear summaries: {str(e)}")
-            await ctx.reply("❌ Failed to clear chat summaries")
+            await interaction.followup.send("❌ Failed to clear chat summaries")
 
 async def setup(bot):
     await bot.add_cog(ContextCog(bot))
