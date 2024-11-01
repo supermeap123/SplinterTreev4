@@ -44,13 +44,11 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **NoroMaid-20B**: Advanced conversational model
 - **MythoMax-L2-13B**: Versatile language model
 - **Grok**: xAI's latest conversational model
-
-### OpenPipe Models
-- **Hermes**: Specialized conversation model
+- **Hermes**: Specialized, less restrictive conversation model
 - **Sonar**: Enhanced context understanding
 - **Liquid**: Optimized for specific tasks
 - **O1-Mini**: Lightweight, efficient model
-- **MOA**: Mixture of Agents model
+- **MOA**: Mixture of Agents model based on GPT4o
 
 ## 🛠️ Setup
 
