@@ -61,6 +61,9 @@ last_used_cogs = {}
 # Track processed messages to prevent double handling
 processed_messages = set()
 
+# Flag to track if cogs have been set up
+cogs_setup_complete = False
+
 # File to persist processed messages
 PROCESSED_MESSAGES_FILE = os.path.join(BOT_DIR, 'processed_messages.json')
 
@@ -124,10 +127,27 @@ async def load_context_settings():
     except Exception as e:
         logging.error(f"Error loading context settings: {str(e)}")
 
+async def unload_all_cogs():
+    """Unload all currently loaded cogs"""
+    for extension in list(bot.extensions):
+        try:
+            await bot.unload_extension(extension)
+            logging.info(f"Unloaded extension: {extension}")
+        except Exception as e:
+            logging.error(f"Error unloading extension {extension}: {str(e)}")
+
 async def setup_cogs():
     """Load all cogs"""
-    global loaded_cogs
-    loaded_cogs = []  # Reset loaded cogs list
+    global loaded_cogs, cogs_setup_complete
+
+    # Prevent multiple setups
+    if cogs_setup_complete:
+        logging.info("Cogs already set up, skipping setup")
+        return
+
+    # Reset loaded cogs list and unload any existing cogs
+    loaded_cogs = []
+    await unload_all_cogs()
 
     # Load context settings
     await load_context_settings()
@@ -151,7 +171,7 @@ async def setup_cogs():
                 logging.debug(f"Attempting to load cog: {module_name}")
                 
                 # Load the cog extension
-                cog_instance = await bot.load_extension(f'cogs.{module_name}')
+                await bot.load_extension(f'cogs.{module_name}')
                 
                 # Get the cog from bot.cogs using the module name
                 for cog in bot.cogs.values():
@@ -182,6 +202,8 @@ async def setup_cogs():
     logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
     for cog in loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
+
+    cogs_setup_complete = True
 
 class StatusUpdater:
     def __init__(self, bot):
@@ -221,8 +243,9 @@ async def on_ready():
     await setup_cogs()
     
     # Initialize and start the status updater
-    status_updater = StatusUpdater(bot)
-    await status_updater.start()
+    if status_updater is None:
+        status_updater = StatusUpdater(bot)
+        await status_updater.start()
 
 async def resolve_user_id(user_id):
     """Resolve a user ID to a username"""
@@ -320,8 +343,11 @@ async def on_message(message):
             await claude2_cog.handle_message(message, full_content)
         else:
             # If Claude2 is not available, use a random cog
-            cog = random.choice(loaded_cogs)
-            await cog.handle_message(message, full_content)
+            if loaded_cogs:  # Only try to use a random cog if there are loaded cogs
+                cog = random.choice(loaded_cogs)
+                await cog.handle_message(message, full_content)
+            else:
+                logging.error("No cogs available to handle message")
 
     # Mark message as processed
     processed_messages.add(message.id)

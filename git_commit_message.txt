@@ -1,8 +1,9 @@
-fix: simplify context handling to prevent duplication
+fix: resolve cog loading issues and prevent duplicates
 
-- Modify get_context_messages to only return latest summary
-- Remove message history from context to prevent duplication
-- Keep message storage for summary generation
-- Maintain all other functionality
+- Add cogs_setup_complete flag to prevent multiple setup attempts
+- Add unload_all_cogs() function to properly clean up before reloading
+- Add safety check for loaded_cogs before random selection
+- Prevent multiple status updater initializations
+- Improve error handling and logging for cog loading process
 
-This change prevents context glitches and message duplication in API calls.
+This fixes the "Extension already loaded" errors and ensures cogs are properly managed during reconnections.
