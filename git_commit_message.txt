@@ -1,3 +1,0 @@
-feat: add store parameter to API calls
-
-Added store=True parameter to both OpenRouter and OpenPipe API calls to enable request logging on their platforms. This applies to both streaming and non-streaming requests.
