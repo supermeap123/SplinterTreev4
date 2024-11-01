@@ -9,15 +9,15 @@ import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
 from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY, OPENPIPE_API_URL
-from openpipe import OpenAI
+from openai import AsyncOpenAI
 
 class API:
     def __init__(self):
         # Initialize aiohttp session
         self.session = aiohttp.ClientSession()
         
-        # Initialize OpenPipe client
-        self.openpipe_client = OpenAI(
+        # Initialize OpenPipe client using OpenAI SDK
+        self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
             base_url=OPENPIPE_API_URL
         )
