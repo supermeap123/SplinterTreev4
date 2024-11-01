@@ -1,8 +1,10 @@
-fix: improve message handling and API integration
+fix: Add missing generate_response method to BaseCog
 
-- Add message trigger checking to prevent all cogs from processing every message
-- Remove redundant on_message handlers from model cogs
-- Update trigger words to avoid overlaps between Claude models
-- Fix OpenPipe API integration by removing unsupported 'store' parameter
-- Make model names consistent with temperatures.json
-- Improve error handling and logging
+The generate_response method was missing from BaseCog, causing response generation to fail. Added implementation that:
+- Gets message history for context
+- Formats system prompts with current context
+- Handles both text and image inputs
+- Supports streaming responses
+- Works with both OpenRouter and OpenPipe providers
+
+This fix ensures all cogs inheriting from BaseCog can properly generate responses without needing to implement their own generate_response method.

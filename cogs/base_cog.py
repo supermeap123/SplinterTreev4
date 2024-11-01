@@ -76,63 +76,81 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    async def generate_response(self, message):
+        """Generate a response using the API client"""
+        try:
+            # Get message history
+            history = await get_message_history(message.channel.id)
+            
+            # Format system prompt with context
+            tz = ZoneInfo("America/Los_Angeles")
+            current_time = datetime.now(tz).strftime("%I:%M %p")
+            
+            system_prompt = self.raw_prompt.format(
+                MODEL_ID=self.name,
+                USERNAME=message.author.display_name,
+                DISCORD_USER_ID=message.author.id,
+                TIME=current_time,
+                TZ="Pacific Time",
+                SERVER_NAME=message.guild.name if message.guild else "Direct Message",
+                CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
+            )
+
+            # Construct messages array
+            messages = [{"role": "system", "content": system_prompt}]
+
+            # Add history messages if available
+            if history:
+                for entry in history[-5:]:  # Include last 5 messages for context
+                    role = "assistant" if entry["is_bot"] else "user"
+                    messages.append({"role": role, "content": entry["content"]})
+
+            # Process current message content and any images
+            current_content = message.content
+            if message.attachments and self.supports_vision:
+                image_attachments = [
+                    att for att in message.attachments 
+                    if att.content_type and att.content_type.startswith('image/')
+                ]
+                
+                if image_attachments:
+                    # For vision models, format message with both text and images
+                    content_parts = []
+                    if current_content:
+                        content_parts.append({
+                            "type": "text",
+                            "text": current_content
+                        })
+                    
+                    for attachment in image_attachments:
+                        content_parts.append({
+                            "type": "image_url",
+                            "image_url": {"url": attachment.url}
+                        })
+                    
+                    messages.append({"role": "user", "content": content_parts})
+                else:
+                    messages.append({"role": "user", "content": current_content})
+            else:
+                messages.append({"role": "user", "content": current_content})
+
+            # Call appropriate API based on provider
+            if self.provider == "openrouter":
+                return await self.api_client.call_openrouter(messages, self.model, stream=True)
+            elif self.provider == "openpipe":
+                return await self.api_client.call_openpipe(messages, self.model, stream=True)
+            else:
+                raise ValueError(f"Unsupported provider: {self.provider}")
+
+        except Exception as e:
+            logging.error(f"[{self.name}] Error generating response: {str(e)}")
+            raise
+
     def is_triggered(self, message_content: str) -> bool:
         """Check if this cog should respond to the message"""
         msg_content = message_content.lower()
         # Check if message contains any of the trigger words
         return any(trigger.lower() in msg_content for trigger in self.trigger_words)
-
-    async def generate_image_description(self, image_url):
-        """Generate a description for the given image URL"""
-        try:
-            logging.info(f"[{self.name}] Starting image description generation for URL: {image_url}")
-            
-            # Construct messages for vision API with specific prompt for alt text
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are a vision model specialized in providing detailed, accurate, and concise alt text descriptions of images. Focus on the key visual elements, context, and any text present in the image. Your descriptions should be informative yet concise, suitable for screen readers."
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Please provide a concise but detailed alt text description of this image:"
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_url
-                            }
-                        }
-                    ]
-                }
-            ]
-            
-            logging.debug(f"[{self.name}] Constructed vision API messages: {messages}")
-            logging.info(f"[{self.name}] Calling OpenRouter API for vision processing")
-            
-            # Call API with vision capabilities
-            response_data = await self.api_client.call_openrouter(messages, self.model, temperature=0.3)
-            logging.debug(f"[{self.name}] Received API response: {response_data}")
-            
-            if response_data and 'choices' in response_data and len(response_data['choices']) > 0:
-                description = response_data['choices'][0]['message']['content']
-                # Clean up the description - remove any markdown or quotes
-                description = description.strip('`"\' ')
-                if description.lower().startswith('alt text:'):
-                    description = description[8:].strip()
-                logging.info(f"[{self.name}] Generated alt text: {description[:100]}...")
-                return description
-            else:
-                logging.error(f"[{self.name}] No description generated for image - API response invalid")
-                logging.debug(f"[{self.name}] Full API response: {response_data}")
-                return None
-                
-        except Exception as e:
-            logging.error(f"[{self.name}] Error generating image description: {str(e)}", exc_info=True)
-            return None
 
     async def handle_message(self, message, full_content=None):
         """Handle incoming messages"""
