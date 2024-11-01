@@ -192,7 +192,7 @@ class API:
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
-        url = "https://api.openpipe.ai/v1/chat/completions"
+        url = "https://api.openpipe.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {OPENPIPE_API_KEY}",
             "Content-Type": "application/json"
@@ -270,7 +270,7 @@ class API:
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
-                url = "https://api.openpipe.ai/v1/chat/completions"
+                url = "https://api.openpipe.ai/api/v1/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {OPENPIPE_API_KEY}",
                     "Content-Type": "application/json"

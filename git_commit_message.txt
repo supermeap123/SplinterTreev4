@@ -1,5 +1,3 @@
-fix: update BaseCog and Sydney inference
+fix: update OpenPipe API base URL to include /api segment
 
-- Modified BaseCog.handle_message to accept optional full_content parameter
-- Fixed Sydney inference by returning response stream directly instead of accumulating chunks
-- Maintains proper chat completions object handling for streaming responses
+Updated the OpenPipe API base URL from https://api.openpipe.ai/v1/chat/completions to https://api.openpipe.ai/api/v1/chat/completions to match the official API endpoint structure.
