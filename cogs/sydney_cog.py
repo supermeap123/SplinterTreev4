@@ -35,7 +35,7 @@ class SydneyCog(BaseCog):
 
             # Get last 50 messages from database
             channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_message_history(channel_id, limit=50)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
             messages.extend(history_messages)
 
             # Add current message with any image descriptions
