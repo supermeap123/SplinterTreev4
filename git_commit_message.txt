@@ -1,5 +1,5 @@
-fix: update BaseCog.handle_message to accept full_content parameter
+fix: update BaseCog and Sydney inference
 
-- Modified handle_message method signature to accept optional full_content parameter
-- Fixes TypeError when handle_message was called with 3 arguments from bot.py
-- Maintains backward compatibility with existing cog implementations
+- Modified BaseCog.handle_message to accept optional full_content parameter
+- Fixed Sydney inference by returning response stream directly instead of accumulating chunks
+- Maintains proper chat completions object handling for streaming responses

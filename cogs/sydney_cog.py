@@ -80,18 +80,13 @@ class SydneyCog(BaseCog):
             # Record start time
             requested_at = int(time.time() * 1000)
 
-            # Call OpenPipe API
-            response_data = await self.api_client.call_openpipe(**req_payload)
-
-            # Accumulate response chunks
-            full_response = ""
-            async for chunk in response_data:
-                full_response += chunk
+            # Call OpenPipe API and return the stream directly
+            response_stream = await self.api_client.call_openpipe(**req_payload)
 
             # Record end time
             received_at = int(time.time() * 1000)
 
-            # Prepare response payload (this will be a generator for streaming responses)
+            # Prepare response payload
             resp_payload = {
                 "choices": [{
                     "message": {
@@ -110,7 +105,7 @@ class SydneyCog(BaseCog):
                 metadata={"prompt_id": str(message.id)}
             )
 
-            return full_response
+            return response_stream
 
         except Exception as e:
             logging.error(f"Error processing message for Sydney: {str(e)}")
