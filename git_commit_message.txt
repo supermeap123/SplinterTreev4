@@ -1,3 +1,3 @@
-fix: update OpenPipe API base URL to include /api segment
+fix: use OpenPipe client for API requests
 
-Updated the OpenPipe API base URL from https://api.openpipe.ai/v1/chat/completions to https://api.openpipe.ai/api/v1/chat/completions to match the official API endpoint structure.
+Changed the OpenPipe API implementation to use the initialized OpenPipe client instead of direct HTTP requests. This ensures proper authentication and request handling through the official SDK.
