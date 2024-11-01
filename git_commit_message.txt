@@ -1,9 +1,7 @@
-Update OpenPipe API usage and improve error handling
+Implement OpenPipe request reporting in context cogs
 
-- Updated shared/api.py to use the latest OpenPipe API structure
-- Changed OpenPipe API call from chat.completions.create to completions
-- Updated response handling for both streaming and non-streaming requests
-- Improved error handling and logging in shared/api.py
-- Fixed context retrieval in sydney_cog.py
-- Upgraded OpenPipe library to version 4.32.0 in requirements.txt
-- Updated README.md with new OpenPipe version information
+- Added OpenPipe reporting functionality to BaseCog's generate_response method
+- Updated SydneyCog to include OpenPipe reporting in its overridden generate_response method
+- This change ensures that each message processed by context cogs is reported to OpenPipe for logging and potential future model training
+
+This implementation allows for better tracking and analysis of bot interactions, which can lead to improved model performance and more accurate responses in the future.

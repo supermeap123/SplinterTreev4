@@ -226,11 +226,44 @@ class BaseCog(commands.Cog):
             temperature = self.get_temperature(self.name)
             logging.debug(f"[{self.name}] Using temperature: {temperature}")
 
+            # Prepare request payload
+            req_payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "stream": True
+            }
+
+            # Record start time
+            requested_at = int(time.time() * 1000)
+
             # Call API based on provider with temperature and streaming
             if self.provider == "openrouter":
-                response_data = await api.call_openrouter(messages, self.model, temperature=temperature, stream=True)
+                response_data = await self.api_client.call_openrouter(**req_payload)
             else:  # openpipe
-                response_data = await api.call_openpipe(messages, self.model, temperature=temperature, stream=True)
+                response_data = await self.api_client.call_openpipe(**req_payload)
+
+            # Record end time
+            received_at = int(time.time() * 1000)
+
+            # Prepare response payload (this will be a generator for streaming responses)
+            resp_payload = {
+                "choices": [{
+                    "message": {
+                        "content": "Streaming response completed"
+                    }
+                }]
+            }
+
+            # Report to OpenPipe
+            await self.api_client.openpipe_client.report(
+                requested_at=requested_at,
+                received_at=received_at,
+                req_payload=req_payload,
+                resp_payload=resp_payload,
+                status_code=200,
+                metadata={"prompt_id": str(message.id)}
+            )
 
             return response_data
 
