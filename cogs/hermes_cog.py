@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
+from shared.utils import log_interaction, analyze_emotion, get_message_history
 import time
 
 class HermesCog(BaseCog):
@@ -14,7 +14,7 @@ class HermesCog(BaseCog):
             trigger_words=['hermes'],
             model="nousresearch/hermes-3-llama-3.1-405b:free",
             provider="openrouter",
-            prompt_file="consolidated_prompts",
+            prompt_file="hermes",
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
@@ -30,17 +30,38 @@ class HermesCog(BaseCog):
     async def generate_response(self, message):
         """Generate a response using OpenRouter"""
         try:
-            # Use system prompt directly from base_cog
-            messages = [{"role": "system", "content": self.raw_prompt}]
+            # Format context variables
+            tz = "Pacific Time"
+            current_time = time.strftime("%I:%M %p", time.localtime())
+            context = {
+                "MODEL_ID": self.name,
+                "USERNAME": message.author.display_name,
+                "DISCORD_USER_ID": message.author.id,
+                "TIME": current_time,
+                "TZ": tz,
+                "SERVER_NAME": message.guild.name if message.guild else "Direct Message",
+                "CHANNEL_NAME": message.channel.name if hasattr(message.channel, 'name') else "DM"
+            }
 
-            # Add current message only
+            # Format system prompt with context
+            system_prompt = self.raw_prompt.format(**context)
+            messages = [{"role": "system", "content": system_prompt}]
+
+            # Get message history
+            history = await get_message_history(message.channel.id)
+            if history:
+                for entry in history[-5:]:  # Include last 5 messages for context
+                    content = entry["content"].format(**context)
+                    messages.append({"role": entry["role"], "content": content})
+
+            # Add current message
             messages.append({
                 "role": "user",
                 "content": message.content
             })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
-            logging.debug(f"[{self.name}] System prompt: {self.raw_prompt}")
+            logging.debug(f"[{self.name}] System prompt: {system_prompt}")
 
             # Get temperature from base_cog
             temperature = self.get_temperature()

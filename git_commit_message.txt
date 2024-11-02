@@ -1,11 +1,9 @@
-fix: update context commands with backward compatibility
+fix: improve Hermes message handling
 
-- Add slash command versions of all context commands
-- Maintain backward compatibility with legacy !summarize commands
-- Add proper DM channel permission handling for both command types
-- Add proper permission checks for guild channels
-- Add command descriptions and parameter descriptions
-- Fix system prompt variable rendering in base_cog.py
-- Add shared logic handler for summarize commands
+Updated Hermes cog to properly handle message history and context variables:
+- Added proper context variable formatting for system prompts
+- Included message history in API requests (last 5 messages)
+- Improved error logging for better debugging
+- Maintained compatibility with base cog functionality
 
-This allows users to use both slash commands and legacy commands while fixing permission issues.
+This should help resolve issues with Hermes not responding by ensuring it has proper context and message history.
