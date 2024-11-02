@@ -39,7 +39,7 @@ AVAILABLE_MODELS = {
         {'id': 'perplexity/sonar', 'name': 'Sonar', 'provider': 'perplexity'}
     ],
     'openpipe': [
-        {'id': 'sydney', 'name': 'Sydney', 'provider': 'openpipe'}
+        {'id': 'Sydney-Court', 'name': 'Sydney Court', 'provider': 'openpipe'}
     ]
 }
 
