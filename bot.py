@@ -152,7 +152,15 @@ async def setup_cogs():
     # Load context settings
     await load_context_settings()
 
-    # First load core cogs
+    # First load Llama32_3B cog since it's needed for summarization
+    try:
+        await bot.load_extension('cogs.llama32_3b_cog')
+        logging.info("Loaded Llama32_3B cog for summarization")
+    except Exception as e:
+        logging.error(f"Failed to load Llama32_3B cog: {str(e)}")
+        logging.error(traceback.format_exc())
+
+    # Then load core cogs
     core_cogs = ['settings_cog', 'context_cog', 'management_cog']
     for cog in core_cogs:
         try:
@@ -165,7 +173,7 @@ async def setup_cogs():
     # Then load all model cogs
     cogs_dir = os.path.join(BOT_DIR, 'cogs')
     for filename in os.listdir(cogs_dir):
-        if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']]:
+        if filename.endswith('_cog.py') and filename not in ['base_cog.py', 'llama32_3b_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']]:
             try:
                 module_name = filename[:-3]  # Remove .py
                 logging.debug(f"Attempting to load cog: {module_name}")

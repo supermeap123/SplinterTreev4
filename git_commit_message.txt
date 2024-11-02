@@ -1,5 +1,8 @@
-feat(claude2): add bot ID as trigger word
+fix(bot): ensure Llama32_3B cog loads before context_cog
 
-- Add '1270760587022041088' to Claude-2's trigger words
-- This allows the bot to respond when its ID is used in messages
-- Maintains existing triggers (mentions, splintertree keyword, etc.)
+- Modify cog loading order to load Llama32_3B first
+- This ensures the summarization model is available when context_cog initializes
+- Should fix "No summaries found" error by enabling summary generation
+
+The context_cog depends on Llama32_3B for generating summaries, so loading
+it first ensures proper initialization of the summarization functionality.
