@@ -4,6 +4,8 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion, get_message_history
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class HermesCog(BaseCog):
     def __init__(self, bot):
@@ -31,27 +33,27 @@ class HermesCog(BaseCog):
         """Generate a response using OpenRouter"""
         try:
             # Format context variables
-            tz = "Pacific Time"
-            current_time = time.strftime("%I:%M %p", time.localtime())
+            tz = ZoneInfo("America/Los_Angeles")
+            current_time = datetime.now(tz).strftime("%I:%M %p")
             context = {
                 "MODEL_ID": self.name,
                 "USERNAME": message.author.display_name,
                 "DISCORD_USER_ID": message.author.id,
                 "TIME": current_time,
-                "TZ": tz,
+                "TZ": "Pacific Time",
                 "SERVER_NAME": message.guild.name if message.guild else "Direct Message",
                 "CHANNEL_NAME": message.channel.name if hasattr(message.channel, 'name') else "DM"
             }
 
-            # Format system prompt with context
-            system_prompt = self.raw_prompt.format(**context)
-            messages = [{"role": "system", "content": system_prompt}]
+            # Format system prompt with variables
+            formatted_prompt = self.format_message_content(self.raw_prompt, context)
+            messages = [{"role": "system", "content": formatted_prompt}]
 
             # Get message history
             history = await get_message_history(message.channel.id)
             if history:
                 for entry in history[-5:]:  # Include last 5 messages for context
-                    content = entry["content"].format(**context)
+                    content = self.format_message_content(entry["content"], context)
                     messages.append({"role": entry["role"], "content": content})
 
             # Add current message
@@ -61,7 +63,7 @@ class HermesCog(BaseCog):
             })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
-            logging.debug(f"[{self.name}] System prompt: {system_prompt}")
+            logging.debug(f"[{self.name}] System prompt: {formatted_prompt}")
 
             # Get temperature from base_cog
             temperature = self.get_temperature()

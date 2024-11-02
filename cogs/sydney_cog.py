@@ -30,8 +30,22 @@ class SydneyCog(BaseCog):
     async def generate_response(self, message):
         """Generate a response using OpenPipe"""
         try:
-            # Use system prompt directly from base_cog
-            messages = [{"role": "system", "content": self.raw_prompt}]
+            # Format context variables
+            tz = ZoneInfo("America/Los_Angeles")
+            current_time = datetime.now(tz).strftime("%I:%M %p")
+            context = {
+                "MODEL_ID": self.name,
+                "USERNAME": message.author.display_name,
+                "DISCORD_USER_ID": message.author.id,
+                "TIME": current_time,
+                "TZ": "Pacific Time",
+                "SERVER_NAME": message.guild.name if message.guild else "Direct Message",
+                "CHANNEL_NAME": message.channel.name if hasattr(message.channel, 'name') else "DM"
+            }
+
+            # Format system prompt with variables
+            formatted_prompt = self.format_message_content(self.raw_prompt, context)
+            messages = [{"role": "system", "content": formatted_prompt}]
 
             # Add current message with any image descriptions
             if message.attachments:
@@ -57,7 +71,7 @@ class SydneyCog(BaseCog):
                 })
 
             logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
-            logging.debug(f"[Sydney] System prompt: {self.raw_prompt}")
+            logging.debug(f"[Sydney] System prompt: {formatted_prompt}")
 
             # Get temperature from base_cog
             temperature = self.get_temperature()

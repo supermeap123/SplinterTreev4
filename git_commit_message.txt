@@ -1,9 +1,0 @@
-fix: correct OpenRouter API headers handling
-
-The previous fix broke OpenRouter by trying to pass headers as a parameter to AsyncCompletions.create(). Instead:
-1. Moved headers to aiohttp.ClientSession initialization
-2. Removed headers from individual API calls
-3. Simplified API endpoint handling
-4. Improved error logging
-
-This should properly fix the OpenRouter integration while maintaining all required headers.
