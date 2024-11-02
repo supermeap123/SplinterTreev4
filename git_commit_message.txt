@@ -1,10 +1,8 @@
-fix: enhance API logging for OpenRouter requests
+fix: correct async generator syntax in API
 
-Added detailed logging for OpenRouter API requests to help diagnose why Hermes returns null:
-- Added request data logging before API calls
-- Added response tracking in streaming mode
-- Added error logging with full request details
-- Improved error handling and reporting
-- Added null response detection in streaming mode
+Fixed SyntaxError in api.py where we were trying to return None from async generators. In Python, async generators (functions that use 'yield') cannot use 'return value'. Changed to:
+- Yield empty string instead of returning None for no content
+- Yield error messages instead of raising exceptions in streaming mode
+- Improved error handling and logging for both OpenRouter and OpenPipe requests
 
-This will help identify exactly where and why the Hermes requests are failing.
+This should resolve the cog loading errors and allow all models to function properly.

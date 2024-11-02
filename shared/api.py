@@ -51,7 +51,6 @@ class API:
         """Stream responses from OpenRouter API"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
         logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
-        logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         try:
             # Create a new client instance with OpenRouter configuration
@@ -60,22 +59,16 @@ class API:
                 base_url="https://openrouter.ai/api/v1"
             )
             
-            # Log the full request details
-            request_data = {
-                "model": model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "stream": True
-            }
-            logging.info(f"[API] OpenRouter request data: {json.dumps(request_data, indent=2)}")
-            
-            stream = await openrouter_client.chat.completions.create(**request_data)
+            stream = await openrouter_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature if temperature is not None else 1,
+                max_tokens=max_tokens,
+                stream=True
+            )
             requested_at = int(time.time() * 1000)
             
-            # Track if we've received any content
             has_content = False
-            
             async for chunk in stream:
                 if chunk.choices[0].delta.content:
                     has_content = True
@@ -85,7 +78,7 @@ class API:
 
             if not has_content:
                 logging.error(f"[API] OpenRouter stream completed but no content was received for model {model}")
-                return None
+                yield ""  # Yield empty string instead of returning None
 
             # Log request to database after completion
             completion_obj = {
@@ -111,8 +104,8 @@ class API:
         except Exception as e:
             error_message = str(e)
             logging.error(f"[API] OpenRouter streaming error for model {model}: {error_message}")
-            logging.error(f"[API] Full request data that caused error: {json.dumps(request_data, indent=2)}")
-            raise Exception(f"OpenRouter API error: {error_message}")
+            logging.error(f"[API] Full request data that caused error: {json.dumps(messages, indent=2)}")
+            yield f"Error: {error_message}"  # Yield error message instead of raising
 
     @backoff.on_exception(
         backoff.expo,
@@ -228,11 +221,17 @@ class API:
             )
             requested_at = int(time.time() * 1000)
             
+            has_content = False
             async for chunk in stream:
                 if chunk.choices[0].delta.content:
+                    has_content = True
                     yield chunk.choices[0].delta.content
 
             received_at = int(time.time() * 1000)
+
+            if not has_content:
+                logging.error(f"[API] OpenPipe stream completed but no content was received for model {model}")
+                yield ""  # Yield empty string instead of returning None
 
             # Log request to database after completion
             completion_obj = {
@@ -258,7 +257,7 @@ class API:
         except Exception as e:
             error_message = str(e)
             logging.error(f"[API] OpenPipe streaming error: {error_message}")
-            raise Exception(f"OpenPipe API error: {error_message}")
+            yield f"Error: {error_message}"  # Yield error message instead of raising
 
     @backoff.on_exception(
         backoff.expo,
