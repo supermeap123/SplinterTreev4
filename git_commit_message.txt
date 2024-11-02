@@ -1,6 +1,6 @@
 Add web UI for testing bot features
 
-- Create Flask web application for testing bot features
-- Add web UI with model selection and chat interface
-- Update Procfile to support both Discord bot and web UI
-- Add Flask and gunicorn to requirements.txt
+- Create web interface for testing all available models
+- Add async support with Quart and Hypercorn
+- Configure for Heroku deployment with both Discord bot and web UI
+- Update Procfile to support both worker and web processes
