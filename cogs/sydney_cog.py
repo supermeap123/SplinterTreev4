@@ -4,6 +4,8 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class SydneyCog(BaseCog):
     def __init__(self, bot):

@@ -1,0 +1,27 @@
+fix: properly resolve variables in all cog system prompts
+
+- Updated all cogs to properly format system prompts with context variables
+- Added proper variable resolution for {MODEL_ID}, {USERNAME}, {DISCORD_USER_ID}, {TIME}, {TZ}, {SERVER_NAME}, and {CHANNEL_NAME}
+- Fixed issue where raw prompts were being used directly without variable substitution
+- Added debug logging for formatted prompts
+- Standardized timezone handling using ZoneInfo across all cogs
+- Added missing datetime and ZoneInfo imports where needed
+- Updated the following cogs:
+  - sydney_cog.py
+  - ministral_cog.py
+  - grok_cog.py
+  - claude3opus_cog.py
+  - claude3sonnet_cog.py
+  - claude2_cog.py
+  - gemini_cog.py
+  - mythomax_cog.py
+  - nemotron_cog.py
+  - noromaid_cog.py
+  - o1mini_cog.py
+  - openchat_cog.py
+  - rplus_cog.py
+  - sonar_cog.py
+  - moa_cog.py
+  - hermes_cog.py
+
+This ensures that system prompts properly include contextual information like usernames, server names, and current time rather than showing raw variable placeholders. All cogs now have consistent timezone handling using ZoneInfo.
