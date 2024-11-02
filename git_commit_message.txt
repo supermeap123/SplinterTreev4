@@ -1,9 +1,10 @@
-fix: improve Hermes message handling
+fix: enhance API logging for OpenRouter requests
 
-Updated Hermes cog to properly handle message history and context variables:
-- Added proper context variable formatting for system prompts
-- Included message history in API requests (last 5 messages)
-- Improved error logging for better debugging
-- Maintained compatibility with base cog functionality
+Added detailed logging for OpenRouter API requests to help diagnose why Hermes returns null:
+- Added request data logging before API calls
+- Added response tracking in streaming mode
+- Added error logging with full request details
+- Improved error handling and reporting
+- Added null response detection in streaming mode
 
-This should help resolve issues with Hermes not responding by ensuring it has proper context and message history.
+This will help identify exactly where and why the Hermes requests are failing.

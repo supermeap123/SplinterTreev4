@@ -51,6 +51,7 @@ class API:
         """Stream responses from OpenRouter API"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
         logging.debug(f"[API] Request messages: {json.dumps(messages, indent=2)}")
+        logging.debug(f"[API] Temperature: {temperature}, Max tokens: {max_tokens}")
         
         try:
             # Create a new client instance with OpenRouter configuration
@@ -59,20 +60,32 @@ class API:
                 base_url="https://openrouter.ai/api/v1"
             )
             
-            stream = await openrouter_client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature if temperature is not None else 1,
-                max_tokens=max_tokens,
-                stream=True
-            )
+            # Log the full request details
+            request_data = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": True
+            }
+            logging.info(f"[API] OpenRouter request data: {json.dumps(request_data, indent=2)}")
+            
+            stream = await openrouter_client.chat.completions.create(**request_data)
             requested_at = int(time.time() * 1000)
+            
+            # Track if we've received any content
+            has_content = False
             
             async for chunk in stream:
                 if chunk.choices[0].delta.content:
+                    has_content = True
                     yield chunk.choices[0].delta.content
 
             received_at = int(time.time() * 1000)
+
+            if not has_content:
+                logging.error(f"[API] OpenRouter stream completed but no content was received for model {model}")
+                return None
 
             # Log request to database after completion
             completion_obj = {
@@ -97,7 +110,8 @@ class API:
             )
         except Exception as e:
             error_message = str(e)
-            logging.error(f"[API] OpenRouter streaming error: {error_message}")
+            logging.error(f"[API] OpenRouter streaming error for model {model}: {error_message}")
+            logging.error(f"[API] Full request data that caused error: {json.dumps(request_data, indent=2)}")
             raise Exception(f"OpenRouter API error: {error_message}")
 
     @backoff.on_exception(
@@ -146,14 +160,18 @@ class API:
                     base_url="https://openrouter.ai/api/v1"
                 )
                 
+                # Log the full request details
+                request_data = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
+                }
+                logging.info(f"[API] OpenRouter non-streaming request data: {json.dumps(request_data, indent=2)}")
+                
                 # Non-streaming request
                 requested_at = int(time.time() * 1000)
-                response = await openrouter_client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
+                response = await openrouter_client.chat.completions.create(**request_data)
                 received_at = int(time.time() * 1000)
 
                 result = {
@@ -168,12 +186,7 @@ class API:
                 await self.report(
                     requested_at=requested_at,
                     received_at=received_at,
-                    req_payload={
-                        "model": model,
-                        "messages": messages,
-                        "temperature": temperature,
-                        "max_tokens": max_tokens
-                    },
+                    req_payload=request_data,
                     resp_payload=result,
                     status_code=200,
                     tags={"source": "openrouter"}
