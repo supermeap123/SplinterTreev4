@@ -1,8 +1,19 @@
-fix(bot): ensure Llama32_3B cog loads before context_cog
+fix: implement dynamic context window settings with backwards compatibility
 
-- Modify cog loading order to load Llama32_3B first
-- This ensures the summarization model is available when context_cog initializes
-- Should fix "No summaries found" error by enabling summary generation
+- Add slash commands for managing context window size per channel
+- Add legacy command support (!setcontext, !getcontext, !resetcontext)
+- Add persistent storage for context window settings
+- Update help documentation to reflect both slash and legacy commands
+- Fix default context window behavior
+- Add admin checks for context window management
 
-The context_cog depends on Llama32_3B for generating summaries, so loading
-it first ensures proper initialization of the summarization functionality.
+The following commands are now available:
+Slash commands:
+/set_context_window - Set context window size (1-50 messages)
+/get_context_window - View current context window size
+/reset_context_window - Reset to default size (10 messages)
+
+Legacy commands:
+!setcontext - Set context window size (1-50 messages)
+!getcontext - View current context window size
+!resetcontext - Reset to default size (10 messages)

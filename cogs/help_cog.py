@@ -89,7 +89,7 @@ class HelpCog(commands.Cog):
 
 **💡 Context & Memory Features:**
 1. **Conversation Memory**
-   • Remembers up to 100 messages by default (adjustable per channel)
+   • Remembers up to 10 messages by default (adjustable per channel)
    • Automatically maintains conversation flow and references
    • Includes timestamps and user information for better context
 
@@ -120,24 +120,24 @@ class HelpCog(commands.Cog):
 **🛠️ Available Commands:**
 
 *General Commands:*
-• `splintertree_help` or `help` - Show this help message
-• `!listmodels` - Show available models (simple list)
-• `!list_agents` - Show detailed agent information
-• `!uptime` - Show bot uptime
+• `/help` or `splintertree_help` - Show this help message
+• `/listmodels` or `!listmodels` - Show available models (simple list)
+• `/list_agents` - Show detailed agent information
+• `/uptime` - Show bot uptime
 
 *Context & Memory Commands:*
-• `!setcontext <size>` - Set context window size (Admin)
-• `!getcontext` - View current context settings
-• `!resetcontext` - Reset to default context size (Admin)
-• `!clearcontext [hours]` - Clear history, optional hours (Admin)
-• `!summarize` - Force create channel summary (Admin)
-• `!getsummaries [hours]` - View summaries, default 24h
-• `!clearsummaries [hours]` - Clear summaries, optional hours (Admin)
+• `/set_context_window <size>` or `!setcontext <size>` - Set context window size (Admin)
+• `/get_context_window` or `!getcontext` - View current context settings
+• `/reset_context_window` or `!resetcontext` - Reset to default context size (Admin)
+• `!getcontext` - View recent messages in context
+• `/summarize` or `!summarize` - Force create channel summary (Admin)
+• `/getsummaries [hours]` or `!getsummaries [hours]` - View summaries, default 24h
+• `/clearsummaries [hours]` or `!clearsummaries [hours]` - Clear summaries, optional hours (Admin)
 
 *Agent Customization:*
-• `!set_system_prompt <agent> <prompt>` - Set custom prompt
-• `!reset_system_prompt <agent>` - Reset to default prompt
-• `!clone_agent <agent> <new_name> <system_prompt>` - Create custom agent (Admin)
+• `/set_system_prompt <agent> <prompt>` - Set custom prompt
+• `/reset_system_prompt <agent>` - Reset to default prompt
+• `/clone_agent <agent> <new_name> <system_prompt>` - Create custom agent (Admin)
 
 **🔧 System Prompt Variables:**
 When setting custom prompts, you can use:
