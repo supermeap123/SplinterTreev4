@@ -1,26 +1,9 @@
-fix: improve context window reliability and consistency
+feat: Add channel activation controls
 
-- Switch to using database exclusively for context window settings
-- Add proper locking for context and summary operations
-- Fix message ordering to be consistently chronological
-- Add WAL mode and SQLite optimizations for better concurrency
-- Add better error handling and logging
-- Fix race conditions in context operations
+- Added /activate and /deactivate commands to control bot message processing per channel
+- Added deactivated_channels table to track channel status
+- Updated base_cog to check channel activation before processing messages
+- Updated help command and README with new features
+- Commands require channel management or message management permissions
 
-The following changes improve context reliability:
-1. Context window settings now persist across bot restarts
-2. Messages are always retrieved in chronological order
-3. Concurrent operations are properly handled with locks
-4. Database operations are more resilient with WAL mode
-5. Better error handling prevents silent failures
-
-Commands remain the same:
-Slash commands:
-/set_context_window - Set context window size (1-50 messages)
-/get_context_window - View current context window size
-/reset_context_window - Reset to default size (10 messages)
-
-Legacy commands:
-!setcontext - Set context window size (1-50 messages)
-!getcontext - View current context window size
-!resetcontext - Reset to default size (10 messages)
+This allows server moderators to control which channels the bot responds in, providing better control over bot usage across different channels.

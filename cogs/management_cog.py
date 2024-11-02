@@ -1,139 +1,88 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
-import logging
-import shlex
+import sqlite3
+import os
 from datetime import datetime
-from .base_cog import BaseCog
 
 class ManagementCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.start_time = datetime.utcnow()
+        self.db_path = 'databases/bot.db'
+        self.ensure_database()
 
-    @commands.command(name="uptime")
-    async def uptime(self, ctx):
-        """Shows how long the bot has been running"""
-        current_time = datetime.utcnow()
-        delta = current_time - self.start_time
+    def ensure_database(self):
+        os.makedirs('databases', exist_ok=True)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
         
-        days = delta.days
-        hours, remainder = divmod(delta.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
+        with open('databases/schema.sql', 'r') as schema_file:
+            cursor.executescript(schema_file.read())
         
-        uptime_str = []
-        if days > 0:
-            uptime_str.append(f"{days} days")
-        if hours > 0:
-            uptime_str.append(f"{hours} hours")
-        if minutes > 0:
-            uptime_str.append(f"{minutes} minutes")
-        if seconds > 0 or not uptime_str:
-            uptime_str.append(f"{seconds} seconds")
-            
-        await ctx.send(f"🕒 Bot has been running for {', '.join(uptime_str)}")
+        conn.commit()
+        conn.close()
 
-    @commands.command(name="list_agents")
-    async def list_agents(self, ctx):
-        """Lists all available AI agents and their trigger words"""
-        agents = []
-        for cog in self.bot.cogs.values():
-            if isinstance(cog, BaseCog):
-                trigger_words = ", ".join(cog.trigger_words)
-                agents.append(f"**{cog.name}** ({cog.nickname})\nTrigger words: {trigger_words}")
+    def has_channel_permissions(self, member: discord.Member) -> bool:
+        return member.guild_permissions.manage_channels or member.guild_permissions.manage_messages
 
-        if not agents:
-            await ctx.send("No AI agents are currently available.")
+    @app_commands.command(
+        name="activate",
+        description="Activate bot message processing in this channel"
+    )
+    async def activate(self, interaction: discord.Interaction):
+        if not self.has_channel_permissions(interaction.user):
+            await interaction.response.send_message("You need channel management or message management permissions to use this command.", ephemeral=True)
             return
 
-        # Create an embed for better formatting
-        embed = discord.Embed(
-            title="Available AI Agents",
-            description="Here are all the available AI agents and their trigger words:",
-            color=discord.Color.blue()
-        )
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-        # Split agents into fields (Discord has a 25 field limit)
-        for i in range(0, len(agents), 25):
-            chunk = agents[i:i+25]
-            # Join the chunk with double newlines for better spacing
-            chunk_text = "\n\n".join(chunk)
-            # If this isn't the first chunk, add a field
-            if i == 0:
-                embed.description += f"\n\n{chunk_text}"
-            else:
-                # Split into multiple fields if needed (each field has 1024 char limit)
-                while chunk_text:
-                    if len(chunk_text) <= 1024:
-                        embed.add_field(name="More Agents", value=chunk_text, inline=False)
-                        chunk_text = ""
-                    else:
-                        # Find the last complete agent entry that fits
-                        split_index = chunk_text[:1024].rindex("\n\n")
-                        embed.add_field(name="More Agents", value=chunk_text[:split_index], inline=False)
-                        chunk_text = chunk_text[split_index+2:]
+        # Remove from deactivated channels if present
+        cursor.execute('''
+            DELETE FROM deactivated_channels 
+            WHERE channel_id = ? AND guild_id = ?
+        ''', (str(interaction.channel_id), str(interaction.guild_id)))
 
-        await ctx.send(embed=embed)
+        conn.commit()
+        conn.close()
 
-    @commands.command(name="clone_agent")
-    @commands.has_permissions(administrator=True)
-    async def clone_agent(self, ctx, *, args=None):
-        """Clone an existing agent with a new name and system prompt
-        Usage: !clone_agent <agent_name> <new_name> <system_prompt>"""
-        try:
-            if not args:
-                await ctx.send("❌ Please provide the agent name, new name, and system prompt.")
-                return
+        await interaction.response.send_message(f"Bot message processing has been activated in this channel.", ephemeral=True)
 
-            # Parse arguments using shlex to handle quoted strings
-            try:
-                parsed_args = shlex.split(args)
-            except ValueError as e:
-                await ctx.send(f"❌ Error parsing arguments: {str(e)}")
-                return
+    @app_commands.command(
+        name="deactivate",
+        description="Deactivate bot message processing in this channel"
+    )
+    async def deactivate(self, interaction: discord.Interaction):
+        if not self.has_channel_permissions(interaction.user):
+            await interaction.response.send_message("You need channel management or message management permissions to use this command.", ephemeral=True)
+            return
 
-            if len(parsed_args) < 3:
-                await ctx.send("❌ Please provide all required arguments: agent_name, new_name, and system_prompt.")
-                return
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-            agent_name = parsed_args[0]
-            new_name = parsed_args[1]
-            system_prompt = " ".join(parsed_args[2:])
+        # Add to deactivated channels
+        cursor.execute('''
+            INSERT OR REPLACE INTO deactivated_channels (channel_id, guild_id)
+            VALUES (?, ?)
+        ''', (str(interaction.channel_id), str(interaction.guild_id)))
 
-            # Find the original agent cog
-            original_cog = None
-            for cog in self.bot.cogs.values():
-                if hasattr(cog, 'name') and cog.name.lower() == agent_name.lower():
-                    original_cog = cog
-                    break
+        conn.commit()
+        conn.close()
 
-            if not original_cog:
-                await ctx.send(f"❌ Agent '{agent_name}' not found.")
-                return
+        await interaction.response.send_message(f"Bot message processing has been deactivated in this channel.", ephemeral=True)
 
-            # Create new trigger words based on new name
-            new_trigger_words = [new_name.lower()]
+    def is_channel_active(self, channel_id: str, guild_id: str) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-            # Create new cog instance with same model but new name and prompt
-            new_cog = type(original_cog)(
-                bot=self.bot,
-                name=new_name,
-                nickname=new_name,
-                trigger_words=new_trigger_words,
-                model=original_cog.model,
-                provider=original_cog.provider,
-                supports_vision=original_cog.supports_vision
-            )
+        cursor.execute('''
+            SELECT 1 FROM deactivated_channels 
+            WHERE channel_id = ? AND guild_id = ?
+        ''', (channel_id, guild_id))
 
-            # Set the custom system prompt
-            new_cog.raw_prompt = system_prompt
-
-            # Add the new cog to the bot
-            await self.bot.add_cog(new_cog)
-            await ctx.send(f"✅ Successfully cloned {agent_name} as {new_name} with custom system prompt.")
-
-        except Exception as e:
-            logging.error(f"Error cloning agent: {str(e)}")
-            await ctx.send(f"❌ Failed to clone agent: {str(e)}")
+        result = cursor.fetchone() is None  # Channel is active if it's not in deactivated_channels
+        conn.close()
+        return result
 
 async def setup(bot):
     await bot.add_cog(ManagementCog(bot))

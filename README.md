@@ -1,56 +1,111 @@
-# 🌳 Splintertree v4
+# Discord AI Bot
 
-A powerful Discord bot that provides access to multiple AI language models with advanced features like shared conversation context, image processing, and dynamic prompting.
+A Discord bot that provides access to various AI models through simple commands and mentions.
 
-## ✨ Features
+## Features
 
-### Core Features
-- **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
-- **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow
-- **Shared Context Database**: SQLite-based persistent conversation history shared between all models
-- **Universal Image Processing**: Automatic image description and analysis for all models, regardless of native vision support
-- **File Handling**: Support for text files and images
-- **Response Reroll**: Button to generate alternative responses
-- **Emotion Analysis**: Reactions based on message sentiment
-- **Status Updates**: Rotating status showing uptime, last interaction, and current model
-- **Dynamic System Prompts**: Customizable per-channel system prompts with variable support
-- **Agent Cloning**: Create custom variants of existing agents with unique system prompts
-- **PST Timezone Preference**: All time-related operations use Pacific Standard Time (PST) by default
-- **User ID Resolution**: Automatically resolves Discord user IDs to usernames in messages
-- **Claude-2 Default**: Prioritizes Claude-2 model when the bot is mentioned or "splintertree" keyword is used
-- **Attachment-Only Processing**: Handles messages containing only attachments (images, text files) without additional text
-- **Automatic Database Initialization**: Schema is automatically applied on bot startup
-- **Improved Error Handling and Logging**: Enhanced error reporting for better troubleshooting and maintenance
-- **OpenPipe Request Reporting**: Automatic logging of each message processed by context cogs to OpenPipe for analysis and potential model improvement
-- **Concise Summarization**: Llama 3.2 3B model provides clear, concise summaries and responses in 3 sentences or less
+- Multiple AI model support including Sydney, Claude, Gemini, GPT-4, and more
+- Adjustable response creativity via temperature setting
+- Conversation context management
+- Channel-specific activation controls
+- Web interface for monitoring (optional)
 
-### Special Capabilities
-- **Enhanced Vision Processing**: All models can now process and respond to images, with descriptions provided for non-vision models
-- **Context Management**: Per-channel message history with configurable window size
-- **Cross-Model Context**: Models can see and reference each other's responses
-- **File Processing**: Automatic content extraction from text files
-- **Dynamic Prompting**: Customizable system prompts per channel/server
-- **Response Filtering**: Llama 3.2 3B model helps filter and refine responses for clarity and appropriateness
+## Commands
 
-## 🤖 Available Models
+- **@Bot [message]** - Start a conversation with the bot by mentioning it
+- **/model [model_name]** - Change the AI model
+- **/temperature [0.0-2.0]** - Adjust response creativity
+- **/context clear** - Clear conversation history
+- **/context show** - Display current conversation history
+- **/activate** - Enable bot message processing in the current channel
+- **/deactivate** - Disable bot message processing in the current channel
+- **/help** - Show available commands and features
 
-### OpenRouter Models
-- **Claude-3 Opus**: State-of-the-art model with exceptional capabilities
-- **Claude-3 Sonnet**: Balanced performance and efficiency
-- **Claude-2**: Reliable general-purpose model
-- **Claude-1.1**: Legacy model for specific use cases
-- **Magnum**: High-performance 72B parameter model
-- **Gemini Pro**: Google's advanced model
-- **Mistral**: Efficient open-source model
-- **Llama-2**: Open-source model with vision capabilities
-- **Llama 3.2 3B**: Efficient model focused on concise summarization and response filtering
-- **NoroMaid-20B**: Advanced conversational model
-- **MythoMax-L2-13B**: Versatile language model
-- **Grok**: xAI's latest conversational model
-- **Hermes**: Specialized, less restrictive conversation model
-- **Sonar**: Enhanced context understanding
-- **Liquid**: Optimized for specific tasks
-- **O1-Mini**: Lightweight, efficient model
-- **MOA**: Mixture of Agents model based on GPT4o
+## Available Models
 
-[Rest of README content remains unchanged...]
+- sydney (default)
+- claude2
+- claude3opus
+- claude3sonnet
+- gemini
+- geminipro
+- gemma
+- grok
+- hermes
+- liquid
+- llama32_3b
+- llama32_11b
+- magnum
+- ministral
+- moa
+- mythomax
+- nemotron
+- noromaid
+- o1mini
+- openchat
+- rplus
+- sonar
+
+## Setup
+
+1. Clone the repository
+2. Install dependencies: `pip install -r requirements.txt`
+3. Copy `.env.example` to `.env` and fill in your credentials
+4. Run the bot: `python bot.py`
+
+### Environment Variables
+
+Required variables in `.env`:
+
+```
+DISCORD_TOKEN=your_discord_bot_token
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+GOOGLE_API_KEY=your_google_api_key
+```
+
+## Optional Web Interface
+
+To run the web interface:
+
+1. Set additional environment variables in `.env`:
+```
+WEB_USERNAME=your_username
+WEB_PASSWORD=your_password
+```
+
+2. Run the web server: `python run_web.py`
+
+## Permissions
+
+The bot requires the following permissions:
+- Read Messages/View Channels
+- Send Messages
+- Send Messages in Threads
+- Embed Links
+- Attach Files
+- Read Message History
+- Add Reactions
+
+Channel management commands (/activate, /deactivate) require users to have either:
+- Manage Channels permission
+- Manage Messages permission
+
+## Development
+
+- Written in Python using discord.py
+- Uses SQLite for data storage
+- Follows Discord API best practices
+- Includes error handling and rate limiting
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
