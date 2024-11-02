@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW
+from config import DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW
 import sqlite3
 import json
 import logging
@@ -19,17 +19,156 @@ class ContextCog(commands.Cog):
         self.summary_chunk_hours = 24  # Summarize every 24 hours of chat
         self.last_summary_check = {}  # Track last summary generation per channel
         self.summary_locks = {}  # Lock per channel for summary generation
+        self.context_locks = {}  # Lock per channel for context operations
         self.llama_cog = None  # Will be set when Llama cog is loaded
 
     def _setup_database(self):
         """Ensure database and tables exist"""
         try:
             with sqlite3.connect(self.db_path) as conn:
-                # Load and execute schema if needed
+                # Enable WAL mode for better concurrency
+                conn.execute("PRAGMA journal_mode=WAL")
+                conn.execute("PRAGMA synchronous=NORMAL")
+                conn.execute("PRAGMA busy_timeout=5000")
+                
+                # Load and execute schema
                 with open('databases/schema.sql', 'r') as f:
                     conn.executescript(f.read())
         except Exception as e:
             logging.error(f"Failed to setup database: {str(e)}")
+            raise
+
+    def get_context_window_size(self, channel_id: str) -> int:
+        """Get context window size from database"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT window_size 
+                    FROM context_windows 
+                    WHERE channel_id = ?
+                """, (channel_id,))
+                result = cursor.fetchone()
+                return result[0] if result else DEFAULT_CONTEXT_WINDOW
+        except Exception as e:
+            logging.error(f"Failed to get context window size: {str(e)}")
+            return DEFAULT_CONTEXT_WINDOW
+
+    def set_context_window_size(self, channel_id: str, size: int) -> bool:
+        """Set context window size in database"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT OR REPLACE INTO context_windows (channel_id, window_size)
+                    VALUES (?, ?)
+                """, (channel_id, size))
+                conn.commit()
+                return True
+        except Exception as e:
+            logging.error(f"Failed to set context window size: {str(e)}")
+            return False
+
+    async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
+        """Get conversation context for a channel"""
+        # Get or create lock for this channel
+        if channel_id not in self.context_locks:
+            self.context_locks[channel_id] = asyncio.Lock()
+
+        async with self.context_locks[channel_id]:
+            try:
+                if limit is None:
+                    limit = self.get_context_window_size(channel_id)
+                
+                limit = min(limit, MAX_CONTEXT_WINDOW)  # Ensure we don't exceed maximum
+
+                with sqlite3.connect(self.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.cursor()
+
+                    # Get the latest summary first
+                    cursor.execute("""
+                        SELECT summary, end_timestamp
+                        FROM chat_summaries
+                        WHERE channel_id = ?
+                        ORDER BY end_timestamp DESC
+                        LIMIT 1
+                    """, (channel_id,))
+                    summary_row = cursor.fetchone()
+
+                    context = []
+                    
+                    # Add summary if available
+                    if summary_row:
+                        context.append({
+                            "role": "system",
+                            "content": f"Previous conversation summary: {summary_row['summary']}"
+                        })
+                        
+                        # Get messages after the summary in chronological order
+                        cursor.execute("""
+                            SELECT timestamp, user_id, content, is_assistant, emotion
+                            FROM messages
+                            WHERE channel_id = ? AND timestamp > ?
+                            ORDER BY timestamp ASC
+                            LIMIT ?
+                        """, (channel_id, summary_row['end_timestamp'], limit))
+                    else:
+                        # If no summary, just get recent messages in chronological order
+                        cursor.execute("""
+                            SELECT timestamp, user_id, content, is_assistant, emotion
+                            FROM messages
+                            WHERE channel_id = ?
+                            ORDER BY timestamp ASC
+                            LIMIT ?
+                        """, (channel_id, limit))
+
+                    messages = cursor.fetchall()
+                    
+                    # Add messages to context (already in chronological order)
+                    for msg in messages:
+                        role = "assistant" if msg['is_assistant'] else "user"
+                        content = msg['content']
+                        if msg['emotion'] and not msg['is_assistant']:
+                            content = f"[Emotion: {msg['emotion']}] {content}"
+                        
+                        context.append({
+                            "role": role,
+                            "content": content
+                        })
+
+                    return context
+
+            except Exception as e:
+                logging.error(f"Failed to get context messages: {str(e)}")
+                return []
+
+    async def add_message_to_context(self, channel_id: str, guild_id: Optional[str], 
+                                   user_id: str, content: str, is_assistant: bool,
+                                   persona_name: Optional[str] = None, 
+                                   emotion: Optional[str] = None) -> bool:
+        """Add a new message to the conversation context"""
+        # Get or create lock for this channel
+        if channel_id not in self.context_locks:
+            self.context_locks[channel_id] = asyncio.Lock()
+
+        async with self.context_locks[channel_id]:
+            try:
+                timestamp = datetime.now().isoformat()
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO messages (
+                            channel_id, guild_id, user_id, persona_name, 
+                            content, is_assistant, emotion, timestamp
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (channel_id, guild_id, user_id, persona_name, 
+                          content, is_assistant, emotion, timestamp))
+                    conn.commit()
+                    return True
+            except Exception as e:
+                logging.error(f"Failed to add message to context: {str(e)}")
+                return False
 
     @backoff.on_exception(
         backoff.expo,
@@ -83,97 +222,6 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to generate summary: {str(e)}")
             return f"Error generating summary: {str(e)}"
-
-    async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
-        """Get conversation context for a channel"""
-        try:
-            if limit is None:
-                limit = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
-            
-            limit = min(limit, MAX_CONTEXT_WINDOW)  # Ensure we don't exceed maximum
-
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-
-                # Get the latest summary first
-                cursor.execute("""
-                    SELECT summary, end_timestamp
-                    FROM chat_summaries
-                    WHERE channel_id = ?
-                    ORDER BY end_timestamp DESC
-                    LIMIT 1
-                """, (channel_id,))
-                summary_row = cursor.fetchone()
-
-                context = []
-                
-                # Add summary if available
-                if summary_row:
-                    context.append({
-                        "role": "system",
-                        "content": f"Previous conversation summary: {summary_row['summary']}"
-                    })
-                    
-                    # Get messages after the summary
-                    cursor.execute("""
-                        SELECT timestamp, user_id, content, is_assistant, emotion
-                        FROM messages
-                        WHERE channel_id = ? AND timestamp > ?
-                        ORDER BY timestamp DESC
-                        LIMIT ?
-                    """, (channel_id, summary_row['end_timestamp'], limit))
-                else:
-                    # If no summary, just get recent messages
-                    cursor.execute("""
-                        SELECT timestamp, user_id, content, is_assistant, emotion
-                        FROM messages
-                        WHERE channel_id = ?
-                        ORDER BY timestamp DESC
-                        LIMIT ?
-                    """, (channel_id, limit))
-
-                messages = cursor.fetchall()
-                
-                # Add messages to context in chronological order
-                for msg in reversed(messages):
-                    role = "assistant" if msg['is_assistant'] else "user"
-                    content = msg['content']
-                    if msg['emotion'] and not msg['is_assistant']:
-                        content = f"[Emotion: {msg['emotion']}] {content}"
-                    
-                    context.append({
-                        "role": role,
-                        "content": content
-                    })
-
-                return context
-
-        except Exception as e:
-            logging.error(f"Failed to get context messages: {str(e)}")
-            return []
-
-    async def add_message_to_context(self, channel_id: str, guild_id: Optional[str], 
-                                   user_id: str, content: str, is_assistant: bool,
-                                   persona_name: Optional[str] = None, 
-                                   emotion: Optional[str] = None) -> bool:
-        """Add a new message to the conversation context"""
-        try:
-            timestamp = datetime.now().isoformat()
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO messages (
-                        channel_id, guild_id, user_id, persona_name, 
-                        content, is_assistant, emotion, timestamp
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (channel_id, guild_id, user_id, persona_name, 
-                      content, is_assistant, emotion, timestamp))
-                conn.commit()
-                return True
-        except Exception as e:
-            logging.error(f"Failed to add message to context: {str(e)}")
-            return False
 
     async def _check_and_create_summary(self, channel_id: str):
         """Check if we need to create a new summary and create it if necessary"""
@@ -274,8 +322,8 @@ class ContextCog(commands.Cog):
         """Get current context window size and recent messages"""
         channel_id = str(ctx.channel.id)
         try:
-            # Get current context window size
-            window_size = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+            # Get current context window size from database
+            window_size = self.get_context_window_size(channel_id)
             
             # Get recent messages
             context = await self.get_context_messages(channel_id)
@@ -500,7 +548,7 @@ class ContextCog(commands.Cog):
                         DELETE FROM chat_summaries
                         WHERE channel_id = ?
                     """, (channel_id,))
-                conn.commit()
+                    conn.commit()
 
             await interaction.followup.send(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
         except Exception as e:

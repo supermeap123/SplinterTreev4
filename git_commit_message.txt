@@ -1,13 +1,20 @@
-fix: implement dynamic context window settings with backwards compatibility
+fix: improve context window reliability and consistency
 
-- Add slash commands for managing context window size per channel
-- Add legacy command support (!setcontext, !getcontext, !resetcontext)
-- Add persistent storage for context window settings
-- Update help documentation to reflect both slash and legacy commands
-- Fix default context window behavior
-- Add admin checks for context window management
+- Switch to using database exclusively for context window settings
+- Add proper locking for context and summary operations
+- Fix message ordering to be consistently chronological
+- Add WAL mode and SQLite optimizations for better concurrency
+- Add better error handling and logging
+- Fix race conditions in context operations
 
-The following commands are now available:
+The following changes improve context reliability:
+1. Context window settings now persist across bot restarts
+2. Messages are always retrieved in chronological order
+3. Concurrent operations are properly handled with locks
+4. Database operations are more resilient with WAL mode
+5. Better error handling prevents silent failures
+
+Commands remain the same:
 Slash commands:
 /set_context_window - Set context window size (1-50 messages)
 /get_context_window - View current context window size
