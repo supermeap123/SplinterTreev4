@@ -85,8 +85,14 @@ async def chat():
         message = data.get('message', '')
         model_id = data.get('model', 'anthropic/claude-2')
         provider = data.get('provider', 'openrouter')
+        image_url = data.get('image_url')
         
         logger.info(f"Chat request: model={model_id}, provider={provider}")
+        
+        # Add image URL to message if provided
+        if image_url:
+            message = f"[Image: {image_url}]\n\n{message}"
+        
         response = await api.chat_completion(message, model_id, provider)
         
         return jsonify({

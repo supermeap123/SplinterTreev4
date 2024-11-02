@@ -1,6 +1,7 @@
-Fix CORS and async handling in web UI
+Improve web UI model handling and error reporting
 
-- Remove Flask-CORS dependency
-- Implement native CORS handling in Quart
-- Fix async response handling
-- Add better error logging
+- Fix model selection and provider handling
+- Add proper CORS headers
+- Improve error logging and reporting
+- Add image URL support in messages
+- Update health check endpoint
