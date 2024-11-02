@@ -84,6 +84,97 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to generate summary: {str(e)}")
             return f"Error generating summary: {str(e)}"
 
+    async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
+        """Get conversation context for a channel"""
+        try:
+            if limit is None:
+                limit = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+            
+            limit = min(limit, MAX_CONTEXT_WINDOW)  # Ensure we don't exceed maximum
+
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                # Get the latest summary first
+                cursor.execute("""
+                    SELECT summary, end_timestamp
+                    FROM chat_summaries
+                    WHERE channel_id = ?
+                    ORDER BY end_timestamp DESC
+                    LIMIT 1
+                """, (channel_id,))
+                summary_row = cursor.fetchone()
+
+                context = []
+                
+                # Add summary if available
+                if summary_row:
+                    context.append({
+                        "role": "system",
+                        "content": f"Previous conversation summary: {summary_row['summary']}"
+                    })
+                    
+                    # Get messages after the summary
+                    cursor.execute("""
+                        SELECT timestamp, user_id, content, is_assistant, emotion
+                        FROM messages
+                        WHERE channel_id = ? AND timestamp > ?
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (channel_id, summary_row['end_timestamp'], limit))
+                else:
+                    # If no summary, just get recent messages
+                    cursor.execute("""
+                        SELECT timestamp, user_id, content, is_assistant, emotion
+                        FROM messages
+                        WHERE channel_id = ?
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    """, (channel_id, limit))
+
+                messages = cursor.fetchall()
+                
+                # Add messages to context in chronological order
+                for msg in reversed(messages):
+                    role = "assistant" if msg['is_assistant'] else "user"
+                    content = msg['content']
+                    if msg['emotion'] and not msg['is_assistant']:
+                        content = f"[Emotion: {msg['emotion']}] {content}"
+                    
+                    context.append({
+                        "role": role,
+                        "content": content
+                    })
+
+                return context
+
+        except Exception as e:
+            logging.error(f"Failed to get context messages: {str(e)}")
+            return []
+
+    async def add_message_to_context(self, channel_id: str, guild_id: Optional[str], 
+                                   user_id: str, content: str, is_assistant: bool,
+                                   persona_name: Optional[str] = None, 
+                                   emotion: Optional[str] = None) -> bool:
+        """Add a new message to the conversation context"""
+        try:
+            timestamp = datetime.now().isoformat()
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO messages (
+                        channel_id, guild_id, user_id, persona_name, 
+                        content, is_assistant, emotion, timestamp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (channel_id, guild_id, user_id, persona_name, 
+                      content, is_assistant, emotion, timestamp))
+                conn.commit()
+                return True
+        except Exception as e:
+            logging.error(f"Failed to add message to context: {str(e)}")
+            return False
+
     async def _check_and_create_summary(self, channel_id: str):
         """Check if we need to create a new summary and create it if necessary"""
         # Get or create lock for this channel
@@ -178,73 +269,41 @@ class ContextCog(commands.Cog):
         # Check if we need to create a new summary
         asyncio.create_task(self._check_and_create_summary(channel_id))
 
-    async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
-        """Get conversation context for a channel"""
+    @commands.command(name='getcontext')
+    async def getcontext_command(self, ctx):
+        """Get current context window size and recent messages"""
+        channel_id = str(ctx.channel.id)
         try:
-            if limit is None:
-                limit = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+            # Get current context window size
+            window_size = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
             
-            limit = min(limit, MAX_CONTEXT_WINDOW)  # Ensure we don't exceed maximum
-
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-
-                # Get relevant summaries
-                cursor.execute("""
-                    SELECT summary, end_timestamp
-                    FROM chat_summaries
-                    WHERE channel_id = ?
-                    ORDER BY end_timestamp DESC
-                    LIMIT 1
-                """, (channel_id,))
-                summary = cursor.fetchone()
-
-                # Return only the summary as context
-                if summary:
-                    return [{
-                        "role": "system",
-                        "content": f"Previous conversation summary: {summary['summary']}"
-                    }]
-                return []
-
-        except Exception as e:
-            logging.error(f"Failed to get context messages: {str(e)}")
-            return []
-
-    async def add_message_to_context(self, channel_id: str, guild_id: Optional[str], 
-                                   user_id: str, content: str, is_assistant: bool,
-                                   persona_name: Optional[str] = None, 
-                                   emotion: Optional[str] = None) -> bool:
-        """Add a new message to the conversation context"""
-        try:
-            timestamp = datetime.now().isoformat()
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO messages (
-                        channel_id, guild_id, user_id, persona_name, 
-                        content, is_assistant, emotion, timestamp
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (channel_id, guild_id, user_id, persona_name, 
-                      content, is_assistant, emotion, timestamp))
-                conn.commit()
-                return True
-        except Exception as e:
-            logging.error(f"Failed to add message to context: {str(e)}")
-            return False
-
-    async def _handle_summarize(self, channel_id: str, is_dm: bool, has_permission: bool) -> bool:
-        """Common handler for summarize command logic"""
-        if not is_dm and not has_permission:
-            return False
+            # Get recent messages
+            context = await self.get_context_messages(channel_id)
             
-        try:
-            await self._check_and_create_summary(channel_id)
-            return True
+            response = f"📝 Current Context (Window Size: {window_size})\n\n"
+            
+            if not context:
+                response += "No context available."
+            else:
+                for msg in context:
+                    role = msg['role']
+                    content = msg['content']
+                    if role == "system":
+                        response += f"🔄 {content}\n\n"
+                    else:
+                        response += f"{'🤖' if role == 'assistant' else '👤'} {content}\n\n"
+            
+            # Split response if it's too long
+            if len(response) > 2000:
+                parts = textwrap.wrap(response, 2000)
+                for part in parts:
+                    await ctx.reply(part)
+            else:
+                await ctx.reply(response)
+                
         except Exception as e:
-            logging.error(f"Failed to force summarize: {str(e)}")
-            return False
+            logging.error(f"Failed to get context: {str(e)}")
+            await ctx.reply("❌ Failed to retrieve context")
 
     @commands.command(name='summarize')
     async def summarize_command(self, ctx):
@@ -252,15 +311,18 @@ class ContextCog(commands.Cog):
         is_dm = isinstance(ctx.channel, discord.DMChannel)
         has_permission = ctx.channel.permissions_for(ctx.author).manage_messages if not is_dm else True
         
-        async with ctx.typing():
-            success = await self._handle_summarize(str(ctx.channel.id), is_dm, has_permission)
-        
-        if not success and not has_permission:
+        if not is_dm and not has_permission:
             await ctx.reply("❌ You need the Manage Messages permission to use this command.")
-        elif success:
-            await ctx.reply("✅ Created new chat summary")
-        else:
-            await ctx.reply("❌ Failed to create chat summary")
+            return
+
+        async with ctx.typing():
+            channel_id = str(ctx.channel.id)
+            try:
+                await self._check_and_create_summary(channel_id)
+                await ctx.reply("✅ Created new chat summary")
+            except Exception as e:
+                logging.error(f"Failed to create summary: {str(e)}")
+                await ctx.reply("❌ Failed to create chat summary")
 
     @app_commands.command(
         name='summarize',
@@ -277,11 +339,11 @@ class ContextCog(commands.Cog):
             return
 
         await interaction.response.defer()
-        success = await self._handle_summarize(channel_id, is_dm, has_permission)
-        
-        if success:
+        try:
+            await self._check_and_create_summary(channel_id)
             await interaction.followup.send("✅ Created new chat summary")
-        else:
+        except Exception as e:
+            logging.error(f"Failed to create summary: {str(e)}")
             await interaction.followup.send("❌ Failed to create chat summary")
 
     @commands.command(name='getsummaries')
@@ -440,7 +502,7 @@ class ContextCog(commands.Cog):
                     """, (channel_id,))
                 conn.commit()
 
-                await interaction.followup.send(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
+            await interaction.followup.send(f"🗑️ Cleared chat summaries{f' older than {hours} hours' if hours else ''}")
         except Exception as e:
             logging.error(f"Failed to clear summaries: {str(e)}")
             await interaction.followup.send("❌ Failed to clear chat summaries")
