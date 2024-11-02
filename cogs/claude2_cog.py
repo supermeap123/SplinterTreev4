@@ -13,7 +13,7 @@ class Claude2Cog(BaseCog):
             bot=bot,
             name="Claude-2",
             nickname="Claude-2",
-            trigger_words=['claude2', 'claude 2', 'splintertree', 'SplinterTree#8648'],
+            trigger_words=['claude2', 'claude 2', 'splintertree', 'SplinterTree#8648', '1270760587022041088'],
             model="anthropic/claude-2",
             provider="openrouter",
             prompt_file="consolidated_prompts",

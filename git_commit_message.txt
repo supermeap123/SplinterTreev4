@@ -1,17 +1,5 @@
-fix(context,claude2): improve context handling and Claude-2 triggers
+feat(claude2): add bot ID as trigger word
 
-Context Cog Changes:
-- Fix get_context_messages to properly combine summaries with recent messages
-- Add proper error handling for Llama32_3B cog initialization
-- Improve getcontext command to show window size and messages
-- Add proper permission checks for admin commands
-- Fix summary generation to respect time windows
-
-Claude-2 Cog Changes:
-- Add 'splintertree' to trigger words
-- Explicitly check for bot mentions in message handler
-- Improve trigger word detection to be case-insensitive
-
-These changes ensure proper context handling across conversations and make
-Claude-2 respond correctly to mentions and the 'splintertree' keyword as
-documented in the README.
+- Add '1270760587022041088' to Claude-2's trigger words
+- This allows the bot to respond when its ID is used in messages
+- Maintains existing triggers (mentions, splintertree keyword, etc.)
