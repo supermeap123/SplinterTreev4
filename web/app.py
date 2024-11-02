@@ -1,11 +1,23 @@
 import os
+import logging
 from quart import Quart, render_template, request, jsonify
 from flask_cors import CORS
 from web.api_wrapper import APIWrapper
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Quart(__name__)
 CORS(app)
-api = APIWrapper()
+
+# Initialize API wrapper
+try:
+    api = APIWrapper()
+    logger.info("API wrapper initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize API wrapper: {e}")
+    api = None
 
 # Available models with display names
 AVAILABLE_MODELS = {
@@ -35,7 +47,11 @@ AVAILABLE_MODELS = {
 
 @app.route('/')
 async def index():
-    return await render_template('index.html', models=AVAILABLE_MODELS)
+    try:
+        return await render_template('index.html', models=AVAILABLE_MODELS)
+    except Exception as e:
+        logger.error(f"Error rendering index page: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/models')
 async def list_models():
@@ -45,20 +61,36 @@ async def list_models():
 @app.route('/api/chat', methods=['POST'])
 async def chat():
     """Handle chat requests"""
-    data = await request.get_json()
-    message = data.get('message', '')
-    model_id = data.get('model', 'anthropic/claude-2')
-    provider = data.get('provider', 'openrouter')
-    
+    if not api:
+        return jsonify({'error': 'API not properly initialized'}), 500
+
     try:
+        data = await request.get_json()
+        message = data.get('message', '')
+        model_id = data.get('model', 'anthropic/claude-2')
+        provider = data.get('provider', 'openrouter')
+        
+        logger.info(f"Chat request: model={model_id}, provider={provider}")
         response = await api.chat_completion(message, model_id, provider)
+        
         return jsonify({
             'response': response,
             'model': model_id,
             'provider': provider
         })
     except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/health')
+async def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'api_initialized': api is not None,
+        'openrouter_configured': bool(os.getenv('OPENROUTER_API_KEY')),
+        'openpipe_configured': bool(os.getenv('OPENPIPE_API_KEY'))
+    })
 
 def create_app():
     return app

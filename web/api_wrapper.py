@@ -6,26 +6,34 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class APIWrapper:
     def __init__(self):
         self.openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
         self.openpipe_api_key = os.getenv('OPENPIPE_API_KEY')
         self.openpipe_api_url = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1')
         
-        # Initialize OpenPipe client
-        self.openpipe_client = OpenPipeAI(
-            api_key=self.openpipe_api_key,
-            openpipe={
-                "api_key": self.openpipe_api_key,
-                "base_url": self.openpipe_api_url
-            }
-        )
+        # Initialize clients only if API keys are available
+        self.openpipe_client = None
+        self.openrouter_client = None
         
-        # Initialize OpenRouter client
-        self.openrouter_client = OpenPipeAI(
-            api_key=self.openrouter_api_key,
-            base_url="https://openrouter.ai/api/v1"
-        )
+        if self.openpipe_api_key:
+            self.openpipe_client = OpenPipeAI(
+                api_key=self.openpipe_api_key,
+                openpipe={
+                    "api_key": self.openpipe_api_key,
+                    "base_url": self.openpipe_api_url
+                }
+            )
+        
+        if self.openrouter_api_key:
+            self.openrouter_client = OpenPipeAI(
+                api_key=self.openrouter_api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
 
     async def chat_completion(self, message: str, model: str, provider: str = 'openrouter') -> str:
         """Send a chat completion request to the specified provider"""
@@ -33,10 +41,15 @@ class APIWrapper:
             messages = [{"role": "user", "content": message}]
             
             if provider == 'openpipe':
+                if not self.openpipe_client:
+                    return "OpenPipe API key not configured"
                 client = self.openpipe_client
             else:
+                if not self.openrouter_client:
+                    return "OpenRouter API key not configured"
                 client = self.openrouter_client
             
+            logger.info(f"Sending request to {provider} model {model}")
             response = await client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -48,7 +61,7 @@ class APIWrapper:
             
         except Exception as e:
             error_message = str(e)
-            logging.error(f"[API] Error in chat completion: {error_message}")
+            logger.error(f"Error in chat completion: {error_message}")
             if "insufficient_quota" in error_message.lower():
                 return "⚠️ API credits depleted. Please check your API key configuration."
             elif "invalid_api_key" in error_message.lower():
