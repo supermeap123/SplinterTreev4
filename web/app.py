@@ -1,7 +1,6 @@
 import os
 import logging
-from quart import Quart, render_template, request, jsonify
-from flask_cors import CORS
+from quart import Quart, render_template, request, jsonify, Response
 from web.api_wrapper import APIWrapper
 
 # Configure logging
@@ -9,7 +8,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Quart(__name__)
-CORS(app)
 
 # Initialize API wrapper
 try:
@@ -45,9 +43,27 @@ AVAILABLE_MODELS = {
     ]
 }
 
+def add_cors_headers(response):
+    """Add CORS headers to response"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+@app.after_request
+async def after_request(response):
+    """Add CORS headers after each request"""
+    return add_cors_headers(response)
+
+@app.route('/options', methods=['OPTIONS'])
+async def handle_options():
+    """Handle OPTIONS requests for CORS"""
+    return add_cors_headers(Response(''))
+
 @app.route('/')
 async def index():
     try:
+        logger.info("Rendering index page")
         return await render_template('index.html', models=AVAILABLE_MODELS)
     except Exception as e:
         logger.error(f"Error rendering index page: {e}")

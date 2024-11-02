@@ -1,7 +1,6 @@
-Improve web UI error handling and logging
+Fix CORS and async handling in web UI
 
-- Add comprehensive error handling throughout web app
-- Add health check endpoint
-- Add detailed logging
-- Make API initialization more robust
-- Update configuration to work without Discord token
+- Remove Flask-CORS dependency
+- Implement native CORS handling in Quart
+- Fix async response handling
+- Add better error logging
