@@ -1,7 +1,17 @@
-Improve web UI model handling and error reporting
+feat: Add Llama 3.2 3B model with context-aware summarization
 
-- Fix model selection and provider handling
-- Add proper CORS headers
-- Improve error logging and reporting
-- Add image URL support in messages
-- Update health check endpoint
+- Add new Llama32_3B_Cog for intelligent summarization and filtering
+- Implement full context history processing (50 messages)
+- Add system prompt for Llama 3.2 3B in consolidated_prompts.json
+- Update README with new model capabilities
+- Uses Meta's Llama 3.2 3B Instruct model via OpenRouter
+
+The new cog provides:
+- Comprehensive context analysis of previous 50 messages
+- Intelligent summarization considering full conversation history
+- Maximum 3-sentence responses for conciseness
+- Clear and accurate response refinement
+- Integration with existing context and memory features
+
+The model analyzes the complete conversation context to provide
+more informed and relevant responses while maintaining brevity.
