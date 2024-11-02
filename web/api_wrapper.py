@@ -93,7 +93,7 @@ class APIWrapper:
             'perplexity/sonar'
         ]
         
-        openpipe_models = ['sydney']
+        openpipe_models = ['Sydney-Court']
         
         if provider == 'openrouter':
             return openrouter_models
