@@ -13,7 +13,7 @@ class Claude2Cog(BaseCog):
             bot=bot,
             name="Claude-2",
             nickname="Claude-2",
-            trigger_words=['claude2', 'claude 2', 'SplinterTree#8648'],
+            trigger_words=['claude2', 'claude 2', 'splintertree', 'SplinterTree#8648'],
             model="anthropic/claude-2",
             provider="openrouter",
             prompt_file="consolidated_prompts",
@@ -82,8 +82,12 @@ class Claude2Cog(BaseCog):
         if message.author == self.bot.user:
             return
 
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+        # Check if bot is mentioned
+        is_mentioned = self.bot.user in message.mentions
+
+        # If bot is mentioned or message contains trigger words, handle it
+        if is_mentioned or any(trigger.lower() in message.content.lower() for trigger in self.trigger_words):
+            await super().handle_message(message)
 
 async def setup(bot):
     try:
