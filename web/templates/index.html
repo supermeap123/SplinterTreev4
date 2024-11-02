@@ -3,96 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SplinterTree Test UI</title>
+    <title>SplinterTree Chat Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .message {
             margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 80%;
         }
         .user-message {
             background-color: #e3f2fd;
-            margin-left: 20%;
+            margin-left: auto;
         }
         .bot-message {
             background-color: #f5f5f5;
-            margin-right: 20%;
+            margin-right: auto;
+        }
+        .message-meta {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 5px;
+        }
+        #chat-messages {
+            scroll-behavior: smooth;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8 text-center">SplinterTree Test UI</h1>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-3xl font-bold mb-8 text-center">SplinterTree Chat Interface</h1>
         
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="provider">
-                    Provider
-                </label>
-                <select id="provider" class="w-full p-2 border rounded">
-                    <option value="openrouter">OpenRouter</option>
-                    <option value="openpipe">OpenPipe</option>
-                </select>
-            </div>
-            
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="model">
-                    Model
-                </label>
-                <select id="model" class="w-full p-2 border rounded">
-                    <option value="claude-2">Claude 2</option>
-                    <!-- Will be populated dynamically -->
-                </select>
-            </div>
-        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <!-- Sidebar with Settings -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
+                    <h2 class="text-xl font-semibold mb-4">Settings</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="provider">
+                            Provider
+                        </label>
+                        <select id="provider" class="w-full p-2 border rounded" onchange="updateModels()">
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="openpipe">OpenPipe</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="model">
+                            Model
+                        </label>
+                        <select id="model" class="w-full p-2 border rounded">
+                            {% for provider, models in models.items() %}
+                                <optgroup label="{{ provider }}">
+                                    {% for model in models %}
+                                        <option value="{{ model.id }}" data-provider="{{ provider }}">
+                                            {{ model.name }}
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <div id="chat-messages" class="mb-4 h-96 overflow-y-auto">
-                <!-- Messages will appear here -->
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="image-url">
+                            Image URL (optional)
+                        </label>
+                        <input type="text" id="image-url" 
+                            class="w-full p-2 border rounded"
+                            placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
             </div>
-            
-            <div class="flex gap-2">
-                <input type="text" id="message-input" 
-                    class="flex-grow p-2 border rounded"
-                    placeholder="Type your message...">
-                <button onclick="sendMessage()" 
-                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Send
-                </button>
+
+            <!-- Main Chat Area -->
+            <div class="md:col-span-3">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div id="chat-messages" class="mb-4 h-[600px] overflow-y-auto">
+                        <!-- Messages will appear here -->
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <textarea id="message-input" 
+                            class="flex-grow p-2 border rounded resize-none"
+                            placeholder="Type your message..."
+                            rows="3"></textarea>
+                        <button onclick="sendMessage()" 
+                            class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 h-fit">
+                            Send
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Fetch available models when page loads
-        window.onload = async function() {
-            try {
-                const response = await fetch('/api/models');
-                const models = await response.json();
-                const modelSelect = document.getElementById('model');
-                modelSelect.innerHTML = ''; // Clear existing options
-                
-                // Add models from both providers
-                for (const [provider, providerModels] of Object.entries(models)) {
-                    const optgroup = document.createElement('optgroup');
-                    optgroup.label = provider;
-                    
-                    providerModels.forEach(model => {
-                        const option = document.createElement('option');
-                        option.value = model;
-                        option.textContent = model;
-                        optgroup.appendChild(option);
-                    });
-                    
-                    modelSelect.appendChild(optgroup);
+        let isProcessing = false;
+
+        function updateModels() {
+            const provider = document.getElementById('provider').value;
+            const modelSelect = document.getElementById('model');
+            const options = modelSelect.getElementsByTagName('option');
+            
+            for (let option of options) {
+                const optgroup = option.parentElement;
+                if (optgroup.tagName === 'OPTGROUP') {
+                    option.style.display = optgroup.label === provider ? '' : 'none';
                 }
-            } catch (error) {
-                console.error('Error fetching models:', error);
             }
-        };
+            
+            // Select first visible option
+            for (let option of options) {
+                if (option.style.display !== 'none') {
+                    modelSelect.value = option.value;
+                    break;
+                }
+            }
+        }
 
         async function sendMessage() {
+            if (isProcessing) return;
+
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
             if (!message) return;
@@ -106,6 +153,11 @@
             // Get selected model and provider
             const model = document.getElementById('model').value;
             const provider = document.getElementById('provider').value;
+            const imageUrl = document.getElementById('image-url').value.trim();
+
+            // Show loading indicator
+            isProcessing = true;
+            const loadingDiv = addLoadingMessage();
 
             try {
                 const response = await fetch('/api/chat', {
@@ -113,35 +165,80 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message, model, provider }),
+                    body: JSON.stringify({ 
+                        message, 
+                        model, 
+                        provider,
+                        image_url: imageUrl || undefined
+                    }),
                 });
 
                 const data = await response.json();
+                
+                // Remove loading message
+                loadingDiv.remove();
+                
                 if (data.error) {
-                    addMessage(`Error: ${data.error}`, 'bot');
+                    addMessage(`Error: ${data.error}`, 'bot', data);
                 } else {
-                    addMessage(data.response, 'bot');
+                    addMessage(data.response, 'bot', data);
                 }
             } catch (error) {
+                // Remove loading message
+                loadingDiv.remove();
                 addMessage(`Error: ${error.message}`, 'bot');
+            } finally {
+                isProcessing = false;
             }
         }
 
-        function addMessage(message, sender) {
+        function addLoadingMessage() {
+            const chatMessages = document.getElementById('chat-messages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message';
+            loadingDiv.innerHTML = '<div class="loading"></div>';
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return loadingDiv;
+        }
+
+        function addMessage(message, sender, metadata = {}) {
             const chatMessages = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}-message`;
-            messageDiv.textContent = message;
+            
+            // Main message content
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'whitespace-pre-wrap';
+            contentDiv.textContent = message;
+            messageDiv.appendChild(contentDiv);
+            
+            // Add metadata if available
+            if (metadata.model || metadata.timestamp) {
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'message-meta';
+                let metaText = [];
+                if (metadata.model) metaText.push(`Model: ${metadata.model}`);
+                if (metadata.provider) metaText.push(`Provider: ${metadata.provider}`);
+                if (metadata.timestamp) metaText.push(`Time: ${metadata.timestamp}`);
+                metaDiv.textContent = metaText.join(' | ');
+                messageDiv.appendChild(metaDiv);
+            }
+            
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Handle Enter key in message input
-        document.getElementById('message-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+        // Handle Enter key in message input (Shift+Enter for new line)
+        document.getElementById('message-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         });
+
+        // Initialize model visibility
+        updateModels();
     </script>
 </body>
 </html>
