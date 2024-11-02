@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW, OPENPIPE_API_KEY, OPENPIPE_API_URL
+from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW
 import sqlite3
 import json
 import logging
@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import asyncio
 from typing import List, Dict, Optional
 import textwrap
-from openai import OpenAI
 import backoff
 
 class ContextCog(commands.Cog):
@@ -20,10 +19,7 @@ class ContextCog(commands.Cog):
         self.summary_chunk_hours = 24  # Summarize every 24 hours of chat
         self.last_summary_check = {}  # Track last summary generation per channel
         self.summary_locks = {}  # Lock per channel for summary generation
-        self.openai_client = OpenAI(
-            base_url=OPENPIPE_API_URL,
-            api_key=OPENPIPE_API_KEY
-        )
+        self.llama_cog = None  # Will be set when Llama cog is loaded
 
     def _setup_database(self):
         """Ensure database and tables exist"""
@@ -42,12 +38,19 @@ class ContextCog(commands.Cog):
         max_time=30
     )
     async def _generate_summary(self, messages: List[Dict]) -> str:
-        """Generate a summary of chat messages using OpenAI/OpenPipe"""
+        """Generate a summary of chat messages using Llama 3.2 3B"""
         if not messages:
             return "No messages to summarize."
 
         try:
-            # Format messages for the API
+            # Get or initialize Llama cog
+            if not self.llama_cog:
+                self.llama_cog = self.bot.get_cog('Llama32_3B')
+                if not self.llama_cog:
+                    logging.error("Llama32_3B cog not found")
+                    return "Error: Summarization model not available."
+
+            # Format messages for the model
             formatted_messages = []
             for msg in messages:
                 speaker = "Assistant" if msg['is_assistant'] else f"User {msg['user_id']}"
@@ -55,27 +58,27 @@ class ContextCog(commands.Cog):
 
             conversation = "\n".join(formatted_messages)
             
-            # Create system prompt for summarization
-            system_prompt = """You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that:
-1. Captures the main points and key interactions
-2. Highlights important topics discussed
-3. Notes any decisions or conclusions reached
-4. Preserves context that might be relevant for future messages
-5. Maintains a neutral, objective tone
+            # Create a mock message object for the Llama cog
+            class MockMessage:
+                def __init__(self, content):
+                    self.content = content
+                    self.author = type('obj', (object,), {'bot': False})
+                    self.channel = type('obj', (object,), {'id': 'summary'})
 
-Keep the summary clear and well-structured, but brief enough to serve as useful context."""
-
-            # Make API call
-            completion = self.openai_client.chat.completions.create(
-                model="openpipe:moa-gpt-4o-v1",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Please summarize this conversation:\n\n{conversation}"}
-                ]
+            mock_msg = MockMessage(
+                f"Please provide a clear and concise summary (maximum 3 sentences) of this conversation:\n\n{conversation}"
             )
 
-            summary = completion.choices[0].message.content
-            return summary
+            # Generate summary using Llama 3.2 3B
+            response_stream = await self.llama_cog.generate_response(mock_msg)
+            if response_stream:
+                summary = ""
+                async for chunk in response_stream:
+                    if chunk:
+                        summary += chunk
+                return summary.replace("[Llama32_3B] ", "").strip()
+            else:
+                return "Error generating summary."
 
         except Exception as e:
             logging.error(f"Failed to generate summary: {str(e)}")

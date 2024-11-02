@@ -1,17 +1,16 @@
-feat: Add Llama 3.2 3B model with context-aware summarization
+feat: Add Llama 3.2 3B model with integrated summarization
 
-- Add new Llama32_3B_Cog for intelligent summarization and filtering
-- Implement full context history processing (50 messages)
+- Add new Llama32_3B_Cog for concise summarization (3 sentences max)
+- Integrate Llama 3.2 3B with context summarization system
+- Replace OpenAI/OpenPipe summarization with Llama 3.2 3B
+- Update context_cog.py to use Llama 3.2 3B for generating summaries
 - Add system prompt for Llama 3.2 3B in consolidated_prompts.json
 - Update README with new model capabilities
-- Uses Meta's Llama 3.2 3B Instruct model via OpenRouter
 
-The new cog provides:
-- Comprehensive context analysis of previous 50 messages
-- Intelligent summarization considering full conversation history
-- Maximum 3-sentence responses for conciseness
-- Clear and accurate response refinement
-- Integration with existing context and memory features
-
-The model analyzes the complete conversation context to provide
-more informed and relevant responses while maintaining brevity.
+The new implementation:
+- Uses Llama 3.2 3B for all summary generation
+- Maintains full context awareness (50 messages)
+- Provides concise 3-sentence summaries
+- Integrates with existing context and memory features
+- Removes OpenAI/OpenPipe dependency for summaries
+- Preserves all existing summarization commands and functionality
