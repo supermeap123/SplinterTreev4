@@ -1,8 +1,0 @@
-fix: correct async generator syntax in API
-
-Fixed SyntaxError in api.py where we were trying to return None from async generators. In Python, async generators (functions that use 'yield') cannot use 'return value'. Changed to:
-- Yield empty string instead of returning None for no content
-- Yield error messages instead of raising exceptions in streaming mode
-- Improved error handling and logging for both OpenRouter and OpenPipe requests
-
-This should resolve the cog loading errors and allow all models to function properly.

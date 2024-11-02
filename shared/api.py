@@ -56,7 +56,7 @@ class API:
             # Create a new client instance with OpenRouter configuration
             openrouter_client = OpenPipeAI(
                 api_key=OPENROUTER_API_KEY,
-                base_url="https://openrouter.ai/api/v1"
+                base_url="https://openrouter.ai/api/v1/chat/completions"  # Fixed API endpoint
             )
             
             stream = await openrouter_client.chat.completions.create(
@@ -64,7 +64,11 @@ class API:
                 messages=messages,
                 temperature=temperature if temperature is not None else 1,
                 max_tokens=max_tokens,
-                stream=True
+                stream=True,
+                headers={
+                    "HTTP-Referer": "https://sydney.gwyn.tel",  # Required by OpenRouter
+                    "X-Title": "SplinterTree"  # Required by OpenRouter
+                }
             )
             requested_at = int(time.time() * 1000)
             
@@ -150,7 +154,7 @@ class API:
                 # Create a new client instance with OpenRouter configuration
                 openrouter_client = OpenPipeAI(
                     api_key=OPENROUTER_API_KEY,
-                    base_url="https://openrouter.ai/api/v1"
+                    base_url="https://openrouter.ai/api/v1/chat/completions"  # Fixed API endpoint
                 )
                 
                 # Log the full request details
@@ -158,7 +162,11 @@ class API:
                     "model": model,
                     "messages": messages,
                     "temperature": temperature,
-                    "max_tokens": max_tokens
+                    "max_tokens": max_tokens,
+                    "headers": {
+                        "HTTP-Referer": "https://sydney.gwyn.tel",  # Required by OpenRouter
+                        "X-Title": "SplinterTree"  # Required by OpenRouter
+                    }
                 }
                 logging.info(f"[API] OpenRouter non-streaming request data: {json.dumps(request_data, indent=2)}")
                 
