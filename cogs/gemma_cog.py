@@ -1,70 +1,41 @@
 import discord
 from discord.ext import commands
 import logging
-from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
+from base_cog import BaseCog
 
 class GemmaCog(BaseCog):
     def __init__(self, bot):
-        super().__init__(
-            bot=bot,
-            name="Gemma",
-            nickname="Gemma",
-            trigger_words=['gemma', 'gemma hi'],
-            model="google/gemma-2-27b-it",  # Keeping the model line as instructed
-            provider="openrouter",  # Updating the provider as per the instructions
-            prompt_file="gemma",
-            supports_vision=False
-        )
-        self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[Gemma] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Gemma] Using provider: {self.provider}")
-        logging.debug(f"[Gemma] Vision support: {self.supports_vision}")
+        super().__init__(bot,
+                         name="Gemma",
+                         nickname="Gemma",
+                         trigger_words=["gemma"],
+                         model="google/gemma-2-9b-it:free",
+                         provider="openrouter")
+        logging.info(f"[{self.name}] Starting cog setup...")
 
-    @property
-    def qualified_name(self):
-        """Override qualified_name to match the expected cog name"""
-        return "Gemma"
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
-        if message.author == self.bot.user:
-            return
-
-        # Add message to context before processing
-        if self.context_cog:
-            try:
-                channel_id = str(message.channel.id)
-                guild_id = str(message.guild.id) if message.guild else None
-                user_id = str(message.author.id)
-                content = message.content
-                is_assistant = False
-                persona_name = self.name
-                emotion = None
-
-                await self.context_cog.add_message_to_context(
-                    channel_id=channel_id,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    content=content,
-                    is_assistant=is_assistant,
-                    persona_name=persona_name,
-                    emotion=emotion
-                )
-            except Exception as e:
-                logging.error(f"[Gemma] Failed to add message to context: {str(e)}")
-
+    async def handle_message(self, message):
         # Let base_cog handle image processing first
         await super().handle_message(message)
 
+        is_mentioned = self.bot.user in message.mentions
+        if is_mentioned or any(trigger.lower() in message.content.lower() for trigger in self.trigger_words):
+            logging.info(f"[{self.name}] Responding to message in channel {message.channel.id}")
+            await self.respond_to_message(message)
+
+    async def respond_to_message(self, message):
+        try:
+            response = await self.generate_response(message)
+            if response:
+                await message.channel.send(response)
+        except Exception as e:
+            logging.error(f"[{self.name}] Error responding to message: {e}")
+
+
 async def setup(bot):
-    # Register the cog with its proper name
+    cog = GemmaCog(bot)
     try:
-        cog = GemmaCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Gemma] Registered cog with qualified_name: {cog.qualified_name}")
-        return cog
+        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
     except Exception as e:
-        logging.error(f"[Gemma] Failed to register cog: {str(e)}", exc_info=True)
-        raise
+        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)

@@ -261,3 +261,8 @@ async def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int
                 
         except Exception as e2:
             logging.error(f"Failed to log interaction to JSONL: {str(e2)}")
+
+
+def get_temperature(model_name="default"):
+    """Placeholder to resolve import error.  Should be implemented properly."""
+    return 0.7
