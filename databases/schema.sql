@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS deactivated_channels (
     PRIMARY KEY (channel_id, guild_id)
 );
 
--- Add the channels table
 CREATE TABLE IF NOT EXISTS channels (
     channel_id TEXT NOT NULL,
     guild_id TEXT NOT NULL,
@@ -39,4 +38,11 @@ CREATE TABLE IF NOT EXISTS channels (
     last_assistant TEXT,
     last_updated TEXT,
     PRIMARY KEY (channel_id, guild_id)
+);
+
+-- Add the guilds table
+CREATE TABLE IF NOT EXISTS guilds (
+    guild_id TEXT PRIMARY KEY,
+    active_model TEXT,
+    temperature REAL
 );
