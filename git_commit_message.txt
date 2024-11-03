@@ -1,18 +1,10 @@
-fix: add missing prompts to consolidated_prompts.json
+fix: add case-sensitive prompts to consolidated_prompts.json
 
-Added prompts for:
+Added case-sensitive variants of prompts:
 - Llama32_3B
-- Noromaid
-- Gemini
-- Ministral
-- Gemma
-- Claude-3.5-Sonnet
+- Llama-3.2-11B
+- Mythomax
+- MOA
 - Claude-1.1
-- Hermes-3
-- Nemotron
-- Magnum
-- Liquid
-- Claude-3-Opus
-- Sonar
 
-This ensures all cogs have their proper prompts loaded from the consolidated file.
+This ensures all cogs can find their prompts regardless of case sensitivity.
