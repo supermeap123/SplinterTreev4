@@ -16,7 +16,7 @@ class SydneyCog(BaseCog):
             trigger_words=['sydney', 'syd', 'mama kunty'],
             model="openpipe:Sydney-Court",
             provider="openpipe",
-            prompt_file="sydney_prompts",
+            prompt_file="sydney", # Use the correct key from prompts/consolidated_prompts.json
             supports_vision=True
         )
         self.context_cog = bot.get_cog('ContextCog')
