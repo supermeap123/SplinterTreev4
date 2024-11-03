@@ -1,12 +1,1 @@
-fix: improve sentence parsing and chunking in base_cog.py
-
-- Add regex pattern for natural sentence boundaries
-- Create split_into_chunks method for better text segmentation
-- Enhance streaming response handling with improved chunking
-- Add better handling of newlines and quotation marks
-- Preserve sentence endings in chunks
-
-This improves:
-- More natural message splitting
-- Better handling of streaming responses
-- Cleaner message presentation
+Fix: Resolved TypeError in bot.py and added missing Sydney prompt

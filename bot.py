@@ -331,7 +331,7 @@ async def on_message(message):
                     cog = get_cog_by_name(model_name)
                     if cog:
                         logging.debug(f"Using {model_name} cog to handle reply")
-                        await cog.handle_message(message, full_content)
+                        await cog.handle_message(message) # Fixed: Removed full_content
                         processed_messages.add(message.id)
                         save_processed_messages()  # Save processed messages after handling
                         return
@@ -348,12 +348,12 @@ async def on_message(message):
         # Check if Claude2 cog is available
         claude2_cog = get_cog_by_name('Claude-2')
         if claude2_cog:
-            await claude2_cog.handle_message(message, full_content)
+            await claude2_cog.handle_message(message) # Fixed: Removed full_content
         else:
             # If Claude2 is not available, use a random cog
             if loaded_cogs:  # Only try to use a random cog if there are loaded cogs
                 cog = random.choice(loaded_cogs)
-                await cog.handle_message(message, full_content)
+                await cog.handle_message(message) # Fixed: Removed full_content
             else:
                 logging.error("No cogs available to handle message")
 
