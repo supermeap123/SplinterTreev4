@@ -31,6 +31,10 @@ class BaseCog(commands.Cog):
         self.sentence_end = re.compile(r'[.!?]\s+|\n\n+|\n(?=[A-Z])|[.!?](?=["\'])\s+')
         self.context_cog = bot.get_cog('ContextCog')
 
+    async def cog_load(self):
+        """Called when the cog is loaded."""
+        pass
+
     def load_prompt(self):
         try:
             with open('prompts/consolidated_prompts.json', 'r') as f:
