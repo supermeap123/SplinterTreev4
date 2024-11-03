@@ -164,6 +164,7 @@ class ContextCog(commands.Cog):
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """, (channel_id, guild_id, user_id, persona_name, 
                           content, is_assistant, emotion, timestamp))
+                    message_id = cursor.lastrowid  # Get the auto-generated message_id
                     conn.commit()
                     return True
             except Exception as e:
