@@ -1,9 +1,7 @@
-feat(web): revamp web interface with Discord-like design
+fix(web): update model IDs to match OpenRouter API
 
-- Add dark theme color scheme matching Discord
-- Implement server-like sidebar
-- Add channel-like message display
-- Update message input styling
-- Add user/bot avatars to messages
-- Improve overall layout and spacing
-- Add loading animation for responses
+- Update Claude 3 Opus and Sonnet model IDs
+- Update Hermes model ID to include version
+- Update Llama model IDs with correct versions
+- Update Nemotron model ID
+- Update other model IDs to match OpenRouter specifications
