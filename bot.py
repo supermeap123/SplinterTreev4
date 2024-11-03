@@ -269,8 +269,14 @@ async def process_attachment(attachment):
 def get_cog_by_name(name):
     """Get a cog by name or class name"""
     for cog in bot.cogs.values():
-        if (hasattr(cog, 'name') and cog.name.lower() == name.lower()) or \
-           cog.__class__.__name__.lower() == f"{name.lower()}cog":
+        # First try exact name match
+        if hasattr(cog, 'name') and cog.name.lower() == name.lower():
+            return cog
+        # Then try class name with _cog suffix
+        if cog.__class__.__name__.lower() == f"{name.lower()}_cog":
+            return cog
+        # Finally try class name without _cog suffix
+        if cog.__class__.__name__.lower().replace('_cog', '') == name.lower():
             return cog
     return None
 
