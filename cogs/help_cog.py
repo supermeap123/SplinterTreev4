@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import logging
-from base_cog import BaseCog
+from .base_cog import BaseCog
 import config
 
 class HelpCog(BaseCog, name="HelpCog"):
@@ -22,8 +22,6 @@ class HelpCog(BaseCog, name="HelpCog"):
         except Exception as e:
             logging.error(f"[Help] Error sending help message: {str(e)}")
             await ctx.send("An error occurred while fetching the help message. Please try again later.")
-        except Exception as e:
-            logging.error(f"Failed to load help cog: {str(e)}")
 
 
     @commands.command(name="models")

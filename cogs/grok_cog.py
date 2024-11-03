@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 
-from base_cog import BaseCog
+from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
 class Grok(BaseCog, name="Grok"):
@@ -18,7 +18,7 @@ class Grok(BaseCog, name="Grok"):
         try:
             await super().cog_load()
         except Exception as e:
-            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
+            logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 def setup(bot):
     try:

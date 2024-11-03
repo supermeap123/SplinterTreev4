@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 
-from base_cog import BaseCog
+from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
 class Sydney(BaseCog, name="Sydney"):

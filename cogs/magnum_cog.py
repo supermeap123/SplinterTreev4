@@ -2,12 +2,12 @@ import discord
 from discord.ext import commands
 import logging
 
-from base_cog import BaseCog
+from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
 class Magnum(BaseCog, name="Magnum"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot)
+        super().__init__(bot, name="Magnum", model="anthracite-org/magnum-v4-72b", provider="openrouter")
         self.temperature = get_model_temperature("Magnum")
 
     @commands.command(name="magnum", aliases=["Magnum"])
@@ -19,7 +19,7 @@ class Magnum(BaseCog, name="Magnum"):
         try:
             await super().cog_load()
         except Exception as e:
-            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
+            logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
 def setup(bot):
