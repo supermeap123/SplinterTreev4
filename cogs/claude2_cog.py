@@ -31,4 +31,4 @@ async def setup(bot):
         logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
         logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)
+        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
