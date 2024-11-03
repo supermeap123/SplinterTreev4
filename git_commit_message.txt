@@ -1,10 +1,18 @@
-fix: resolve bot startup issues
+fix: add missing prompts to consolidated_prompts.json
 
-- Add api_client initialization in base_cog.py
-- Modify prompt loading to use consolidated_prompts.json
-- Add missing context_windows and chat_summaries tables to schema.sql
+Added prompts for:
+- Llama32_3B
+- Noromaid
+- Gemini
+- Ministral
+- Gemma
+- Claude-3.5-Sonnet
+- Claude-1.1
+- Hermes-3
+- Nemotron
+- Magnum
+- Liquid
+- Claude-3-Opus
+- Sonar
 
-This fixes the following errors:
-- 'CogName' object has no attribute 'api_client'
-- Failed to load prompt for [Model]: No such file or directory
-- Failed to fetch message history: no such table: context_windows
+This ensures all cogs have their proper prompts loaded from the consolidated file.
