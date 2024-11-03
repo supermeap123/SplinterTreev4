@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS messages (
     channel_id TEXT NOT NULL,
     guild_id TEXT,
     user_id TEXT NOT NULL,
+    author_id TEXT,
     persona_name TEXT,
     content TEXT NOT NULL,
     is_assistant BOOLEAN NOT NULL,
