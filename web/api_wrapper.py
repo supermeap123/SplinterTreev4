@@ -74,23 +74,23 @@ class APIWrapper:
     def list_models(self, provider: str = None) -> list:
         """List available models for the specified provider"""
         openrouter_models = [
-            'anthropic/claude-3-opus',
-            'anthropic/claude-3-sonnet',
+            'anthropic/claude-3-opus:beta',
+            'anthropic/claude-3.5-sonnet:beta',
             'anthropic/claude-2',
-            'anthropic/claude-1.1',
-            'google/gemini-pro',
-            'xai/grok-1',
-            'nousresearch/hermes',
-            'meta-llama/llama-3.2-11b',
-            'anthropic/magnum',
-            'mistralai/mistral-7b',
-            'gryphe/mythomax',
-            'nvidia/nemotron',
-            'neversleep/noromaid',
+            'anthropic/claude-instant-1.1',
+            'google/gemini-pro-1.5',
+            'x-ai/grok-beta',
+            'nousresearch/hermes-3-llama-3.1-405b:free',
+            'meta-llama/llama-3.2-11b-vision-instruct:free',
+            'anthracite-org/magnum-v4-72b',
+            'mistralai/ministral-8b',
+            'gryphe/mythomax-l2-13b',
+            'nvidia/llama-3.1-nemotron-70b-instruct',
+            'neversleep/noromaid-20b',
             'openai/o1-mini',
-            'openchat/openchat',
+            'openchat/openchat-7b:free',
             'cohere/command-r-plus',
-            'perplexity/sonar'
+            'perplexity/llama-3.1-sonar-huge-128k-online'
         ]
         
         openpipe_models = ['Sydney-Court']
