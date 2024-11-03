@@ -5,6 +5,16 @@ import aiosqlite
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union
 
+def get_token_count(text: str) -> int:
+    """
+    Estimate token count for a given text string.
+    This is a rough approximation - actual token count may vary by model.
+    """
+    # Simple approximation: Split on whitespace and punctuation
+    # Average English word is ~1.3 tokens
+    words = text.split()
+    return int(len(words) * 1.3)
+
 def analyze_emotion(text):
     """
     Analyze the emotional content of text using simple keyword matching.

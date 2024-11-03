@@ -1,5 +1,5 @@
-fix(web): update model IDs in API wrapper
+feat: Add get_token_count utility function
 
-- Sync model IDs with web/app.py to match OpenRouter specifications
-- Update all model IDs to their latest versions
-- Add correct version tags and suffixes
+- Added get_token_count function to shared/utils.py
+- Implements simple token estimation based on word count
+- Fixes ImportError in claude2_cog.py
