@@ -1,5 +1,6 @@
-feat: Add get_token_count utility function
+fix: Update BaseCog to accept additional initialization parameters
 
-- Added get_token_count function to shared/utils.py
-- Implements simple token estimation based on word count
-- Fixes ImportError in claude2_cog.py
+- Modified BaseCog.__init__ to accept kwargs
+- Added storage of common parameters (name, nickname, trigger_words, etc.)
+- Set default values for all parameters
+- Fixed initialization errors in cog loading

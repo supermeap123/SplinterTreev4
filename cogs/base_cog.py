@@ -9,12 +9,20 @@ import asyncio
 from shared.utils import get_token_count
 
 class BaseCog(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot, **kwargs):
         self.bot = bot
         self.db_path = 'databases/bot.db'
         self.ensure_database()
-        self.model_name = "base"  # Override in subclasses
-        self.max_tokens = 4096  # Override in subclasses if needed
+        
+        # Store additional parameters
+        self.name = kwargs.get('name', "base")
+        self.nickname = kwargs.get('nickname', self.name)
+        self.trigger_words = kwargs.get('trigger_words', [])
+        self.model = kwargs.get('model', "base")
+        self.provider = kwargs.get('provider', None)
+        self.prompt_file = kwargs.get('prompt_file', None)
+        self.supports_vision = kwargs.get('supports_vision', False)
+        self.max_tokens = kwargs.get('max_tokens', 4096)
         
     def ensure_database(self):
         os.makedirs('databases', exist_ok=True)
@@ -89,7 +97,7 @@ class BaseCog(commands.Cog):
             )
             
         except Exception as e:
-            print(f"Error in {self.model_name} cog:")
+            print(f"Error in {self.name} cog:")
             traceback.print_exc()
             await message.channel.send(f"Error processing message: {str(e)}")
 
