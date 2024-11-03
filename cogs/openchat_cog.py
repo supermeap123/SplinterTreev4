@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class OpenChat(BaseCog, name="OpenChat"):
+class Openchat_cog(BaseCog, name="OpenChat"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="OpenChat", model="openchat/openchat-7b", provider="openrouter")
         self.temperature = get_model_temperature("OpenChat")
@@ -21,9 +21,9 @@ class OpenChat(BaseCog, name="OpenChat"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(OpenChat(bot))
+        await bot.add_cog(Openchat_cog(bot))
         logging.info("Loaded cog: OpenChat")
     except Exception as e:
         logging.error(f"Failed to load cog openchat_cog.py: {str(e)}")

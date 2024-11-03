@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
 import logging
+import sqlite3
 from .base_cog import BaseCog
 
-class ManagementCog(BaseCog, name="ManagementCog"):
+class Management_cog(BaseCog, name="ManagementCog"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
@@ -51,9 +52,9 @@ class ManagementCog(BaseCog, name="ManagementCog"):
             logging.error(f"[ManagementCog] Failed to register cog: {str(e)}")
             raise
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     try:
-        bot.add_cog(ManagementCog(bot))
+        await bot.add_cog(Management_cog(bot))
         logging.info("Loaded core cog: management_cog")
     except Exception as e:
         logging.error(f"Failed to load core cog management_cog: {str(e)}")

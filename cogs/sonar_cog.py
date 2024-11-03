@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import log_interaction, analyze_emotion
 
-class SonarCog(BaseCog, name="Sonar"):
+class Sonar_cog(BaseCog, name="Sonar"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
@@ -21,9 +21,9 @@ class SonarCog(BaseCog, name="Sonar"):
             logging.error(f"[Sonar] Failed to register cog: {str(e)}")
             raise
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(SonarCog(bot))
+        await bot.add_cog(Sonar_cog(bot))
         logging.info("Loaded cog: Sonar")
     except Exception as e:
         logging.error(f"Failed to load cog sonar_cog.py: {str(e)}")

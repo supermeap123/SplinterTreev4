@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Noromaid(BaseCog, name="Noromaid"):
+class Noromaid_cog(BaseCog, name="Noromaid"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="Noromaid", model="neversleep/noromaid-20b", provider="openrouter")
         self.temperature = get_model_temperature("Noromaid")
@@ -21,9 +21,9 @@ class Noromaid(BaseCog, name="Noromaid"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Noromaid(bot))
+        await bot.add_cog(Noromaid_cog(bot))
         logging.info("Loaded cog: Noromaid")
     except Exception as e:
         logging.error(f"Failed to load cog noromaid_cog.py: {str(e)}")

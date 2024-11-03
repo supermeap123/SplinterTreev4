@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class GeminiPro(BaseCog, name="GeminiPro"):
+class Geminipro_cog(BaseCog, name="GeminiPro"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="GeminiPro", model="google/gemini-pro-vision", provider="openrouter", supports_vision=True)
         self.temperature = get_model_temperature("GeminiPro")
@@ -21,9 +21,9 @@ class GeminiPro(BaseCog, name="GeminiPro"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(GeminiPro(bot))
+        await bot.add_cog(Geminipro_cog(bot))
         logging.info("Loaded cog: GeminiPro")
     except Exception as e:
         logging.error(f"Failed to load cog geminipro_cog.py: {str(e)}")

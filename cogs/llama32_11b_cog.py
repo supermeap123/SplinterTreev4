@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Llama32_11B(BaseCog, name="Llama32_11B"):
+class Llama32_11b_cog(BaseCog, name="Llama32_11B"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="Llama32_11B", model="meta-llama/llama-3.2-11b-vision-instruct", provider="openrouter", supports_vision=True)
         self.temperature = get_model_temperature("Llama32_11B")
@@ -21,9 +21,9 @@ class Llama32_11B(BaseCog, name="Llama32_11B"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Llama32_11B(bot))
+        await bot.add_cog(Llama32_11b_cog(bot))
         logging.info("Loaded cog: Llama32_11B")
     except Exception as e:
         logging.error(f"Failed to load cog llama32_11b_cog.py: {str(e)}")

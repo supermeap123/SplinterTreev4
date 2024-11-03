@@ -177,19 +177,7 @@ async def setup_cogs():
             try:
                 module_name = filename[:-3]  # Remove .py
                 logging.debug(f"Attempting to load cog: {module_name}")
-                
-                # Load the cog extension using importlib
-                cog_module = importlib.import_module(f"cogs.{module_name}")
-                
-                # Get the cog class from the module
-                cog_class = getattr(cog_module, module_name.capitalize())
-                
-                # Instantiate the cog and add it to the bot
-                cog_instance = cog_class(bot)
-                bot.add_cog(cog_instance)
-                
-                loaded_cogs.append(cog_instance)
-                logging.info(f"Loaded cog: {cog_instance.name}")
+                await bot.load_extension(f'cogs.{module_name}')
                 
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
@@ -209,6 +197,11 @@ async def setup_cogs():
     except Exception as e:
         logging.error(f"Failed to load help cog: {str(e)}")
         logging.error(traceback.format_exc())
+
+    # Update loaded_cogs list
+    for cog in bot.cogs.values():
+        if hasattr(cog, 'name'):  # Only add cogs that have a name attribute
+            loaded_cogs.append(cog)
 
     logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
     for cog in loaded_cogs:
@@ -334,7 +327,7 @@ async def on_message(message):
                     cog = get_cog_by_name(model_name)
                     if cog:
                         logging.debug(f"Using {model_name} cog to handle reply")
-                        await cog.handle_message(message) # Fixed: Removed full_content
+                        await cog.handle_message(message)
                         processed_messages.add(message.id)
                         save_processed_messages()  # Save processed messages after handling
                         return
@@ -351,12 +344,12 @@ async def on_message(message):
         # Check if Claude2 cog is available
         claude2_cog = get_cog_by_name('Claude-2')
         if claude2_cog:
-            await claude2_cog.handle_message(message) # Fixed: Removed full_content
+            await claude2_cog.handle_message(message)
         else:
             # If Claude2 is not available, use a random cog
             if loaded_cogs:  # Only try to use a random cog if there are loaded cogs
                 cog = random.choice(loaded_cogs)
-                await cog.handle_message(message) # Fixed: Removed full_content
+                await cog.handle_message(message)
             else:
                 logging.error("No cogs available to handle message")
 

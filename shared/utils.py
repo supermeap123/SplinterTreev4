@@ -51,6 +51,23 @@ def set_temperature(model: str, temp: float) -> bool:
         logging.error(f"Error setting temperature: {str(e)}")
         return False
 
+def set_model(guild_id: str, model: str) -> bool:
+    """Set active model for a guild"""
+    try:
+        conn = sqlite3.connect('databases/bot.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE guilds 
+            SET active_model = ?
+            WHERE guild_id = ?
+        ''', (model, str(guild_id)))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logging.error(f"Error setting model: {str(e)}")
+        return False
+
 def analyze_emotion(text):
     """
     Analyze the emotional content of text using simple keyword matching.

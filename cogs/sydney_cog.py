@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Sydney(BaseCog, name="Sydney"):
+class Sydney_cog(BaseCog, name="Sydney"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
         self.temperature = get_model_temperature("Sydney")
@@ -22,9 +22,9 @@ class Sydney(BaseCog, name="Sydney"):
             logging.error(f"[Sydney] Failed to register cog: {str(e)}")
             raise
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Sydney(bot))
+        await bot.add_cog(Sydney_cog(bot))
         logging.info("Loaded cog: Sydney")
     except Exception as e:
         logging.error(f"Failed to load cog sydney_cog.py: {str(e)}")

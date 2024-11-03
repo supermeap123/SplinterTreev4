@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class MiniMistral(BaseCog, name="MiniMistral"):
+class Ministral_cog(BaseCog, name="MiniMistral"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="MiniMistral", model="mistralai/mistral-7b-instruct", provider="openrouter")
         self.temperature = get_model_temperature("MiniMistral")
@@ -22,9 +22,9 @@ class MiniMistral(BaseCog, name="MiniMistral"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(MiniMistral(bot))
+        await bot.add_cog(Ministral_cog(bot))
         logging.info("Loaded cog: MiniMistral")
     except Exception as e:
         logging.error(f"Failed to load cog ministral_cog.py: {str(e)}")

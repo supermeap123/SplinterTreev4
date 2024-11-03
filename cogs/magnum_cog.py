@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Magnum(BaseCog, name="Magnum"):
+class Magnum_cog(BaseCog, name="Magnum"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="Magnum", model="anthracite-org/magnum-v4-72b", provider="openrouter")
         self.temperature = get_model_temperature("Magnum")
@@ -22,9 +22,9 @@ class Magnum(BaseCog, name="Magnum"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Magnum(bot))
+        await bot.add_cog(Magnum_cog(bot))
         logging.info("Loaded cog: Magnum")
     except Exception as e:
         logging.error(f"Failed to load cog magnum_cog.py: {str(e)}")

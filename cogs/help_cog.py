@@ -4,7 +4,7 @@ import logging
 from .base_cog import BaseCog
 import config
 
-class HelpCog(BaseCog, name="HelpCog"):
+class Help_cog(BaseCog, name="HelpCog"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
@@ -40,9 +40,9 @@ class HelpCog(BaseCog, name="HelpCog"):
             logging.error(f"[Help] Error sending model list: {str(e)}")
             await ctx.send("An error occurred while fetching the model list. Please try again later.")
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(HelpCog(bot))
+        await bot.add_cog(Help_cog(bot))
         logging.info("Loaded help cog")
     except Exception as e:
         logging.error(f"Failed to load help cog: {str(e)}")

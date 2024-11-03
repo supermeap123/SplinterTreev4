@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class RPlus(BaseCog, name="RPlus"):
+class Rplus_cog(BaseCog, name="RPlus"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="RPlus", model="cohere/command-r-plus", provider="openrouter")
         self.temperature = get_model_temperature("RPlus")
@@ -21,9 +21,9 @@ class RPlus(BaseCog, name="RPlus"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(RPlus(bot))
+        await bot.add_cog(Rplus_cog(bot))
         logging.info("Loaded cog: RPlus")
     except Exception as e:
         logging.error(f"Failed to load cog rplus_cog.py: {str(e)}")

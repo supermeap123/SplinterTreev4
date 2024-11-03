@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Claude3Sonnet(BaseCog, name="Claude-3.5-Sonnet"):
+class Claude3sonnet_cog(BaseCog, name="Claude-3.5-Sonnet"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="Claude-3.5-Sonnet", model="anthropic/claude-3.5-sonnet", provider="openrouter")
         self.temperature = get_model_temperature("Claude-3.5-Sonnet")
@@ -21,9 +21,9 @@ class Claude3Sonnet(BaseCog, name="Claude-3.5-Sonnet"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Claude3Sonnet(bot))
+        await bot.add_cog(Claude3sonnet_cog(bot))
         logging.info("Loaded cog: Claude3Sonnet")
     except Exception as e:
         logging.error(f"Failed to load cog claude3sonnet_cog.py: {str(e)}")

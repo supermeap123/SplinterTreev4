@@ -3,7 +3,7 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 
-class ContextCog(BaseCog, name="ContextCog"):
+class Context_cog(BaseCog, name="ContextCog"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
@@ -19,9 +19,9 @@ class ContextCog(BaseCog, name="ContextCog"):
             logging.error(f"[ContextCog] Failed to register cog: {str(e)}")
             raise
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     try:
-        bot.add_cog(ContextCog(bot))
+        await bot.add_cog(Context_cog(bot))
         logging.info("Loaded core cog: context_cog")
     except Exception as e:
         logging.error(f"Failed to load core cog context_cog: {str(e)}")

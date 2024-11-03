@@ -5,7 +5,7 @@ import logging
 from .base_cog import BaseCog
 from shared.utils import get_model_temperature
 
-class Moa(BaseCog, name="Moa"):
+class Moa_cog(BaseCog, name="Moa"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot, name="Moa", model="anthropic/claude-2", provider="openrouter")
         self.temperature = get_model_temperature("Moa")
@@ -22,9 +22,9 @@ class Moa(BaseCog, name="Moa"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Moa(bot))
+        await bot.add_cog(Moa_cog(bot))
         logging.info("Loaded cog: Moa")
     except Exception as e:
         logging.error(f"Failed to load cog moa_cog.py: {str(e)}")

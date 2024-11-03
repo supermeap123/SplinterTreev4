@@ -6,7 +6,7 @@ import json
 from .base_cog import BaseCog
 from shared.utils import get_token_count, set_temperature, set_model
 
-class SettingsCog(BaseCog, name="SettingsCog"):
+class Settings_cog(BaseCog, name="SettingsCog"):
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
@@ -44,9 +44,9 @@ class SettingsCog(BaseCog, name="SettingsCog"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(SettingsCog(bot))
+        await bot.add_cog(Settings_cog(bot))
         logging.info("Loaded settings cog")
     except Exception as e:
         logging.error(f"Failed to load settings cog: {str(e)}")
