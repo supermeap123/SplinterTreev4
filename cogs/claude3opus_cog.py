@@ -23,7 +23,7 @@ class Claude3opus_cog(BaseCog, name="Claude-3-Opus"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Claude3opus_cog(bot))
+        await bot.add_cog(Claude3opus_cog(bot))
         logging.info("Loaded cog: Claude3Opus")
     except Exception as e:
         logging.error(f"Failed to load cog claude3opus_cog.py: {str(e)}")

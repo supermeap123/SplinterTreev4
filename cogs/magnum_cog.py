@@ -24,7 +24,7 @@ class Magnum_cog(BaseCog, name="Magnum"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Magnum_cog(bot))
+        await bot.add_cog(Magnum_cog(bot))
         logging.info("Loaded cog: Magnum")
     except Exception as e:
         logging.error(f"Failed to load cog magnum_cog.py: {str(e)}")

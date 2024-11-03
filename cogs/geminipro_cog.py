@@ -23,7 +23,7 @@ class Geminipro_cog(BaseCog, name="GeminiPro"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Geminipro_cog(bot))
+        await bot.add_cog(Geminipro_cog(bot))
         logging.info("Loaded cog: GeminiPro")
     except Exception as e:
         logging.error(f"Failed to load cog geminipro_cog.py: {str(e)}")

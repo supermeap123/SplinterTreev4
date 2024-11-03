@@ -42,7 +42,7 @@ class Help_cog(BaseCog, name="HelpCog"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Help_cog(bot))
+        await bot.add_cog(Help_cog(bot))
         logging.info("Loaded help cog")
     except Exception as e:
         logging.error(f"Failed to load help cog: {str(e)}")

@@ -23,7 +23,7 @@ class Hermes_cog(BaseCog, name="Hermes"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Hermes_cog(bot))
+        await bot.add_cog(Hermes_cog(bot))
         logging.info("Loaded cog: Hermes")
     except Exception as e:
         logging.error(f"Failed to load cog hermes_cog.py: {str(e)}")

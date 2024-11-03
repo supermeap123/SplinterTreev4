@@ -23,7 +23,7 @@ class Claude3sonnet_cog(BaseCog, name="Claude-3.5-Sonnet"):
 
 async def setup(bot):
     try:
-        await await bot.add_cog(Claude3sonnet_cog(bot))
+        await bot.add_cog(Claude3sonnet_cog(bot))
         logging.info("Loaded cog: Claude3Sonnet")
     except Exception as e:
         logging.error(f"Failed to load cog claude3sonnet_cog.py: {str(e)}")
