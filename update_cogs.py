@@ -38,7 +38,7 @@ def update_cog_file(filepath):
         content = re.sub(init_pattern, f'super().__init__(bot, {trigger_words_str}', content)
 
     # Fix bot.add_cog to be async
-    if 'bot.add_cog(' in content:
+    if 'bot.add_cog(' in content and 'await bot.add_cog(' not in content:
         # Replace direct bot.add_cog call with await
         content = content.replace('bot.add_cog(', 'await bot.add_cog(')
         
