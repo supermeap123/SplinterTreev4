@@ -80,7 +80,7 @@ class BaseCog(commands.Cog):
         return result
 
     async def handle_message(self, message):
-        """Handle incoming messages - this is the method that cogs call via super()"""
+        """Handle incoming messages"""
         if not self.is_channel_active(str(message.channel.id), str(message.guild.id)):
             return
 
@@ -92,7 +92,7 @@ class BaseCog(commands.Cog):
             settings = self.get_guild_settings(message.guild.id)
             
             # Process message and get response
-            response = await self.get_ai_response(message.content, history, settings["temperature"])
+            response = await self.generate_response(message)
             
             # Split response if too long
             if len(response) > 2000:
@@ -212,9 +212,9 @@ class BaseCog(commands.Cog):
         except:
             return 0.7  # Default if file not found or error
 
-    async def get_ai_response(self, message, history, temperature):
-        # Override in subclasses
-        raise NotImplementedError
+    async def generate_response(self, message):
+        """Generate a response to a message. Override this in subclasses."""
+        raise NotImplementedError("Subclasses must implement generate_response")
 
 async def setup(bot):
     await bot.add_cog(BaseCog(bot))

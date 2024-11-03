@@ -1,5 +1,6 @@
-fix: Rename process_message to handle_message in BaseCog
+fix: Update BaseCog to use generate_response method
 
-- Renamed process_message to handle_message to match cog expectations
-- Added docstring explaining this is the method cogs call via super()
+- Changed get_ai_response to generate_response to match cog implementations
+- Moved response generation logic to handle_message
+- Added descriptive error message for NotImplementedError
 - Fixed method name consistency across the codebase
