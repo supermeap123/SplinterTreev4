@@ -1,28 +1,31 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class RPlusCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="RPlus",
-                         nickname="RPlus",
-                         trigger_words=["rplus", "r+"],
-                         model="cohere/command-r-plus",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class RPlus(BaseCog, name="RPlus"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="RPlus", model="cohere/command-r-plus", provider="openrouter")
+        self.temperature = get_model_temperature("RPlus")
 
-    async def handle_message(self, message):
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+    @commands.command(name="rplus", aliases=["RPlus"])
+    async def rplus_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "RPlus")
 
 
-async def setup(bot):
-    cog = RPlusCog(bot)
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
+
+
+
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(RPlus(bot))
+        logging.info("Loaded cog: RPlus")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog rplus_cog.py: {str(e)}")

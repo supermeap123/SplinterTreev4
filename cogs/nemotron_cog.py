@@ -1,30 +1,29 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class NemotronCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Nemotron",
-                         nickname="Nemotron",
-                         trigger_words=["nemotron", "nemo"],
-                         model="nvidia/llama-3.1-nemotron-70b-instruct",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Nemotron(BaseCog, name="Nemotron"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Nemotron", model="nvidia/llama-3.1-nemotron-70b-instruct", provider="openrouter")
+        self.temperature = get_model_temperature("Nemotron")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="nemotron", aliases=["Nemotron"])
+    async def nemotron_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Nemotron")
 
-        # Let base_cog handle message processing
-        # await super().handle_message(message) # Already handled above
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-async def setup(bot):
-    cog = NemotronCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Nemotron(bot))
+        logging.info("Loaded cog: Nemotron")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)
+        logging.error(f"Failed to load cog nemotron_cog.py: {str(e)}")

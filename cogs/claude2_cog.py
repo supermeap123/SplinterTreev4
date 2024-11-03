@@ -1,34 +1,29 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class Claude2Cog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Claude-2",
-                         nickname="Claude 2",
-                         trigger_words=['claude2', 'claude 2', 'splintertree', 'SplinterTree#8648', '1270760587022041088'],
-                         model="anthropic/claude-2",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Claude2(BaseCog, name="Claude-2"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Claude-2", model="anthropic/claude-2", provider="openrouter")
+        self.temperature = get_model_temperature("Claude-2")
 
-    async def handle_message(self, message):
-        is_mentioned = self.bot.user in message.mentions
-        has_keyword = any(trigger.lower() in message.content.lower() for trigger in self.trigger_words)
+    @commands.command(name="claude2", aliases=["Claude2", "claude-2", "Claude-2"])
+    async def claude2_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Claude-2")
 
-        if is_mentioned or has_keyword:
-            await super().handle_message(message)
-
-        # Let base_cog handle message processing
-        # await super().handle_message(message) # Already handled above if mentioned or keyword present
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-async def setup(bot):
-    cog = Claude2Cog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Claude2(bot))
+        logging.info("Loaded cog: Claude2")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog claude2_cog.py: {str(e)}")

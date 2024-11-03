@@ -1,58 +1,28 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class Llama32_3B_Cog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(
-            bot=bot,
-            name="Llama-3.2-3B",
-            nickname="Llama 3.2 3B",
-            trigger_words=[],
-            model="meta-llama/llama-3.2-3b-instruct:free",
-            provider="openrouter"
-        )
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Llama32_3B(BaseCog, name="Llama32_3B"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot)
+        self.temperature = get_model_temperature("Llama32_3B")
 
-    async def handle_message(self, message):
-        # This cog doesn't respond directly to messages, only summarizes
-        pass
+    @commands.command(name="llama32_3b", aliases=["Llama32_3B"])
+    async def llama32_3b_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Llama32_3B")
 
-    async def summarize_messages(self, messages, max_tokens=300):
-        """Summarize a list of messages using the Llama 3.2 3B model."""
+    async def cog_load(self):
         try:
-            if not messages:
-                return "No messages to summarize."
-
-            # Format messages for the API
-            formatted_messages = []
-            for message in messages:
-                role = "assistant" if message['is_assistant'] else "user"
-                formatted_messages.append({"role": role, "content": message['content']})
-
-            # Call the API
-            response_stream = await self.api_client.call_openrouter(
-                messages=formatted_messages,
-                model=self.model,
-                temperature=0.1,  # Low temperature for summarization
-                max_tokens=max_tokens,
-                stream=True
-            )
-            
-            full_response = ""
-            async for chunk in response_stream:
-                full_response += chunk
-            return full_response
+            await super().cog_load()
         except Exception as e:
-            logging.error(f"[{self.name}] Error summarizing messages: {e}")
-            return f"Error summarizing: {e}"
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
-
-async def setup(bot):
-    cog = Llama32_3B_Cog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
+        bot.add_cog(Llama32_3B(bot))
+        logging.info("Loaded cog: Llama32_3B")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load Llama32_3B cog: {str(e)}")

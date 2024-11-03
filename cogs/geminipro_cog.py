@@ -1,28 +1,29 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class GeminiProCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Gemini-Pro",
-                         nickname="Gemini Pro",
-                         trigger_words=['gemini', 'gemini pro'],
-                         model="google/gemini-pro-1.5",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class GeminiPro(BaseCog, name="GeminiPro"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="GeminiPro", model="google/gemini-pro-vision", provider="openrouter", supports_vision=True)
+        self.temperature = get_model_temperature("GeminiPro")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="geminipro", aliases=["GeminiPro"])
+    async def geminipro_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "GeminiPro")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-
-async def setup(bot):
-    cog = GeminiProCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(GeminiPro(bot))
+        logging.info("Loaded cog: GeminiPro")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog geminipro_cog.py: {str(e)}")

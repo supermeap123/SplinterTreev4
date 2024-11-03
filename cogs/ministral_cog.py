@@ -1,28 +1,30 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class MinistralCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Ministral",
-                         nickname="Ministral",
-                         trigger_words=["ministral"],
-                         model="mistralai/mistral-7b-instruct:free",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class MiniMistral(BaseCog, name="MiniMistral"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="MiniMistral", model="mistralai/mistral-7b-instruct", provider="openrouter")
+        self.temperature = get_model_temperature("MiniMistral")
 
-    async def handle_message(self, message):
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+    @commands.command(name="minimistral", aliases=["MiniMistral"])
+    async def minimistral_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "MiniMistral")
 
 
-async def setup(bot):
-    cog = MinistralCog(bot)
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
+
+
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(MiniMistral(bot))
+        logging.info("Loaded cog: MiniMistral")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog ministral_cog.py: {str(e)}")

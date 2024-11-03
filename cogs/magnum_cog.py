@@ -1,28 +1,30 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class MagnumCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Magnum",
-                         nickname="Magnum",
-                         trigger_words=["magnum"],
-                         model="anthracite-org/magnum-v4-72b",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Magnum(BaseCog, name="Magnum"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot)
+        self.temperature = get_model_temperature("Magnum")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="magnum", aliases=["Magnum"])
+    async def magnum_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Magnum")
 
 
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
-async def setup(bot):
-    cog = MagnumCog(bot)
+
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Magnum(bot))
+        logging.info("Loaded cog: Magnum")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog magnum_cog.py: {str(e)}")

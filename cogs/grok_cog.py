@@ -1,40 +1,28 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class GrokCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Grok",
-                         nickname="Grok",
-                         trigger_words=["grok"],
-                         model="x-ai/grok-beta",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Grok(BaseCog, name="Grok"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot)
+        self.temperature = get_model_temperature("Grok")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="grok", aliases=["Grok"])
+    async def grok_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Grok")
 
-        is_mentioned = self.bot.user in message.mentions
-        if is_mentioned or any(trigger.lower() in message.content.lower() for trigger in self.trigger_words):
-            logging.info(f"[{self.name}] Responding to message in channel {message.channel.id}")
-            await self.respond_to_message(message)
-
-    async def respond_to_message(self, message):
+    async def cog_load(self):
         try:
-            response = await self.generate_response(message)
-            if response:
-                await message.channel.send(response)
+            await super().cog_load()
         except Exception as e:
-            logging.error(f"[{self.name}] Error responding to message: {e}")
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
-
-async def setup(bot):
-    cog = GrokCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Grok(bot))
+        logging.info("Loaded cog: Grok")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)
+        logging.error(f"Failed to load cog grok_cog.py: {str(e)}")

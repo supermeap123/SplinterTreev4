@@ -1,30 +1,28 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class LiquidCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Liquid",
-                         nickname="Liquid",
-                         trigger_words=["liquid", "lfm"],
-                         model="liquid/lfm-40b:free",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Liquid(BaseCog, name="Liquid"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot)
+        self.temperature = get_model_temperature("Liquid")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="liquid", aliases=["Liquid"])
+    async def liquid_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Liquid")
 
-        # Let base_cog handle message processing
-        # await super().handle_message(message) # Already handled above
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
 
-
-async def setup(bot):
-    cog = LiquidCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Liquid(bot))
+        logging.info("Loaded cog: Liquid")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)
+        logging.error(f"Failed to load cog liquid_cog.py: {str(e)}", exc_info=True)

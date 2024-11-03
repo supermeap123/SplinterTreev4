@@ -1,29 +1,30 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
-
-class Claude1_1Cog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot, 
-                         name="Claude-1.1",
-                         nickname="Claude 1.1",
-                         trigger_words=["claude1.1", "claude 1.1", "claude1_1", "claude 1_1"],
-                         model="anthropic/claude-instant-1.1",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
-
-    async def handle_message(self, message):
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+from shared.utils import get_model_temperature
 
 
+class Claude1_1(BaseCog, name="Claude-1.1"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Claude-1.1", model="anthropic/claude-instant-1.1", provider="openrouter")
+        self.temperature = get_model_temperature("Claude-1.1")
 
-async def setup(bot):
-    cog = Claude1_1Cog(bot)
+    @commands.command(name="claude1_1", aliases=["Claude1_1", "claude1.1", "Claude1.1", "claude-1.1", "Claude-1.1"])
+    async def claude1_1_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Claude1_1")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
+
+
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Claude1_1(bot))
+        logging.info("Loaded cog: Claude1_1")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog claude1_1_cog.py: {str(e)}")

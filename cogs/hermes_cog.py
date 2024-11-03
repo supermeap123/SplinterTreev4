@@ -1,28 +1,29 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class HermesCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Hermes",
-                         nickname="Hermes",
-                         trigger_words=["hermes", "hermes3", "hermes 3"],
-                         model="nousresearch/hermes-3-llama-3.1-405b:free",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Hermes(BaseCog, name="Hermes"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Hermes", model="nousresearch/hermes-3-llama-3.1-405b", provider="openrouter")
+        self.temperature = get_model_temperature("Hermes")
 
-    async def handle_message(self, message):
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+    @commands.command(name="hermes", aliases=["Hermes"])
+    async def hermes_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Hermes")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-async def setup(bot):
-    cog = HermesCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Hermes(bot))
+        logging.info("Loaded cog: Hermes")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}" exc_info=True)
+        logging.error(f"Failed to load cog hermes_cog.py: {str(e)}")

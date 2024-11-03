@@ -1,28 +1,29 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class NoromaidCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Noromaid",
-                         nickname="Noromaid",
-                         trigger_words=["noromaid", "noro"],
-                         model="neversleep/noromaid-20b",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Noromaid(BaseCog, name="Noromaid"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Noromaid", model="neversleep/noromaid-20b", provider="openrouter")
+        self.temperature = get_model_temperature("Noromaid")
 
-    async def handle_message(self, message):
-        # Let base_cog handle message processing
-        await super().handle_message(message)
+    @commands.command(name="noromaid", aliases=["Noromaid"])
+    async def noromaid_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Noromaid")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-async def setup(bot):
-    cog = NoromaidCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Noromaid(bot))
+        logging.info("Loaded cog: Noromaid")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog noromaid_cog.py: {str(e)}")
