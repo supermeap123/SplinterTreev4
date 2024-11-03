@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT NOT NULL,
     is_assistant BOOLEAN NOT NULL DEFAULT 0,
     emotion TEXT,
+    persona_name TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -53,6 +54,17 @@ CREATE TABLE IF NOT EXISTS chat_summaries (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS logs (
+    id INTEGER PRIMARY KEY,
+    requested_at INTEGER NOT NULL,
+    received_at INTEGER NOT NULL,
+    request TEXT NOT NULL,
+    response TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    tags TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_channels_channel_id ON channels(channel_id);
 CREATE INDEX IF NOT EXISTS idx_channels_guild_id ON channels(guild_id);
 CREATE INDEX IF NOT EXISTS idx_guilds_guild_id ON guilds(guild_id);
@@ -66,3 +78,6 @@ CREATE INDEX IF NOT EXISTS idx_deactivated_channels_guild_id ON deactivated_chan
 CREATE INDEX IF NOT EXISTS idx_context_windows_channel_id ON context_windows(channel_id);
 CREATE INDEX IF NOT EXISTS idx_chat_summaries_channel_id ON chat_summaries(channel_id);
 CREATE INDEX IF NOT EXISTS idx_chat_summaries_end_timestamp ON chat_summaries(end_timestamp);
+CREATE INDEX IF NOT EXISTS idx_logs_requested_at ON logs(requested_at);
+CREATE INDEX IF NOT EXISTS idx_logs_received_at ON logs(received_at);
+CREATE INDEX IF NOT EXISTS idx_logs_status_code ON logs(status_code);

@@ -1,12 +1,9 @@
-fix: handle streaming responses and update schema
+fix: add missing database columns and tables
 
-- Add proper handling of streaming responses in base_cog.py
-- Update database schema with required columns:
-  - Add user_id and is_assistant columns to messages table
-  - Add emotion column to messages table
-  - Add proper indices for new columns
+- Add persona_name column to messages table
+- Add logs table for interaction reporting
+- Add appropriate indices for new columns
 
 This fixes:
-- TypeError: object of type 'async_generator' has no len()
-- Failed to add message to context: table messages has no column named user_id
-- Failed to fetch message history: no such column: is_assistant
+- Failed to add message to context: table messages has no column named persona_name
+- Failed to report interaction: no such table: logs
