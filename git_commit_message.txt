@@ -1,10 +1,10 @@
-fix: improve message handling in base_cog.py
+fix: add trigger word checking in base_cog.py
 
-- Skip storing messages without IDs
-- Move message storage to after message sending
-- Add better error handling for database operations
-- Fix message ID handling for streaming responses
+- Add should_respond() method to check trigger words
+- Add trigger word check at start of handle_message()
+- Make cogs without trigger words not respond
+- Use case-insensitive trigger word matching
 
 This fixes:
-- NOT NULL constraint failed: messages.message_id
-- Improved reliability of message history tracking
+- Cogs responding regardless of trigger words
+- Improved message filtering based on triggers

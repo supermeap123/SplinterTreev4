@@ -94,9 +94,27 @@ class BaseCog(commands.Cog):
         conn.close()
         return result
 
+    def should_respond(self, message_content: str) -> bool:
+        """Check if this cog should respond to the message based on trigger words"""
+        if not self.trigger_words:  # No trigger words means don't respond
+            return False
+            
+        message_lower = message_content.lower()
+        
+        # Check if any trigger word matches
+        for trigger in self.trigger_words:
+            if trigger.lower() in message_lower:
+                return True
+                
+        return False
+
     async def handle_message(self, message):
         """Handle incoming messages"""
         if not self.is_channel_active(str(message.channel.id), str(message.guild.id)):
+            return
+            
+        # Check if we should respond based on trigger words
+        if not self.should_respond(message.content):
             return
 
         try:
