@@ -3,6 +3,7 @@ from discord.ext import commands
 import sqlite3
 import json
 import os
+import logging
 from datetime import datetime
 import traceback
 import asyncio
@@ -33,13 +34,14 @@ class BaseCog(commands.Cog):
             return ""
             
         try:
+            # Convert name to lowercase and remove non-alphanumeric chars for matching
+            key = ''.join(c.lower() for c in self.name if c.isalnum())
+            # Special case for Sydney which uses sydney_prompts as key
+            if key == "sydney":
+                key = "sydney_prompts"
+                
             with open(f"prompts/{self.prompt_file}.json", 'r') as f:
                 prompts = json.load(f)
-                # Convert name to lowercase and remove non-alphanumeric chars for matching
-                key = ''.join(c.lower() for c in self.name if c.isalnum())
-                # Special case for Sydney which uses sydney_prompts as key
-                if key == "sydney":
-                    key = "sydney_prompts"
                 return prompts["system_prompts"].get(key, "")
         except Exception as e:
             logging.error(f"Failed to load prompt for {self.name}: {str(e)}")

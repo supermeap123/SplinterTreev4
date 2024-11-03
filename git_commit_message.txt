@@ -1,7 +1,6 @@
-feat: Add prompt loading and formatting to BaseCog
+fix: Add missing imports and fix prompt loading in BaseCog
 
-- Added load_prompt() method to load prompts from JSON file
-- Added format_message_content() for variable substitution
-- Added get_temperature() for model-specific settings
-- Initialize raw_prompt in BaseCog constructor
-- Added proper key normalization for prompt lookup
+- Added missing logging import
+- Fixed prompt file path to use prompt_file parameter
+- Moved key normalization before file open
+- Improved error handling in prompt loading
