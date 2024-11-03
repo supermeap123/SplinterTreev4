@@ -1,8 +1,9 @@
-feat: Add legacy command support for channel activation
+feat(web): revamp web interface with Discord-like design
 
-- Added !activate and !deactivate legacy commands
-- Refactored activation logic into common handler
-- Updated help documentation to show both slash and legacy commands
-- Improved code organization in management_cog.py
-
-This maintains backwards compatibility while providing modern slash command alternatives.
+- Add dark theme color scheme matching Discord
+- Implement server-like sidebar
+- Add channel-like message display
+- Update message input styling
+- Add user/bot avatars to messages
+- Improve overall layout and spacing
+- Add loading animation for responses
