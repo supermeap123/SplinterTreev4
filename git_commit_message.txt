@@ -1,9 +1,10 @@
-fix: add missing database columns and tables
+fix: improve message handling in base_cog.py
 
-- Add persona_name column to messages table
-- Add logs table for interaction reporting
-- Add appropriate indices for new columns
+- Skip storing messages without IDs
+- Move message storage to after message sending
+- Add better error handling for database operations
+- Fix message ID handling for streaming responses
 
 This fixes:
-- Failed to add message to context: table messages has no column named persona_name
-- Failed to report interaction: no such table: logs
+- NOT NULL constraint failed: messages.message_id
+- Improved reliability of message history tracking

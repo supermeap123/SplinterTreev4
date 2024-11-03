@@ -106,6 +106,16 @@ class BaseCog(commands.Cog):
             # Get guild settings
             settings = self.get_guild_settings(message.guild.id)
             
+            # Store user's message in database
+            self.store_message(
+                message.id,
+                message.channel.id,
+                message.guild.id,
+                message.author.id,
+                message.content,
+                False  # is_assistant
+            )
+            
             # Process message and get response
             response = await self.generate_response(message)
             
@@ -116,6 +126,7 @@ class BaseCog(commands.Cog):
             if hasattr(response, '__aiter__'):
                 full_response = ""
                 current_chunk = ""
+                sent_message = None
                 
                 async for chunk in response:
                     if chunk:
@@ -124,16 +135,43 @@ class BaseCog(commands.Cog):
                         
                         # Send chunk when it reaches a reasonable size or contains sentence endings
                         if len(current_chunk) > 1500 or any(end in current_chunk for end in ['. ', '! ', '? ', '\n']):
-                            await message.channel.send(current_chunk)
+                            if sent_message is None:
+                                sent_message = await message.channel.send(current_chunk)
+                            else:
+                                await message.channel.send(current_chunk)
                             current_chunk = ""
                 
                 # Send any remaining text
                 if current_chunk:
-                    await message.channel.send(current_chunk)
+                    if sent_message is None:
+                        sent_message = await message.channel.send(current_chunk)
+                    else:
+                        await message.channel.send(current_chunk)
                 
                 # Use the first sent message for history tracking
-                response_id = message.channel.last_message_id
-                response_text = full_response
+                if sent_message:
+                    response_id = sent_message.id
+                    response_text = full_response
+                    
+                    # Store bot's response in database
+                    self.store_message(
+                        response_id,
+                        message.channel.id,
+                        message.guild.id,
+                        self.bot.user.id,
+                        response_text,
+                        True  # is_assistant
+                    )
+                    
+                    # Update conversation history
+                    self.update_conversation_history(
+                        message.channel.id,
+                        message.guild.id, 
+                        message.id,
+                        response_id,
+                        message.content,
+                        response_text
+                    )
                 
             else:
                 # Handle regular string responses
@@ -152,36 +190,26 @@ class BaseCog(commands.Cog):
                     sent_message = await message.channel.send(response)
                     response_id = sent_message.id
                     response_text = response
-            
-            # Update conversation history
-            self.update_conversation_history(
-                message.channel.id,
-                message.guild.id, 
-                message.id,
-                response_id,
-                message.content,
-                response_text
-            )
-            
-            # Store message in database
-            self.store_message(
-                message.id,
-                message.channel.id,
-                message.guild.id,
-                message.author.id,
-                message.content,
-                False  # is_assistant
-            )
-            
-            # Store bot's response in database
-            self.store_message(
-                response_id,
-                message.channel.id,
-                message.guild.id,
-                self.bot.user.id,
-                response_text,
-                True  # is_assistant
-            )
+                
+                # Store bot's response in database
+                self.store_message(
+                    response_id,
+                    message.channel.id,
+                    message.guild.id,
+                    self.bot.user.id,
+                    response_text,
+                    True  # is_assistant
+                )
+                
+                # Update conversation history
+                self.update_conversation_history(
+                    message.channel.id,
+                    message.guild.id, 
+                    message.id,
+                    response_id,
+                    message.content,
+                    response_text
+                )
             
         except Exception as e:
             print(f"Error in {self.name} cog:")
@@ -222,17 +250,25 @@ class BaseCog(commands.Cog):
         conn.close()
 
     def store_message(self, message_id, channel_id, guild_id, user_id, content, is_assistant=False, emotion=None):
+        """Store a message in the database"""
+        if not message_id:  # Skip if no message ID
+            return
+            
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute('''
-            INSERT OR REPLACE INTO messages
-            (message_id, channel_id, guild_id, user_id, author_id, content, is_assistant, emotion, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (str(message_id), str(channel_id), str(guild_id), str(user_id), str(user_id), content, is_assistant, emotion))
-        
-        conn.commit()
-        conn.close()
+        try:
+            cursor.execute('''
+                INSERT OR REPLACE INTO messages
+                (message_id, channel_id, guild_id, user_id, author_id, content, is_assistant, emotion, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (str(message_id), str(channel_id), str(guild_id), str(user_id), str(user_id), content, is_assistant, emotion))
+            
+            conn.commit()
+        except Exception as e:
+            logging.error(f"Failed to store message: {str(e)}")
+        finally:
+            conn.close()
 
     def get_guild_settings(self, guild_id):
         conn = sqlite3.connect(self.db_path)
