@@ -15,6 +15,42 @@ def get_token_count(text: str) -> int:
     words = text.split()
     return int(len(words) * 1.3)
 
+def get_model_temperature(model_name: str) -> float:
+    """
+    Get the temperature setting for a specific model from temperatures.json
+    """
+    try:
+        with open('temperatures.json', 'r') as f:
+            temps = json.load(f)
+            if model_name in temps:
+                return temps[model_name].get('current', 0.7)
+            return 0.7  # Default temperature
+    except Exception as e:
+        logging.error(f"Error getting temperature for {model_name}: {str(e)}")
+        return 0.7  # Default temperature
+
+def set_temperature(model: str, temp: float) -> bool:
+    """Set temperature for a model"""
+    try:
+        with open('temperatures.json', 'r') as f:
+            temps = json.load(f)
+        
+        if model not in temps:
+            return False
+            
+        if temp < temps[model]['min'] or temp > temps[model]['max']:
+            return False
+            
+        temps[model]['current'] = temp
+        
+        with open('temperatures.json', 'w') as f:
+            json.dump(temps, f, indent=2)
+            
+        return True
+    except Exception as e:
+        logging.error(f"Error setting temperature: {str(e)}")
+        return False
+
 def analyze_emotion(text):
     """
     Analyze the emotional content of text using simple keyword matching.
@@ -261,8 +297,3 @@ async def log_interaction(user_id: Union[int, str], guild_id: Optional[Union[int
                 
         except Exception as e2:
             logging.error(f"Failed to log interaction to JSONL: {str(e2)}")
-
-
-def get_temperature(model_name="default"):
-    """Placeholder to resolve import error.  Should be implemented properly."""
-    return 0.7

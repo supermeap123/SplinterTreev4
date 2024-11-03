@@ -1,10 +1,107 @@
 {
-    "Claude-1.1": 0.7,
-    "Claude-2": 0.8,
-    "Claude-3-Opus": 0.9,
-    "Claude-3.5-Sonnet": 0.85,
-    "Grok": 0.9,
-    "Gemini": 0.6,
-    "Gemini-Pro": 0.7,
-    "Liquid": 0.7
+  "Claude-1.1": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Claude-2": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Claude-3-Opus": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Claude-3.5-Sonnet": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Gemini": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "GeminiPro": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Grok": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Hermes": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Liquid": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Llama32_3B": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Llama32_11B": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Magnum": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "MiniMistral": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Moa": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Mythomax": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Nemotron": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Noromaid": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "O1Mini": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "OpenChat": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "RPlus": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  },
+  "Sydney": {
+    "current": 0.7,
+    "min": 0.0,
+    "max": 1.0
+  }
 }
