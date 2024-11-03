@@ -5,110 +5,220 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SplinterTree Chat Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --discord-dark: #36393f;
+            --discord-darker: #2f3136;
+            --discord-darkest: #202225;
+            --discord-light: #dcddde;
+            --discord-accent: #5865f2;
+            --discord-green: #3ba55c;
+            --discord-text-muted: #72767d;
+        }
+
+        body {
+            background-color: var(--discord-dark);
+            color: var(--discord-light);
+            font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        .sidebar {
+            background-color: var(--discord-darker);
+            border-right: 1px solid var(--discord-darkest);
+        }
+
+        .settings-panel {
+            background-color: var(--discord-darker);
+        }
+
         .message {
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            max-width: 80%;
+            padding: 0.5rem 1rem;
+            margin: 0;
+            border-top: 1px solid transparent;
+            display: flex;
+            gap: 1rem;
         }
-        .user-message {
-            background-color: #e3f2fd;
-            margin-left: auto;
+
+        .message:hover {
+            background-color: rgba(4, 4, 5, 0.07);
         }
-        .bot-message {
-            background-color: #f5f5f5;
-            margin-right: auto;
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--discord-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
         }
-        .message-meta {
-            font-size: 0.8em;
-            color: #666;
-            margin-top: 5px;
+
+        .message-content {
+            flex-grow: 1;
+            overflow-wrap: break-word;
         }
-        #chat-messages {
-            scroll-behavior: smooth;
+
+        .username {
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+            color: white;
         }
+
+        .timestamp {
+            color: var(--discord-text-muted);
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        .message-text {
+            color: var(--discord-light);
+            font-size: 1rem;
+            line-height: 1.375rem;
+            white-space: pre-wrap;
+        }
+
+        .message-input-container {
+            background-color: #40444b;
+            border-radius: 8px;
+            margin: 0 1rem 1rem;
+        }
+
+        .message-input {
+            background: transparent;
+            color: var(--discord-light);
+            resize: none;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .message-input:focus {
+            outline: none;
+        }
+
+        select, input {
+            background-color: var(--discord-darkest);
+            color: var(--discord-light);
+            border: 1px solid #202225;
+            border-radius: 4px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--discord-accent);
+        }
+
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--discord-darker);
+            border-top: 3px solid var(--discord-accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--discord-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--discord-darkest);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #202225;
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 class="text-3xl font-bold mb-8 text-center">SplinterTree Chat Interface</h1>
-        
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <!-- Sidebar with Settings -->
-            <div class="md:col-span-1">
-                <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
-                    <h2 class="text-xl font-semibold mb-4">Settings</h2>
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="provider">
-                            Provider
-                        </label>
-                        <select id="provider" class="w-full p-2 border rounded" onchange="updateModels()">
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="openpipe">OpenPipe</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="model">
-                            Model
-                        </label>
-                        <select id="model" class="w-full p-2 border rounded">
-                            {% for provider, models in models.items() %}
-                                <optgroup label="{{ provider }}">
-                                    {% for model in models %}
-                                        <option value="{{ model.id }}" data-provider="{{ provider }}">
-                                            {{ model.name }}
-                                        </option>
-                                    {% endfor %}
-                                </optgroup>
-                            {% endfor %}
-                        </select>
-                    </div>
+<body class="min-h-screen flex">
+    <!-- Server-like Sidebar -->
+    <div class="sidebar w-20 flex-shrink-0 p-3 flex flex-col items-center gap-4">
+        <div class="w-12 h-12 bg-discord-accent rounded-2xl flex items-center justify-center text-white font-bold">
+            ST
+        </div>
+        <div class="w-12 h-12 bg-discord-darker rounded-full flex items-center justify-center text-white hover:bg-discord-accent cursor-pointer">
+            <i class="fas fa-robot"></i>
+        </div>
+    </div>
 
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="image-url">
-                            Image URL (optional)
-                        </label>
-                        <input type="text" id="image-url" 
-                            class="w-full p-2 border rounded"
-                            placeholder="https://example.com/image.jpg">
-                    </div>
-                </div>
+    <!-- Main Content -->
+    <div class="flex-grow flex">
+        <!-- Settings Panel -->
+        <div class="settings-panel w-60 p-4 flex-shrink-0">
+            <h2 class="text-xl font-semibold mb-4">Settings</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="provider">
+                    Provider
+                </label>
+                <select id="provider" class="w-full p-2 rounded" onchange="updateModels()">
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="openpipe">OpenPipe</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="model">
+                    Model
+                </label>
+                <select id="model" class="w-full p-2 rounded">
+                    {% for provider, models in models.items() %}
+                        <optgroup label="{{ provider }}">
+                            {% for model in models %}
+                                <option value="{{ model.id }}" data-provider="{{ provider }}">
+                                    {{ model.name }}
+                                </option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
             </div>
 
-            <!-- Main Chat Area -->
-            <div class="md:col-span-3">
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div id="chat-messages" class="mb-4 h-[600px] overflow-y-auto">
-                        <!-- Messages will appear here -->
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        <textarea id="message-input" 
-                            class="flex-grow p-2 border rounded resize-none"
-                            placeholder="Type your message..."
-                            rows="3"></textarea>
-                        <button onclick="sendMessage()" 
-                            class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 h-fit">
-                            Send
-                        </button>
-                    </div>
-                </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="image-url">
+                    Image URL
+                </label>
+                <input type="text" id="image-url" 
+                    class="w-full p-2 rounded"
+                    placeholder="https://example.com/image.jpg">
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="flex-grow flex flex-col">
+            <!-- Channel Header -->
+            <div class="h-12 border-b border-discord-darkest flex items-center px-4">
+                <span class="text-lg font-medium"><i class="fas fa-hashtag text-discord-text-muted mr-2"></i>general</span>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-messages" class="flex-grow overflow-y-auto p-4">
+                <!-- Messages will appear here -->
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input-container">
+                <textarea id="message-input" 
+                    class="message-input"
+                    placeholder="Message #general"
+                    rows="1"></textarea>
             </div>
         </div>
     </div>
@@ -137,6 +247,15 @@
             }
         }
 
+        function formatTimestamp() {
+            const now = new Date();
+            return now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+
         async function sendMessage() {
             if (isProcessing) return;
 
@@ -144,11 +263,12 @@
             const message = messageInput.value.trim();
             if (!message) return;
 
-            // Clear input
+            // Clear input and reset height
             messageInput.value = '';
+            messageInput.style.height = 'auto';
 
             // Add user message to chat
-            addMessage(message, 'user');
+            addMessage(message, 'User', 'user');
 
             // Get selected model and provider
             const model = document.getElementById('model').value;
@@ -179,14 +299,14 @@
                 loadingDiv.remove();
                 
                 if (data.error) {
-                    addMessage(`Error: ${data.error}`, 'bot', data);
+                    addMessage(`Error: ${data.error}`, 'System', 'system', data);
                 } else {
-                    addMessage(data.response, 'bot', data);
+                    addMessage(data.response, 'Assistant', 'bot', data);
                 }
             } catch (error) {
                 // Remove loading message
                 loadingDiv.remove();
-                addMessage(`Error: ${error.message}`, 'bot');
+                addMessage(`Error: ${error.message}`, 'System', 'system');
             } finally {
                 isProcessing = false;
             }
@@ -195,42 +315,62 @@
         function addLoadingMessage() {
             const chatMessages = document.getElementById('chat-messages');
             const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'message bot-message';
-            loadingDiv.innerHTML = '<div class="loading"></div>';
+            loadingDiv.className = 'message';
+            loadingDiv.innerHTML = `
+                <div class="avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="username">Assistant<span class="timestamp">${formatTimestamp()}</span></div>
+                    <div class="message-text">
+                        <div class="loading"></div>
+                    </div>
+                </div>
+            `;
             chatMessages.appendChild(loadingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return loadingDiv;
         }
 
-        function addMessage(message, sender, metadata = {}) {
+        function addMessage(message, username, type, metadata = {}) {
             const chatMessages = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+            messageDiv.className = 'message';
             
-            // Main message content
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'whitespace-pre-wrap';
-            contentDiv.textContent = message;
-            messageDiv.appendChild(contentDiv);
+            // Avatar icon based on type
+            let avatarIcon = type === 'user' ? 'user' : type === 'system' ? 'gear' : 'robot';
             
-            // Add metadata if available
-            if (metadata.model || metadata.timestamp) {
-                const metaDiv = document.createElement('div');
-                metaDiv.className = 'message-meta';
-                let metaText = [];
-                if (metadata.model) metaText.push(`Model: ${metadata.model}`);
-                if (metadata.provider) metaText.push(`Provider: ${metadata.provider}`);
-                if (metadata.timestamp) metaText.push(`Time: ${metadata.timestamp}`);
-                metaDiv.textContent = metaText.join(' | ');
-                messageDiv.appendChild(metaDiv);
-            }
+            messageDiv.innerHTML = `
+                <div class="avatar">
+                    <i class="fas fa-${avatarIcon}"></i>
+                </div>
+                <div class="message-content">
+                    <div class="username">
+                        ${username}
+                        <span class="timestamp">${formatTimestamp()}</span>
+                    </div>
+                    <div class="message-text">${message}</div>
+                    ${metadata.model ? `
+                        <div class="text-xs text-discord-text-muted mt-1">
+                            ${metadata.model}${metadata.provider ? ` • ${metadata.provider}` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
             
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        // Auto-resize textarea
+        const messageInput = document.getElementById('message-input');
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
         // Handle Enter key in message input (Shift+Enter for new line)
-        document.getElementById('message-input').addEventListener('keydown', function(e) {
+        messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
