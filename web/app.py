@@ -2,6 +2,7 @@ import os
 import logging
 from quart import Quart, render_template, request, jsonify, Response
 from web.api_wrapper import APIWrapper
+import sqlite3  # Import sqlite3
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +40,7 @@ AVAILABLE_MODELS = {
         {'id': 'perplexity/llama-3.1-sonar-huge-128k-online', 'name': 'Sonar', 'provider': 'perplexity'}
     ],
     'openpipe': [
-        {'id': 'Sydney-Court', 'name': 'Sydney Court', 'provider': 'openpipe'}
+        {'id': 'openpipe:Sydney-Court', 'name': 'Sydney Court', 'provider': 'openpipe'}
     ]
 }
 
@@ -113,6 +114,20 @@ async def health_check():
         'openrouter_configured': bool(os.getenv('OPENROUTER_API_KEY')),
         'openpipe_configured': bool(os.getenv('OPENPIPE_API_KEY'))
     })
+
+
+@app.route('/api/stats')
+async def stats():
+    try:
+        conn = sqlite3.connect('messages.db')  # Connect to the database
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM messages")  # Execute the query
+        total_messages = cursor.fetchone()[0]
+        conn.close()  # Close the connection
+        return jsonify({'totalMessages': total_messages})
+    except Exception as e:
+        logger.error(f"Error fetching stats: {e}")
+        return jsonify({'error': 'Error fetching stats'}), 500
 
 def create_app():
     return app

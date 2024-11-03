@@ -208,6 +208,12 @@
                 <span class="text-lg font-medium"><i class="fas fa-hashtag text-discord-text-muted mr-2"></i>general</span>
             </div>
 
+            <!-- Stats Dashboard -->
+            <div class="p-4 border-b border-discord-darkest">
+                <h3 class="text-lg font-semibold mb-2">Stats</h3>
+                <p>Total Messages: <span id="total-messages">Loading...</span></p>
+            </div>
+
             <!-- Messages -->
             <div id="chat-messages" class="flex-grow overflow-y-auto p-4">
                 <!-- Messages will appear here -->
@@ -379,6 +385,21 @@
 
         // Initialize model visibility
         updateModels();
+
+
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                document.getElementById('total-messages').textContent = data.totalMessages;
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+                document.getElementById('total-messages').textContent = "Error fetching stats";
+            }
+        }
+
+        fetchStats();
+
     </script>
 </body>
 </html>
