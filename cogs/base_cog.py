@@ -35,22 +35,29 @@ class BaseCog(commands.Cog):
     def load_prompt(self):
         """Load prompt from the consolidated prompts file"""
         try:
-            # Convert name to lowercase and remove non-alphanumeric chars for matching
-            key = ''.join(c.lower() for c in self.name if c.isalnum())
-            
-            # Special case for Sydney which uses sydney_prompts as key
-            if key == "sydney":
-                key = "sydney_prompts"
-                
             with open('prompts/consolidated_prompts.json', 'r') as f:
                 prompts = json.load(f)
-                prompt = prompts["system_prompts"].get(key, "")
-                if prompt:
+                
+                # Try exact match first
+                if self.name in prompts["system_prompts"]:
                     logging.info(f"Loaded prompt for {self.name} from consolidated file")
-                    return prompt
-                else:
-                    logging.warning(f"No prompt found for {self.name} in consolidated file")
-                    return ""
+                    return prompts["system_prompts"][self.name]
+                
+                # Try case-insensitive match
+                name_lower = self.name.lower()
+                name_normalized = ''.join(c.lower() for c in self.name if c.isalnum())
+                
+                for key, prompt in prompts["system_prompts"].items():
+                    key_lower = key.lower()
+                    key_normalized = ''.join(c.lower() for c in key if c.isalnum())
+                    
+                    if name_lower == key_lower or name_normalized == key_normalized:
+                        logging.info(f"Loaded prompt for {self.name} from consolidated file using normalized key {key}")
+                        return prompt
+                
+                logging.warning(f"No prompt found for {self.name} in consolidated file")
+                return ""
+                
         except Exception as e:
             logging.error(f"Failed to load prompt for {self.name}: {str(e)}")
             return ""

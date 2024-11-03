@@ -1,10 +1,7 @@
-fix: add case-sensitive prompts to consolidated_prompts.json
+fix: add case-insensitive prompt lookup in base_cog.py
 
-Added case-sensitive variants of prompts:
-- Llama32_3B
-- Llama-3.2-11B
-- Mythomax
-- MOA
-- Claude-1.1
+- Add case-insensitive prompt lookup in load_prompt()
+- Try exact match first, then case-insensitive match
+- Finally try normalized match (removing special characters)
 
-This ensures all cogs can find their prompts regardless of case sensitivity.
+This ensures prompts are found regardless of case or special characters in cog names.
