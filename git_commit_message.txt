@@ -1,6 +1,5 @@
-fix: Add missing imports and fix prompt loading in BaseCog
+fix: Rename process_message to handle_message in BaseCog
 
-- Added missing logging import
-- Fixed prompt file path to use prompt_file parameter
-- Moved key normalization before file open
-- Improved error handling in prompt loading
+- Renamed process_message to handle_message to match cog expectations
+- Added docstring explaining this is the method cogs call via super()
+- Fixed method name consistency across the codebase

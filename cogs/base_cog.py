@@ -79,7 +79,8 @@ class BaseCog(commands.Cog):
         conn.close()
         return result
 
-    async def process_message(self, message):
+    async def handle_message(self, message):
+        """Handle incoming messages - this is the method that cogs call via super()"""
         if not self.is_channel_active(str(message.channel.id), str(message.guild.id)):
             return
 
