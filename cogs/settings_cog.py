@@ -1,45 +1,51 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
 from shared.utils import get_token_count, set_temperature, set_model
 
-class SettingsCog(BaseCog):
-    def __init__(self, bot):
+class SettingsCog(BaseCog, name="SettingsCog"):
+    def __init__(self, bot: commands.Bot):
         super().__init__(bot)
 
-        self.default_temperature = 0.3
-
-    @commands.command(name='temperature', aliases=['temp'], help='Set the temperature for the model')
-    async def temperature(self, ctx, temperature: float):
+    @commands.command(name="temp", aliases=["temperature"])
+    async def temp_command(self, ctx: commands.Context, model: str, temp: float):
         try:
-            if 0 <= temperature <= 2:
-                set_temperature(ctx.guild.id, temperature)
-                await ctx.send(f"Temperature set to {temperature}")
+            if set_temperature(model, temp):
+                await ctx.send(f"✅ Set temperature for {model} to {temp}")
             else:
-                await ctx.send("Temperature must be between 0 and 2")
+                await ctx.send(f"❌ Invalid temperature for {model}. Use !temps to see valid ranges.")
         except Exception as e:
-            logging.exception(f"Failed to set temperature: {e}")
-            await ctx.send("Failed to set temperature. Please check the logs.")
+            logging.error(f"Error setting temperature: {str(e)}")
+            await ctx.send("❌ An error occurred while setting the temperature.")
 
-    @commands.command(name='model', help='Set the AI model')
-    async def model(self, ctx, model_name: str):
+    @commands.command(name="temps", aliases=["temperatures"])
+    async def temps_command(self, ctx: commands.Context):
         try:
-            # Assuming there's a way to validate model_name
-            if self.bot.model_exists(model_name):  # Placeholder for model validation
-                set_model(ctx.guild.id, model_name)
-                await ctx.send(f"Model set to {model_name}")
-            else:
-                await ctx.send("Invalid model name.")
+            with open('temperatures.json', 'r') as f:
+                temps = json.load(f)
+            
+            embed = discord.Embed(title="Model Temperatures", description="Current temperature settings:", color=discord.Color.blue())
+            
+            for model, temp_range in temps.items():
+                embed.add_field(name=model, value=f"Current: {temp_range['current']}\nRange: {temp_range['min']} - {temp_range['max']}", inline=True)
+            
+            await ctx.send(embed=embed)
         except Exception as e:
-            logging.exception(f"Failed to set model: {e}")
-            await ctx.send("Failed to set model. Please check the logs.")
+            logging.error(f"Error displaying temperatures: {str(e)}")
+            await ctx.send("❌ An error occurred while fetching temperatures.")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-async def setup(bot):
-    cog = SettingsCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
+        bot.add_cog(SettingsCog(bot))
+        logging.info("Loaded settings cog")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load settings cog: {str(e)}")

@@ -22,7 +22,6 @@ class Mythomax(BaseCog, name="Mythomax"):
             logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
-
 def setup(bot):
     try:
         bot.add_cog(Mythomax(bot))

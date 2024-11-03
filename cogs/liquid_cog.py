@@ -18,11 +18,11 @@ class Liquid(BaseCog, name="Liquid"):
         try:
             await super().cog_load()
         except Exception as e:
-            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 def setup(bot):
     try:
         bot.add_cog(Liquid(bot))
         logging.info("Loaded cog: Liquid")
     except Exception as e:
-        logging.error(f"Failed to load cog liquid_cog.py: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog liquid_cog.py: {str(e)}")

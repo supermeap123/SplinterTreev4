@@ -1,1 +1,1 @@
-from .base_cog import BaseCog
+# This file makes the cogs directory a package

@@ -178,15 +178,18 @@ async def setup_cogs():
                 module_name = filename[:-3]  # Remove .py
                 logging.debug(f"Attempting to load cog: {module_name}")
                 
-                # Load the cog extension
-                await bot.load_extension(f'cogs.{module_name}')
+                # Load the cog extension using importlib
+                cog_module = importlib.import_module(f"cogs.{module_name}")
                 
-                # Get the cog from bot.cogs using the module name
-                for cog in bot.cogs.values():
-                    if isinstance(cog, commands.Cog) and hasattr(cog, 'name'):
-                        loaded_cogs.append(cog)
-                        logging.info(f"Loaded cog: {cog.name}")
-                        break
+                # Get the cog class from the module
+                cog_class = getattr(cog_module, module_name.capitalize())
+                
+                # Instantiate the cog and add it to the bot
+                cog_instance = cog_class(bot)
+                bot.add_cog(cog_instance)
+                
+                loaded_cogs.append(cog_instance)
+                logging.info(f"Loaded cog: {cog_instance.name}")
                 
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}")

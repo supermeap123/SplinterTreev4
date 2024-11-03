@@ -14,13 +14,11 @@ class RPlus(BaseCog, name="RPlus"):
     async def rplus_command(self, ctx: commands.Context, *, prompt: str):
         await self.process_command(ctx, prompt, "RPlus")
 
-
     async def cog_load(self):
         try:
             await super().cog_load()
         except Exception as e:
             logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
-
 
 
 def setup(bot):

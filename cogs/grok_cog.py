@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Grok(BaseCog, name="Grok"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot)
+        super().__init__(bot, name="Grok", model="x-ai/grok-beta", provider="openrouter")
         self.temperature = get_model_temperature("Grok")
 
     @commands.command(name="grok", aliases=["Grok"])

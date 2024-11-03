@@ -1,28 +1,30 @@
 import discord
 from discord.ext import commands
 import logging
+
 from base_cog import BaseCog
+from shared.utils import get_model_temperature
 
-class GemmaCog(BaseCog):
-    def __init__(self, bot):
-        super().__init__(bot,
-                         name="Gemma",
-                         nickname="Gemma",
-                         trigger_words=["gemma"],
-                         model="google/gemma-2-9b-it:free",
-                         provider="openrouter")
-        logging.info(f"[{self.name}] Starting cog setup...")
+class Gemma(BaseCog, name="Gemma"):
+    def __init__(self, bot: commands.Bot):
+        super().__init__(bot, name="Gemma", model="google/gemma-2-27b-it", provider="openrouter")
+        self.temperature = get_model_temperature("Gemma")
 
-    async def handle_message(self, message):
-        await super().handle_message(message)
+    @commands.command(name="gemma", aliases=["Gemma"])
+    async def gemma_command(self, ctx: commands.Context, *, prompt: str):
+        await self.process_command(ctx, prompt, "Gemma")
+
+    async def cog_load(self):
+        try:
+            await super().cog_load()
+        except Exception as e:
+            logging.error(f"[{cog.name}] Failed to register cog: {str(e)}")
 
 
 
-async def setup(bot):
-    cog = GemmaCog(bot)
+def setup(bot):
     try:
-        await bot.add_cog(cog)
-        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        bot.add_cog(Gemma(bot))
+        logging.info("Loaded cog: Gemma")
     except Exception as e:
-        logging.error(f"[{cog.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to load cog gemma_cog.py: {str(e)}")
