@@ -23,9 +23,20 @@ CREATE TABLE IF NOT EXISTS context_windows (
     window_size INTEGER NOT NULL
 );
 
--- Add the deactivated_channels table
 CREATE TABLE IF NOT EXISTS deactivated_channels (
     channel_id TEXT NOT NULL,
     guild_id TEXT NOT NULL,
+    PRIMARY KEY (channel_id, guild_id)
+);
+
+-- Add the channels table
+CREATE TABLE IF NOT EXISTS channels (
+    channel_id TEXT NOT NULL,
+    guild_id TEXT NOT NULL,
+    last_message_id TEXT,
+    last_response_id TEXT,
+    last_human TEXT,
+    last_assistant TEXT,
+    last_updated TEXT,
     PRIMARY KEY (channel_id, guild_id)
 );
