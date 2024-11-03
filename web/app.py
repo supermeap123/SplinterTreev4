@@ -20,23 +20,23 @@ except Exception as e:
 # Available models with display names
 AVAILABLE_MODELS = {
     'openrouter': [
-        {'id': 'anthropic/claude-3-opus', 'name': 'Claude 3 Opus', 'provider': 'anthropic'},
-        {'id': 'anthropic/claude-3-sonnet', 'name': 'Claude 3 Sonnet', 'provider': 'anthropic'},
+        {'id': 'anthropic/claude-3-opus:beta', 'name': 'Claude 3 Opus', 'provider': 'anthropic'},
+        {'id': 'anthropic/claude-3.5-sonnet:beta', 'name': 'Claude 3 Sonnet', 'provider': 'anthropic'},
         {'id': 'anthropic/claude-2', 'name': 'Claude 2', 'provider': 'anthropic'},
-        {'id': 'anthropic/claude-1.1', 'name': 'Claude 1.1', 'provider': 'anthropic'},
-        {'id': 'google/gemini-pro', 'name': 'Gemini Pro', 'provider': 'google'},
-        {'id': 'xai/grok-1', 'name': 'Grok', 'provider': 'xai'},
-        {'id': 'nousresearch/hermes', 'name': 'Hermes', 'provider': 'nousresearch'},
-        {'id': 'meta-llama/llama-3.2-11b', 'name': 'Llama 3.2 11B', 'provider': 'meta'},
-        {'id': 'anthropic/magnum', 'name': 'Magnum', 'provider': 'anthropic'},
-        {'id': 'mistralai/mistral-7b', 'name': 'Ministral', 'provider': 'mistral'},
-        {'id': 'gryphe/mythomax', 'name': 'MythoMax', 'provider': 'gryphe'},
-        {'id': 'nvidia/nemotron', 'name': 'Nemotron', 'provider': 'nvidia'},
-        {'id': 'neversleep/noromaid', 'name': 'NoroMaid', 'provider': 'neversleep'},
+        {'id': 'anthropic/claude-instant-1.1', 'name': 'Claude 1.1', 'provider': 'anthropic'},
+        {'id': 'google/gemini-pro-1.5', 'name': 'Gemini Pro', 'provider': 'google'},
+        {'id': 'x-ai/grok-beta', 'name': 'Grok', 'provider': 'xai'},
+        {'id': 'nousresearch/hermes-3-llama-3.1-405b:free', 'name': 'Hermes', 'provider': 'nousresearch'},
+        {'id': 'meta-llama/llama-3.2-11b-vision-instruct:free', 'name': 'Llama 3.2 11B', 'provider': 'meta'},
+        {'id': 'anthracite-org/magnum-v4-72b', 'name': 'Magnum', 'provider': 'anthropic'},
+        {'id': 'mistralai/ministral-8b', 'name': 'Ministral', 'provider': 'mistral'},
+        {'id': 'gryphe/mythomax-l2-13b', 'name': 'MythoMax', 'provider': 'gryphe'},
+        {'id': 'nvidia/llama-3.1-nemotron-70b-instruct', 'name': 'Nemotron', 'provider': 'nvidia'},
+        {'id': 'neversleep/noromaid-20b', 'name': 'NoroMaid', 'provider': 'neversleep'},
         {'id': 'openai/o1-mini', 'name': 'O1 Mini', 'provider': 'openai'},
-        {'id': 'openchat/openchat', 'name': 'OpenChat', 'provider': 'openchat'},
+        {'id': 'openchat/openchat-7b:free', 'name': 'OpenChat', 'provider': 'openchat'},
         {'id': 'cohere/command-r-plus', 'name': 'Command-R Plus', 'provider': 'cohere'},
-        {'id': 'perplexity/sonar', 'name': 'Sonar', 'provider': 'perplexity'}
+        {'id': 'perplexity/llama-3.1-sonar-huge-128k-online', 'name': 'Sonar', 'provider': 'perplexity'}
     ],
     'openpipe': [
         {'id': 'Sydney-Court', 'name': 'Sydney Court', 'provider': 'openpipe'}
