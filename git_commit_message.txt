@@ -1,9 +1,8 @@
-feat: Add channel activation controls
+feat: Add legacy command support for channel activation
 
-- Added /activate and /deactivate commands to control bot message processing per channel
-- Added deactivated_channels table to track channel status
-- Updated base_cog to check channel activation before processing messages
-- Updated help command and README with new features
-- Commands require channel management or message management permissions
+- Added !activate and !deactivate legacy commands
+- Refactored activation logic into common handler
+- Updated help documentation to show both slash and legacy commands
+- Improved code organization in management_cog.py
 
-This allows server moderators to control which channels the bot responds in, providing better control over bot usage across different channels.
+This maintains backwards compatibility while providing modern slash command alternatives.

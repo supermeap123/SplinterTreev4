@@ -25,51 +25,70 @@ class ManagementCog(commands.Cog):
     def has_channel_permissions(self, member: discord.Member) -> bool:
         return member.guild_permissions.manage_channels or member.guild_permissions.manage_messages
 
-    @app_commands.command(
-        name="activate",
-        description="Activate bot message processing in this channel"
-    )
-    async def activate(self, interaction: discord.Interaction):
-        if not self.has_channel_permissions(interaction.user):
-            await interaction.response.send_message("You need channel management or message management permissions to use this command.", ephemeral=True)
+    async def handle_activation(self, ctx_or_interaction, activate: bool):
+        """Common handler for both slash and legacy commands"""
+        # Get the user and check permissions
+        user = ctx_or_interaction.user if isinstance(ctx_or_interaction, discord.Interaction) else ctx_or_interaction.author
+        if not self.has_channel_permissions(user):
+            response = "You need channel management or message management permissions to use this command."
+            if isinstance(ctx_or_interaction, discord.Interaction):
+                await ctx_or_interaction.response.send_message(response, ephemeral=True)
+            else:
+                await ctx_or_interaction.reply(response)
             return
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Remove from deactivated channels if present
-        cursor.execute('''
-            DELETE FROM deactivated_channels 
-            WHERE channel_id = ? AND guild_id = ?
-        ''', (str(interaction.channel_id), str(interaction.guild_id)))
+        channel_id = str(ctx_or_interaction.channel_id)
+        guild_id = str(ctx_or_interaction.guild_id)
+
+        if activate:
+            # Remove from deactivated channels if present
+            cursor.execute('''
+                DELETE FROM deactivated_channels 
+                WHERE channel_id = ? AND guild_id = ?
+            ''', (channel_id, guild_id))
+            message = "Bot message processing has been activated in this channel."
+        else:
+            # Add to deactivated channels
+            cursor.execute('''
+                INSERT OR REPLACE INTO deactivated_channels (channel_id, guild_id)
+                VALUES (?, ?)
+            ''', (channel_id, guild_id))
+            message = "Bot message processing has been deactivated in this channel."
 
         conn.commit()
         conn.close()
 
-        await interaction.response.send_message(f"Bot message processing has been activated in this channel.", ephemeral=True)
+        if isinstance(ctx_or_interaction, discord.Interaction):
+            await ctx_or_interaction.response.send_message(message, ephemeral=True)
+        else:
+            await ctx_or_interaction.reply(message)
+
+    @app_commands.command(
+        name="activate",
+        description="Activate bot message processing in this channel"
+    )
+    async def activate_slash(self, interaction: discord.Interaction):
+        await self.handle_activation(interaction, True)
 
     @app_commands.command(
         name="deactivate",
         description="Deactivate bot message processing in this channel"
     )
-    async def deactivate(self, interaction: discord.Interaction):
-        if not self.has_channel_permissions(interaction.user):
-            await interaction.response.send_message("You need channel management or message management permissions to use this command.", ephemeral=True)
-            return
+    async def deactivate_slash(self, interaction: discord.Interaction):
+        await self.handle_activation(interaction, False)
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+    @commands.command(name="activate")
+    async def activate_legacy(self, ctx):
+        """Legacy command to activate bot message processing in this channel"""
+        await self.handle_activation(ctx, True)
 
-        # Add to deactivated channels
-        cursor.execute('''
-            INSERT OR REPLACE INTO deactivated_channels (channel_id, guild_id)
-            VALUES (?, ?)
-        ''', (str(interaction.channel_id), str(interaction.guild_id)))
-
-        conn.commit()
-        conn.close()
-
-        await interaction.response.send_message(f"Bot message processing has been deactivated in this channel.", ephemeral=True)
+    @commands.command(name="deactivate")
+    async def deactivate_legacy(self, ctx):
+        """Legacy command to deactivate bot message processing in this channel"""
+        await self.handle_activation(ctx, False)
 
     def is_channel_active(self, channel_id: str, guild_id: str) -> bool:
         conn = sqlite3.connect(self.db_path)
