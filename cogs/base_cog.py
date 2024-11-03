@@ -24,6 +24,35 @@ class BaseCog(commands.Cog):
         self.supports_vision = kwargs.get('supports_vision', False)
         self.max_tokens = kwargs.get('max_tokens', 4096)
         
+        # Load prompt from file if specified
+        self.raw_prompt = self.load_prompt()
+        
+    def load_prompt(self):
+        """Load prompt from the specified prompt file"""
+        if not self.prompt_file:
+            return ""
+            
+        try:
+            with open(f"prompts/{self.prompt_file}.json", 'r') as f:
+                prompts = json.load(f)
+                # Convert name to lowercase and remove non-alphanumeric chars for matching
+                key = ''.join(c.lower() for c in self.name if c.isalnum())
+                # Special case for Sydney which uses sydney_prompts as key
+                if key == "sydney":
+                    key = "sydney_prompts"
+                return prompts["system_prompts"].get(key, "")
+        except Exception as e:
+            logging.error(f"Failed to load prompt for {self.name}: {str(e)}")
+            return ""
+            
+    def format_message_content(self, content, context):
+        """Format message content with context variables"""
+        try:
+            return content.format(**context)
+        except Exception as e:
+            logging.error(f"Failed to format message content: {str(e)}")
+            return content
+        
     def ensure_database(self):
         os.makedirs('databases', exist_ok=True)
         conn = sqlite3.connect(self.db_path)
@@ -170,6 +199,15 @@ class BaseCog(commands.Cog):
             "model": result[0],
             "temperature": result[1]
         }
+
+    def get_temperature(self):
+        """Get the temperature setting for this model"""
+        try:
+            with open('temperatures.json', 'r') as f:
+                temps = json.load(f)
+                return temps.get(self.name.lower(), 0.7)  # Default to 0.7 if not found
+        except:
+            return 0.7  # Default if file not found or error
 
     async def get_ai_response(self, message, history, temperature):
         # Override in subclasses

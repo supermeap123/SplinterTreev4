@@ -1,6 +1,7 @@
-fix: Update BaseCog to accept additional initialization parameters
+feat: Add prompt loading and formatting to BaseCog
 
-- Modified BaseCog.__init__ to accept kwargs
-- Added storage of common parameters (name, nickname, trigger_words, etc.)
-- Set default values for all parameters
-- Fixed initialization errors in cog loading
+- Added load_prompt() method to load prompts from JSON file
+- Added format_message_content() for variable substitution
+- Added get_temperature() for model-specific settings
+- Initialize raw_prompt in BaseCog constructor
+- Added proper key normalization for prompt lookup
