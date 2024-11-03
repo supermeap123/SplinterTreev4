@@ -8,6 +8,7 @@ from datetime import datetime
 import traceback
 import asyncio
 from shared.utils import get_token_count
+from shared.api import api
 
 class BaseCog(commands.Cog):
     def __init__(self, bot, **kwargs):
@@ -25,24 +26,31 @@ class BaseCog(commands.Cog):
         self.supports_vision = kwargs.get('supports_vision', False)
         self.max_tokens = kwargs.get('max_tokens', 4096)
         
-        # Load prompt from file if specified
+        # Initialize API client
+        self.api_client = api
+        
+        # Load prompt from consolidated file
         self.raw_prompt = self.load_prompt()
         
     def load_prompt(self):
-        """Load prompt from the specified prompt file"""
-        if not self.prompt_file:
-            return ""
-            
+        """Load prompt from the consolidated prompts file"""
         try:
             # Convert name to lowercase and remove non-alphanumeric chars for matching
             key = ''.join(c.lower() for c in self.name if c.isalnum())
+            
             # Special case for Sydney which uses sydney_prompts as key
             if key == "sydney":
                 key = "sydney_prompts"
                 
-            with open(f"prompts/{self.prompt_file}.json", 'r') as f:
+            with open('prompts/consolidated_prompts.json', 'r') as f:
                 prompts = json.load(f)
-                return prompts["system_prompts"].get(key, "")
+                prompt = prompts["system_prompts"].get(key, "")
+                if prompt:
+                    logging.info(f"Loaded prompt for {self.name} from consolidated file")
+                    return prompt
+                else:
+                    logging.warning(f"No prompt found for {self.name} in consolidated file")
+                    return ""
         except Exception as e:
             logging.error(f"Failed to load prompt for {self.name}: {str(e)}")
             return ""

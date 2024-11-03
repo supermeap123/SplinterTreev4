@@ -1,6 +1,10 @@
-fix: Update BaseCog to use generate_response method
+fix: resolve bot startup issues
 
-- Changed get_ai_response to generate_response to match cog implementations
-- Moved response generation logic to handle_message
-- Added descriptive error message for NotImplementedError
-- Fixed method name consistency across the codebase
+- Add api_client initialization in base_cog.py
+- Modify prompt loading to use consolidated_prompts.json
+- Add missing context_windows and chat_summaries tables to schema.sql
+
+This fixes the following errors:
+- 'CogName' object has no attribute 'api_client'
+- Failed to load prompt for [Model]: No such file or directory
+- Failed to fetch message history: no such table: context_windows

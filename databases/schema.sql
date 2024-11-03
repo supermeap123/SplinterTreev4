@@ -34,6 +34,22 @@ CREATE TABLE IF NOT EXISTS deactivated_channels (
     deactivated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS context_windows (
+    id INTEGER PRIMARY KEY,
+    channel_id TEXT NOT NULL UNIQUE,
+    window_size INTEGER NOT NULL DEFAULT 10,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS chat_summaries (
+    id INTEGER PRIMARY KEY,
+    channel_id TEXT NOT NULL,
+    start_timestamp TEXT NOT NULL,
+    end_timestamp TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_channels_channel_id ON channels(channel_id);
 CREATE INDEX IF NOT EXISTS idx_channels_guild_id ON channels(guild_id);
 CREATE INDEX IF NOT EXISTS idx_guilds_guild_id ON guilds(guild_id);
@@ -42,3 +58,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_guild_id ON messages(guild_id);
 CREATE INDEX IF NOT EXISTS idx_deactivated_channels_channel_id ON deactivated_channels(channel_id);
 CREATE INDEX IF NOT EXISTS idx_deactivated_channels_guild_id ON deactivated_channels(guild_id);
+CREATE INDEX IF NOT EXISTS idx_context_windows_channel_id ON context_windows(channel_id);
+CREATE INDEX IF NOT EXISTS idx_chat_summaries_channel_id ON chat_summaries(channel_id);
+CREATE INDEX IF NOT EXISTS idx_chat_summaries_end_timestamp ON chat_summaries(end_timestamp);

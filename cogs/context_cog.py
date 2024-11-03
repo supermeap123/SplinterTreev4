@@ -317,9 +317,9 @@ class ContextCog(commands.Cog):
         # Check if we need to create a new summary
         asyncio.create_task(self._check_and_create_summary(channel_id))
 
-    @commands.command(name='getcontext')
-    async def getcontext_command(self, ctx):
-        """Get current context window size and recent messages"""
+    @commands.command(name='getcontext_legacy')
+    async def getcontext_legacy_command(self, ctx):
+        """Get current context window size and recent messages (Legacy command)"""
         channel_id = str(ctx.channel.id)
         try:
             # Get current context window size from database
@@ -352,6 +352,47 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to get context: {str(e)}")
             await ctx.reply("❌ Failed to retrieve context")
+
+    @app_commands.command(
+        name='getcontext',
+        description='Get current context window size and recent messages'
+    )
+    async def get_context(self, interaction: discord.Interaction):
+        """Get current context window size and recent messages (Slash command)"""
+        channel_id = str(interaction.channel.id)
+        try:
+            await interaction.response.defer()
+            
+            # Get current context window size from database
+            window_size = self.get_context_window_size(channel_id)
+            
+            # Get recent messages
+            context = await self.get_context_messages(channel_id)
+            
+            response = f"📝 Current Context (Window Size: {window_size})\n\n"
+            
+            if not context:
+                response += "No context available."
+            else:
+                for msg in context:
+                    role = msg['role']
+                    content = msg['content']
+                    if role == "system":
+                        response += f"🔄 {content}\n\n"
+                    else:
+                        response += f"{'🤖' if role == 'assistant' else '👤'} {content}\n\n"
+            
+            # Split response if it's too long
+            if len(response) > 2000:
+                parts = textwrap.wrap(response, 2000)
+                for part in parts:
+                    await interaction.followup.send(part)
+            else:
+                await interaction.followup.send(response)
+                
+        except Exception as e:
+            logging.error(f"Failed to get context: {str(e)}")
+            await interaction.followup.send("❌ Failed to retrieve context")
 
     @commands.command(name='summarize')
     async def summarize_command(self, ctx):
