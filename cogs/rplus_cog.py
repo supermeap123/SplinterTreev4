@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Rplus_cog(BaseCog, name="RPlus"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="RPlus", model="cohere/command-r-plus", provider="openrouter")
+        super().__init__(bot, trigger_words=['[RPlus]', '[rplus]'], name="RPlus", model="cohere/command-r-plus", provider="openrouter")
         self.temperature = get_model_temperature("RPlus")
 
     @commands.command(name="rplus", aliases=["RPlus"])

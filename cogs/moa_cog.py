@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Moa_cog(BaseCog, name="Moa"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Moa", model="anthropic/claude-2", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Moa]', '[moa]'], name="Moa", model="anthropic/claude-2", provider="openrouter")
         self.temperature = get_model_temperature("Moa")
 
     @commands.command(name="moa", aliases=["Moa"])

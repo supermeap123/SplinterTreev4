@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Geminipro_cog(BaseCog, name="GeminiPro"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="GeminiPro", model="google/gemini-pro-vision", provider="openrouter", supports_vision=True)
+        super().__init__(bot, trigger_words=['[GeminiPro]', '[geminipro]'], name="GeminiPro", model="google/gemini-pro-vision", provider="openrouter", supports_vision=True)
         self.temperature = get_model_temperature("GeminiPro")
 
     @commands.command(name="geminipro", aliases=["GeminiPro"])

@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Liquid_cog(BaseCog, name="Liquid"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Liquid", model="liquid/lfm-40b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Liquid]', '[liquid]'], name="Liquid", model="liquid/lfm-40b", provider="openrouter")
         self.temperature = get_model_temperature("Liquid")
 
     @commands.command(name="liquid", aliases=["Liquid"])

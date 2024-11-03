@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Openchat_cog(BaseCog, name="OpenChat"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="OpenChat", model="openchat/openchat-7b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[OpenChat]', '[openchat]'], name="OpenChat", model="openchat/openchat-7b", provider="openrouter")
         self.temperature = get_model_temperature("OpenChat")
 
     @commands.command(name="openchat", aliases=["OpenChat"])

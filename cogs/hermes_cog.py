@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Hermes_cog(BaseCog, name="Hermes"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Hermes", model="nousresearch/hermes-3-llama-3.1-405b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Hermes]', '[hermes]'], name="Hermes", model="nousresearch/hermes-3-llama-3.1-405b", provider="openrouter")
         self.temperature = get_model_temperature("Hermes")
 
     @commands.command(name="hermes", aliases=["Hermes"])

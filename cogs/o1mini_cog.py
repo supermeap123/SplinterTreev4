@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class O1mini_cog(BaseCog, name="O1Mini"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="O1Mini", model="openai/o1-mini", provider="openrouter")
+        super().__init__(bot, trigger_words=['[O1Mini]', '[o1mini]'], name="O1Mini", model="openai/o1-mini", provider="openrouter")
         self.temperature = get_model_temperature("O1Mini")
 
     @commands.command(name="o1mini", aliases=["O1Mini"])

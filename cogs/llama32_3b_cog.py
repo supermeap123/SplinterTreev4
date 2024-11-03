@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Llama32_3b_cog(BaseCog, name="Llama32_3B"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Llama32_3B", model="meta-llama/llama-3.2-3b-instruct", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Llama32_3B]', '[llama32_3b]'], name="Llama32_3B", model="meta-llama/llama-3.2-3b-instruct", provider="openrouter")
         self.temperature = get_model_temperature("Llama32_3B")
 
     @commands.command(name="llama32_3b", aliases=["Llama32_3B"])

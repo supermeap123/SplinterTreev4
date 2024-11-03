@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Gemma(BaseCog, name="Gemma"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Gemma", model="google/gemma-2-27b-it", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Gemma]', '[gemma]'], name="Gemma", model="google/gemma-2-27b-it", provider="openrouter")
         self.temperature = get_model_temperature("Gemma")
 
     @commands.command(name="gemma", aliases=["Gemma"])

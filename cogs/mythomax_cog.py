@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Mythomax_cog(BaseCog, name="Mythomax"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Mythomax", model="gryphe/mythomax-l2-13b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Mythomax]', '[mythomax]'], name="Mythomax", model="gryphe/mythomax-l2-13b", provider="openrouter")
         self.temperature = get_model_temperature("Mythomax")
 
     @commands.command(name="mythomax", aliases=["Mythomax"])

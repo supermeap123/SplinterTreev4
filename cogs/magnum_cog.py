@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Magnum_cog(BaseCog, name="Magnum"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Magnum", model="anthracite-org/magnum-v4-72b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Magnum]', '[magnum]'], name="Magnum", model="anthracite-org/magnum-v4-72b", provider="openrouter")
         self.temperature = get_model_temperature("Magnum")
 
     @commands.command(name="magnum", aliases=["Magnum"])

@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Noromaid_cog(BaseCog, name="Noromaid"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Noromaid", model="neversleep/noromaid-20b", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Noromaid]', '[noromaid]'], name="Noromaid", model="neversleep/noromaid-20b", provider="openrouter")
         self.temperature = get_model_temperature("Noromaid")
 
     @commands.command(name="noromaid", aliases=["Noromaid"])

@@ -7,7 +7,9 @@ from shared.utils import get_model_temperature
 
 class Gemini_cog(BaseCog, name="Gemini"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Gemini", model="google/gemini-pro-1.5", provider="openrouter")  # Assuming "Gemini" refers to gemini-pro-1.5
+        # Initialize with trigger words for the model name and its aliases
+        trigger_words = ["[Gemini]", "[gemini]"]
+        super().__init__(bot, name="Gemini", model="google/gemini-pro-1.5", provider="openrouter", trigger_words=trigger_words)
         self.temperature = get_model_temperature("Gemini")
 
     @commands.command(name="gemini", aliases=["Gemini"])

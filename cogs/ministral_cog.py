@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Ministral_cog(BaseCog, name="MiniMistral"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="MiniMistral", model="mistralai/mistral-7b-instruct", provider="openrouter")
+        super().__init__(bot, trigger_words=['[MiniMistral]', '[minimistral]'], name="MiniMistral", model="mistralai/mistral-7b-instruct", provider="openrouter")
         self.temperature = get_model_temperature("MiniMistral")
 
     @commands.command(name="minimistral", aliases=["MiniMistral"])

@@ -7,7 +7,7 @@ from shared.utils import get_model_temperature
 
 class Claude2_cog(BaseCog, name="Claude-2"):
     def __init__(self, bot: commands.Bot):
-        super().__init__(bot, name="Claude-2", model="anthropic/claude-2", provider="openrouter")
+        super().__init__(bot, trigger_words=['[Claude-2]', '[claude-2]', '[Claude2]', '[claude2]'], name="Claude-2", model="anthropic/claude-2", provider="openrouter")
         self.temperature = get_model_temperature("Claude-2")
 
     @commands.command(name="claude2", aliases=["Claude2", "claude-2", "Claude-2"])
