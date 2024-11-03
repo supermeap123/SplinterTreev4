@@ -1,7 +1,5 @@
-fix(web): update model IDs to match OpenRouter API
+fix(web): update model IDs in API wrapper
 
-- Update Claude 3 Opus and Sonnet model IDs
-- Update Hermes model ID to include version
-- Update Llama model IDs with correct versions
-- Update Nemotron model ID
-- Update other model IDs to match OpenRouter specifications
+- Sync model IDs with web/app.py to match OpenRouter specifications
+- Update all model IDs to their latest versions
+- Add correct version tags and suffixes
