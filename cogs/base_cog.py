@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 import traceback
 import asyncio
+import re
 from shared.utils import get_token_count
 from shared.api import api
 
@@ -31,6 +32,9 @@ class BaseCog(commands.Cog):
         
         # Load prompt from consolidated file
         self.raw_prompt = self.load_prompt()
+        
+        # Compile regex patterns for sentence parsing
+        self.sentence_end = re.compile(r'[.!?]\s+|\n\n+|\n(?=[A-Z])|[.!?](?=["\'])\s+')
         
     def load_prompt(self):
         """Load prompt from the consolidated prompts file"""
@@ -108,6 +112,33 @@ class BaseCog(commands.Cog):
                 
         return False
 
+    def split_into_chunks(self, text: str, max_length: int = 1500) -> list:
+        """Split text into chunks at natural breakpoints"""
+        chunks = []
+        current_chunk = ""
+        
+        # Split text into potential sentences/segments
+        segments = self.sentence_end.split(text)
+        
+        # Add back the separators that were removed by split
+        matches = self.sentence_end.finditer(text)
+        separators = [match.group() for match in matches]
+        segments = [s + (separators[i] if i < len(separators) else '') for i, s in enumerate(segments)]
+        
+        for segment in segments:
+            # If adding this segment would exceed max length, store current chunk
+            if len(current_chunk) + len(segment) > max_length and current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = segment
+            else:
+                current_chunk += segment
+        
+        # Add any remaining text
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+            
+        return chunks
+
     async def handle_message(self, message):
         """Handle incoming messages"""
         if not self.is_channel_active(str(message.channel.id), str(message.guild.id)):
@@ -151,13 +182,15 @@ class BaseCog(commands.Cog):
                         current_chunk += chunk
                         full_response += chunk
                         
-                        # Send chunk when it reaches a reasonable size or contains sentence endings
-                        if len(current_chunk) > 1500 or any(end in current_chunk for end in ['. ', '! ', '? ', '\n']):
-                            if sent_message is None:
-                                sent_message = await message.channel.send(current_chunk)
-                            else:
-                                await message.channel.send(current_chunk)
-                            current_chunk = ""
+                        # Check if we have complete sentences to send
+                        chunks = self.split_into_chunks(current_chunk)
+                        if len(chunks) > 1:  # More than one chunk means we have complete sentences
+                            for i, chunk_text in enumerate(chunks[:-1]):  # Send all but the last chunk
+                                if sent_message is None:
+                                    sent_message = await message.channel.send(chunk_text)
+                                else:
+                                    await message.channel.send(chunk_text)
+                            current_chunk = chunks[-1]  # Keep the last chunk for next iteration
                 
                 # Send any remaining text
                 if current_chunk:
@@ -193,21 +226,16 @@ class BaseCog(commands.Cog):
                 
             else:
                 # Handle regular string responses
-                if len(response) > 2000:
-                    # Split into chunks of 2000 chars
-                    chunks = [response[i:i + 2000] for i in range(0, len(response), 2000)]
-                    sent_messages = []
-                    for chunk in chunks:
-                        sent_message = await message.channel.send(chunk)
-                        sent_messages.append(sent_message)
-                    
-                    # Use the first sent message ID for history tracking
-                    response_id = sent_messages[0].id
-                    response_text = response
-                else:
-                    sent_message = await message.channel.send(response)
-                    response_id = sent_message.id
-                    response_text = response
+                chunks = self.split_into_chunks(response, 2000)  # Discord's limit is 2000
+                sent_messages = []
+                
+                for i, chunk in enumerate(chunks):
+                    sent_message = await message.channel.send(chunk)
+                    sent_messages.append(sent_message)
+                
+                # Use the first sent message ID for history tracking
+                response_id = sent_messages[0].id
+                response_text = response
                 
                 # Store bot's response in database
                 self.store_message(

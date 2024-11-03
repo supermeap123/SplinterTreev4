@@ -1,10 +1,12 @@
-fix: add trigger word checking in base_cog.py
+fix: improve sentence parsing and chunking in base_cog.py
 
-- Add should_respond() method to check trigger words
-- Add trigger word check at start of handle_message()
-- Make cogs without trigger words not respond
-- Use case-insensitive trigger word matching
+- Add regex pattern for natural sentence boundaries
+- Create split_into_chunks method for better text segmentation
+- Enhance streaming response handling with improved chunking
+- Add better handling of newlines and quotation marks
+- Preserve sentence endings in chunks
 
-This fixes:
-- Cogs responding regardless of trigger words
-- Improved message filtering based on triggers
+This improves:
+- More natural message splitting
+- Better handling of streaming responses
+- Cleaner message presentation
