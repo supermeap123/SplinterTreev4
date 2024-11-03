@@ -1,7 +1,12 @@
-fix: add case-insensitive prompt lookup in base_cog.py
+fix: handle streaming responses and update schema
 
-- Add case-insensitive prompt lookup in load_prompt()
-- Try exact match first, then case-insensitive match
-- Finally try normalized match (removing special characters)
+- Add proper handling of streaming responses in base_cog.py
+- Update database schema with required columns:
+  - Add user_id and is_assistant columns to messages table
+  - Add emotion column to messages table
+  - Add proper indices for new columns
 
-This ensures prompts are found regardless of case or special characters in cog names.
+This fixes:
+- TypeError: object of type 'async_generator' has no len()
+- Failed to add message to context: table messages has no column named user_id
+- Failed to fetch message history: no such column: is_assistant

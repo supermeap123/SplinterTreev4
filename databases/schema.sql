@@ -22,8 +22,11 @@ CREATE TABLE IF NOT EXISTS messages (
     message_id TEXT NOT NULL UNIQUE,
     channel_id TEXT NOT NULL,
     guild_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
     author_id TEXT NOT NULL,
     content TEXT NOT NULL,
+    is_assistant BOOLEAN NOT NULL DEFAULT 0,
+    emotion TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -56,6 +59,8 @@ CREATE INDEX IF NOT EXISTS idx_guilds_guild_id ON guilds(guild_id);
 CREATE INDEX IF NOT EXISTS idx_messages_message_id ON messages(message_id);
 CREATE INDEX IF NOT EXISTS idx_messages_channel_id ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_guild_id ON messages(guild_id);
+CREATE INDEX IF NOT EXISTS idx_messages_user_id ON messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_author_id ON messages(author_id);
 CREATE INDEX IF NOT EXISTS idx_deactivated_channels_channel_id ON deactivated_channels(channel_id);
 CREATE INDEX IF NOT EXISTS idx_deactivated_channels_guild_id ON deactivated_channels(guild_id);
 CREATE INDEX IF NOT EXISTS idx_context_windows_channel_id ON context_windows(channel_id);

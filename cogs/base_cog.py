@@ -109,20 +109,49 @@ class BaseCog(commands.Cog):
             # Process message and get response
             response = await self.generate_response(message)
             
-            # Split response if too long
-            if len(response) > 2000:
-                # Split into chunks of 2000 chars
-                chunks = [response[i:i + 2000] for i in range(0, len(response), 2000)]
-                sent_messages = []
-                for chunk in chunks:
-                    sent_message = await message.channel.send(chunk)
-                    sent_messages.append(sent_message)
+            if response is None:
+                return
+            
+            # Handle streaming responses (async generators)
+            if hasattr(response, '__aiter__'):
+                full_response = ""
+                current_chunk = ""
                 
-                # Use the first sent message ID for history tracking
-                response_id = sent_messages[0].id
+                async for chunk in response:
+                    if chunk:
+                        current_chunk += chunk
+                        full_response += chunk
+                        
+                        # Send chunk when it reaches a reasonable size or contains sentence endings
+                        if len(current_chunk) > 1500 or any(end in current_chunk for end in ['. ', '! ', '? ', '\n']):
+                            await message.channel.send(current_chunk)
+                            current_chunk = ""
+                
+                # Send any remaining text
+                if current_chunk:
+                    await message.channel.send(current_chunk)
+                
+                # Use the first sent message for history tracking
+                response_id = message.channel.last_message_id
+                response_text = full_response
+                
             else:
-                sent_message = await message.channel.send(response)
-                response_id = sent_message.id
+                # Handle regular string responses
+                if len(response) > 2000:
+                    # Split into chunks of 2000 chars
+                    chunks = [response[i:i + 2000] for i in range(0, len(response), 2000)]
+                    sent_messages = []
+                    for chunk in chunks:
+                        sent_message = await message.channel.send(chunk)
+                        sent_messages.append(sent_message)
+                    
+                    # Use the first sent message ID for history tracking
+                    response_id = sent_messages[0].id
+                    response_text = response
+                else:
+                    sent_message = await message.channel.send(response)
+                    response_id = sent_message.id
+                    response_text = response
             
             # Update conversation history
             self.update_conversation_history(
@@ -131,7 +160,7 @@ class BaseCog(commands.Cog):
                 message.id,
                 response_id,
                 message.content,
-                response
+                response_text
             )
             
             # Store message in database
@@ -140,7 +169,18 @@ class BaseCog(commands.Cog):
                 message.channel.id,
                 message.guild.id,
                 message.author.id,
-                message.content
+                message.content,
+                False  # is_assistant
+            )
+            
+            # Store bot's response in database
+            self.store_message(
+                response_id,
+                message.channel.id,
+                message.guild.id,
+                self.bot.user.id,
+                response_text,
+                True  # is_assistant
             )
             
         except Exception as e:
@@ -181,15 +221,15 @@ class BaseCog(commands.Cog):
         conn.commit()
         conn.close()
 
-    def store_message(self, message_id, channel_id, guild_id, author_id, content):
+    def store_message(self, message_id, channel_id, guild_id, user_id, content, is_assistant=False, emotion=None):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
             INSERT OR REPLACE INTO messages
-            (message_id, channel_id, guild_id, author_id, content, timestamp)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (str(message_id), str(channel_id), str(guild_id), str(author_id), content))
+            (message_id, channel_id, guild_id, user_id, author_id, content, is_assistant, emotion, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (str(message_id), str(channel_id), str(guild_id), str(user_id), str(user_id), content, is_assistant, emotion))
         
         conn.commit()
         conn.close()
