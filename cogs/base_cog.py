@@ -141,9 +141,13 @@ class BaseCog(commands.Cog):
 
     async def handle_message(self, message):
         """Handle incoming messages"""
+
+        if not message.guild or not message.channel:
+            return
+
         if not self.is_channel_active(str(message.channel.id), str(message.guild.id)):
             return
-            
+
         # Check if we should respond based on trigger words
         if not self.should_respond(message.content):
             return
@@ -234,28 +238,29 @@ class BaseCog(commands.Cog):
                     sent_messages.append(sent_message)
                 
                 # Use the first sent message ID for history tracking
-                response_id = sent_messages[0].id
-                response_text = response
-                
-                # Store bot's response in database
-                self.store_message(
-                    response_id,
-                    message.channel.id,
-                    message.guild.id,
-                    self.bot.user.id,
-                    response_text,
-                    True  # is_assistant
-                )
-                
-                # Update conversation history
-                self.update_conversation_history(
-                    message.channel.id,
-                    message.guild.id, 
-                    message.id,
-                    response_id,
-                    message.content,
-                    response_text
-                )
+                if sent_messages: # check if sent_messages is not empty
+                    response_id = sent_messages[0].id
+                    response_text = response
+                    
+                    # Store bot's response in database
+                    self.store_message(
+                        response_id,
+                        message.channel.id,
+                        message.guild.id,
+                        self.bot.user.id,
+                        response_text,
+                        True  # is_assistant
+                    )
+                    
+                    # Update conversation history
+                    self.update_conversation_history(
+                        message.channel.id,
+                        message.guild.id, 
+                        message.id,
+                        response_id,
+                        message.content,
+                        response_text
+                    )
             
         except Exception as e:
             print(f"Error in {self.name} cog:")
