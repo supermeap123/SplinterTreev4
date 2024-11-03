@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS messages (
-    message_id INTEGER PRIMARY KEY AUTOINCREMENT, -- Make message_id auto-increment
+    message_id INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id TEXT NOT NULL,
     guild_id TEXT,
     user_id TEXT NOT NULL,
@@ -21,4 +21,11 @@ CREATE TABLE IF NOT EXISTS chat_summaries (
 CREATE TABLE IF NOT EXISTS context_windows (
     channel_id TEXT PRIMARY KEY,
     window_size INTEGER NOT NULL
+);
+
+-- Add the deactivated_channels table
+CREATE TABLE IF NOT EXISTS deactivated_channels (
+    channel_id TEXT NOT NULL,
+    guild_id TEXT NOT NULL,
+    PRIMARY KEY (channel_id, guild_id)
 );
