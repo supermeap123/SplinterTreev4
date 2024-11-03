@@ -41,21 +41,20 @@ class BaseCog(commands.Cog):
         try:
             with open('prompts/consolidated_prompts.json', 'r') as f:
                 prompts = json.load(f)
-                
-                # Try exact match first
-                if self.name in prompts["system_prompts"]:
-                    logging.info(f"Loaded prompt for {self.name} from consolidated file")
-                    return prompts["system_prompts"][self.name]
-                
-                # Try case-insensitive match
-                name_lower = self.name.lower()
+
+                # Normalize cog name for comparison
                 name_normalized = ''.join(c.lower() for c in self.name if c.isalnum())
                 
+                # Try exact match first
+                if name_normalized in prompts["system_prompts"]:
+                    logging.info(f"Loaded prompt for {self.name} from consolidated file")
+                    return prompts["system_prompts"][name_normalized]
+                
+                # Try normalized key match
                 for key, prompt in prompts["system_prompts"].items():
-                    key_lower = key.lower()
                     key_normalized = ''.join(c.lower() for c in key if c.isalnum())
                     
-                    if name_lower == key_lower or name_normalized == key_normalized:
+                    if name_normalized == key_normalized:
                         logging.info(f"Loaded prompt for {self.name} from consolidated file using normalized key {key}")
                         return prompt
                 
