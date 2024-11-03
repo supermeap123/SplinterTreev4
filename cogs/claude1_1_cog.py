@@ -21,9 +21,9 @@ class Claude1_1(BaseCog, name="Claude-1.1"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Claude1_1(bot))
+        await bot.add_cog(Claude1_1(bot))
         logging.info("Loaded cog: Claude1_1")
     except Exception as e:
         logging.error(f"Failed to load cog claude1_1_cog.py: {str(e)}")

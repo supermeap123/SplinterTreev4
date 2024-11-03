@@ -23,7 +23,7 @@ class Noromaid_cog(BaseCog, name="Noromaid"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Noromaid_cog(bot))
+        await await bot.add_cog(Noromaid_cog(bot))
         logging.info("Loaded cog: Noromaid")
     except Exception as e:
         logging.error(f"Failed to load cog noromaid_cog.py: {str(e)}")

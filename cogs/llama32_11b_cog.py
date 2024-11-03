@@ -23,7 +23,7 @@ class Llama32_11b_cog(BaseCog, name="Llama32_11B"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Llama32_11b_cog(bot))
+        await await bot.add_cog(Llama32_11b_cog(bot))
         logging.info("Loaded cog: Llama32_11B")
     except Exception as e:
         logging.error(f"Failed to load cog llama32_11b_cog.py: {str(e)}")

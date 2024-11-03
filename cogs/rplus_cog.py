@@ -23,7 +23,7 @@ class Rplus_cog(BaseCog, name="RPlus"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Rplus_cog(bot))
+        await await bot.add_cog(Rplus_cog(bot))
         logging.info("Loaded cog: RPlus")
     except Exception as e:
         logging.error(f"Failed to load cog rplus_cog.py: {str(e)}")

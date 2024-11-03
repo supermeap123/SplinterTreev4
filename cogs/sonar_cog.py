@@ -23,7 +23,7 @@ class Sonar_cog(BaseCog, name="Sonar"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Sonar_cog(bot))
+        await await bot.add_cog(Sonar_cog(bot))
         logging.info("Loaded cog: Sonar")
     except Exception as e:
         logging.error(f"Failed to load cog sonar_cog.py: {str(e)}")

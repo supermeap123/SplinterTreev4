@@ -78,12 +78,23 @@ class BaseCog(commands.Cog):
         return result
 
     def should_respond(self, message_content: str) -> bool:
-        if not self.trigger_words:
-            return False
-        message_lower = message_content.lower()
-        for trigger in self.trigger_words:
-            if trigger.lower() in message_lower:
-                return True
+        # Check for [ModelName] at start of message
+        if message_content.startswith('['):
+            end_bracket = message_content.find(']')
+            if end_bracket != -1:
+                model_name = message_content[1:end_bracket]
+                if model_name.lower() == self.name.lower():
+                    return True
+                # Also check without dashes
+                if '-' in model_name and model_name.lower().replace('-', '') == self.name.lower().replace('-', ''):
+                    return True
+
+        # Check other trigger words
+        if self.trigger_words:
+            message_lower = message_content.lower()
+            for trigger in self.trigger_words:
+                if trigger.lower() in message_lower:
+                    return True
         return False
 
     def split_into_chunks(self, text: str, max_length: int = 1500) -> list:
@@ -268,6 +279,7 @@ class BaseCog(commands.Cog):
 
     async def generate_response(self, message):
         try:
+            from zoneinfo import ZoneInfo
             tz = ZoneInfo("America/Los_Angeles")
             current_time = datetime.now(tz).strftime("%I:%M %p")
             context = {

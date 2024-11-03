@@ -54,7 +54,7 @@ class Management_cog(BaseCog, name="ManagementCog"):
 
 async def setup(bot: commands.Bot):
     try:
-        await bot.add_cog(Management_cog(bot))
+        await await bot.add_cog(Management_cog(bot))
         logging.info("Loaded core cog: management_cog")
     except Exception as e:
         logging.error(f"Failed to load core cog management_cog: {str(e)}")

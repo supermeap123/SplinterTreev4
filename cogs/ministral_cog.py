@@ -24,7 +24,7 @@ class Ministral_cog(BaseCog, name="MiniMistral"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Ministral_cog(bot))
+        await await bot.add_cog(Ministral_cog(bot))
         logging.info("Loaded cog: MiniMistral")
     except Exception as e:
         logging.error(f"Failed to load cog ministral_cog.py: {str(e)}")

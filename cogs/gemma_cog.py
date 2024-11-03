@@ -21,9 +21,9 @@ class Gemma(BaseCog, name="Gemma"):
             logging.error(f"[{self.name}] Failed to register cog: {str(e)}")
 
 
-def setup(bot):
+async def setup(bot):
     try:
-        bot.add_cog(Gemma(bot))
+        await bot.add_cog(Gemma(bot))
         logging.info("Loaded cog: Gemma")
     except Exception as e:
         logging.error(f"Failed to load cog gemma_cog.py: {str(e)}")

@@ -23,7 +23,7 @@ class Nemotron_cog(BaseCog, name="Nemotron"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Nemotron_cog(bot))
+        await await bot.add_cog(Nemotron_cog(bot))
         logging.info("Loaded cog: Nemotron")
     except Exception as e:
         logging.error(f"Failed to load cog nemotron_cog.py: {str(e)}")

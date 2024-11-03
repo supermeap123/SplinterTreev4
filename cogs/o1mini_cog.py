@@ -23,7 +23,7 @@ class O1mini_cog(BaseCog, name="O1Mini"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(O1mini_cog(bot))
+        await await bot.add_cog(O1mini_cog(bot))
         logging.info("Loaded cog: O1Mini")
     except Exception as e:
         logging.error(f"Failed to load cog o1mini_cog.py: {str(e)}")

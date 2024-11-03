@@ -46,7 +46,7 @@ class Settings_cog(BaseCog, name="SettingsCog"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Settings_cog(bot))
+        await await bot.add_cog(Settings_cog(bot))
         logging.info("Loaded settings cog")
     except Exception as e:
         logging.error(f"Failed to load settings cog: {str(e)}")

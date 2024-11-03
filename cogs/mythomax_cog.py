@@ -24,7 +24,7 @@ class Mythomax_cog(BaseCog, name="Mythomax"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Mythomax_cog(bot))
+        await await bot.add_cog(Mythomax_cog(bot))
         logging.info("Loaded cog: Mythomax")
     except Exception as e:
         logging.error(f"Failed to load cog mythomax_cog.py: {str(e)}")

@@ -37,6 +37,16 @@ def update_cog_file(filepath):
     if 'trigger_words=' not in content:
         content = re.sub(init_pattern, f'super().__init__(bot, {trigger_words_str}', content)
 
+    # Fix bot.add_cog to be async
+    if 'bot.add_cog(' in content:
+        # Replace direct bot.add_cog call with await
+        content = content.replace('bot.add_cog(', 'await bot.add_cog(')
+        
+        # Update setup function to be async if it isn't already
+        setup_pattern = r'def setup\(bot\):'
+        if 'async def setup' not in content:
+            content = content.replace('def setup(bot):', 'async def setup(bot):')
+
     # Write updated content back to file
     with open(filepath, 'w') as f:
         f.write(content)

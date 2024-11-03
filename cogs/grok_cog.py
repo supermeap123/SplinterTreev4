@@ -22,7 +22,7 @@ class Grok_cog(BaseCog, name="Grok"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Grok_cog(bot))
+        await await bot.add_cog(Grok_cog(bot))
         logging.info("Loaded cog: Grok")
     except Exception as e:
         logging.error(f"Failed to load cog grok_cog.py: {str(e)}")

@@ -24,7 +24,7 @@ class Moa_cog(BaseCog, name="Moa"):
 
 async def setup(bot):
     try:
-        await bot.add_cog(Moa_cog(bot))
+        await await bot.add_cog(Moa_cog(bot))
         logging.info("Loaded cog: Moa")
     except Exception as e:
         logging.error(f"Failed to load cog moa_cog.py: {str(e)}")

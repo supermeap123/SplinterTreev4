@@ -21,7 +21,7 @@ class Context_cog(BaseCog, name="ContextCog"):
 
 async def setup(bot: commands.Bot):
     try:
-        await bot.add_cog(Context_cog(bot))
+        await await bot.add_cog(Context_cog(bot))
         logging.info("Loaded core cog: context_cog")
     except Exception as e:
         logging.error(f"Failed to load core cog context_cog: {str(e)}")
