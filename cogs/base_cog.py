@@ -247,14 +247,27 @@ class BaseCog(commands.Cog):
                     if sent_message:
                         # Log interaction
                         try:
-                            await log_interaction(
-                                user_id=message.author.id,
-                                guild_id=message.guild.id if message.guild else None,
-                                persona_name=self.name,
-                                user_message=message.content,
-                                assistant_reply=sent_message.content,
-                                emotion=analyze_emotion(sent_message.content),
-                                channel_id=str(message.channel.id)
+                            # Add message to context with Discord message ID
+                            await self.context_cog.add_message_to_context(
+                                message.id,
+                                str(message.channel.id),
+                                str(message.guild.id) if message.guild else None,
+                                str(message.author.id),
+                                message.content,
+                                False,  # is_assistant
+                                None,  # persona_name
+                                analyze_emotion(message.content)  # emotion
+                            )
+                            # Add bot's response to context
+                            await self.context_cog.add_message_to_context(
+                                sent_message.id,
+                                str(message.channel.id),
+                                str(message.guild.id) if message.guild else None,
+                                str(self.bot.user.id),
+                                sent_message.content,
+                                True,  # is_assistant
+                                self.name,  # persona_name
+                                analyze_emotion(sent_message.content)  # emotion
                             )
                             logging.debug(f"[{self.name}] Logged interaction for user {message.author.id}")
                         except Exception as e:

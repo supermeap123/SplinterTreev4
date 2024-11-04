@@ -141,7 +141,7 @@ class ContextCog(commands.Cog):
             return
 
         # Skip if message has already been processed
-        if message.id in self.processed_messages:
+        if str(message.id) in self.processed_messages:
             return
 
         # Only process messages that aren't triggering any cogs
@@ -159,7 +159,7 @@ class ContextCog(commands.Cog):
         persona_name = None
         emotion = None
 
-        await self.add_message_to_context(channel_id, guild_id, user_id, content, 
+        await self.add_message_to_context(message.id, channel_id, guild_id, user_id, content, 
                                         is_assistant, persona_name, emotion)
         
         # Check if we need to create a new summary
@@ -237,7 +237,7 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to get context messages: {str(e)}")
             return []
 
-    async def add_message_to_context(self, channel_id: str, guild_id: Optional[str], 
+    async def add_message_to_context(self, discord_message_id: int, channel_id: str, guild_id: Optional[str], 
                                    user_id: str, content: str, is_assistant: bool,
                                    persona_name: Optional[str] = None, 
                                    emotion: Optional[str] = None) -> bool:
@@ -248,13 +248,21 @@ class ContextCog(commands.Cog):
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT INTO messages (
-                        channel_id, guild_id, user_id, persona_name, 
+                        discord_message_id, channel_id, guild_id, user_id, persona_name, 
                         content, is_assistant, emotion, timestamp
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (channel_id, guild_id, user_id, persona_name, 
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (str(discord_message_id), channel_id, guild_id, user_id, persona_name, 
                       content, is_assistant, emotion, timestamp))
                 conn.commit()
+                # Add to processed messages set
+                self.processed_messages.add(str(discord_message_id))
                 return True
+        except sqlite3.IntegrityError as e:
+            if "UNIQUE constraint failed" in str(e):
+                logging.debug(f"Message {discord_message_id} already exists in database")
+                return True
+            logging.error(f"Database integrity error: {str(e)}")
+            return False
         except Exception as e:
             logging.error(f"Failed to add message to context: {str(e)}")
             return False

@@ -1,6 +1,7 @@
 -- Messages table to store all interactions
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    discord_message_id TEXT UNIQUE,  -- Added to track Discord message IDs
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     channel_id TEXT NOT NULL,
     guild_id TEXT,
@@ -56,6 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id);
 CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_persona ON messages(persona_name);
+CREATE INDEX IF NOT EXISTS idx_messages_discord_id ON messages(discord_message_id);  -- Added index for Discord message ID
 CREATE INDEX IF NOT EXISTS idx_alt_text_channel ON image_alt_text(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_channel ON chat_summaries(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_timestamp ON chat_summaries(end_timestamp);
