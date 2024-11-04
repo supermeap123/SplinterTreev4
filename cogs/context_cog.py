@@ -21,6 +21,8 @@ class ContextCog(commands.Cog):
             base_url=OPENPIPE_API_URL,
             api_key=OPENPIPE_API_KEY
         )
+        # Track processed message IDs to prevent duplicates
+        self.processed_messages = set()
 
     def _setup_database(self):
         """Ensure database and tables exist"""
@@ -137,6 +139,17 @@ class ContextCog(commands.Cog):
         """Capture user messages to add to context"""
         if message.author.bot:
             return
+
+        # Skip if message has already been processed
+        if message.id in self.processed_messages:
+            return
+
+        # Only process messages that aren't triggering any cogs
+        msg_content = message.content.lower()
+        for cog in self.bot.cogs.values():
+            if hasattr(cog, 'trigger_words'):
+                if any(word in msg_content for word in cog.trigger_words):
+                    return  # Skip processing as this will be handled by the triggered cog
 
         channel_id = str(message.channel.id)
         guild_id = str(message.guild.id) if message.guild else None

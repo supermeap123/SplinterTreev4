@@ -1,7 +1,6 @@
-docs: update README with new cog system
+fix: prevent duplicate message logging in context_cog
 
-- Document Sydney's pattern in base_cog.py
-- Add update_cogs.py usage and configuration
-- Update architecture section with new cog structure
-- Add instructions for maintaining cogs
-- Document store=True parameter usage
+- Add processed_messages set to track which messages have been handled
+- Skip messages in on_message that trigger cogs since they'll be handled by the cog
+- Maintain comprehensive message history while avoiding duplicates
+- Improve logging efficiency and database usage
