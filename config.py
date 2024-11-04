@@ -13,8 +13,8 @@ OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
 # OpenPipe API key
 OPENPIPE_API_KEY = os.getenv('OPENPIPE_API_KEY')
 
-# OpenPipe API URL
-OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1/chat/completions')
+# OpenPipe API URL (base URL only, chat/completions is added by the client)
+OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1')
 
 # OpenAI API key (dummy)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'sk-dummy-openai-api-key')
