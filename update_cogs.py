@@ -33,7 +33,7 @@ class {class_name}(BaseCog):
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[{log_name}] Failed to load temperatures.json: {{str(e)}}")
+            logging.error(f"[{log_name}] Failed to load temperatures.json: {{e}}")
             self.temperatures = {{}}
 
     @property
@@ -115,7 +115,7 @@ VISION_RESPONSE_TEMPLATE = '''
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for {name}: {{str(e)}}")
+            logging.error(f"Error processing message for {name}: {{e}}")
             return None'''
 
 # Template for generate_response without vision support
@@ -170,7 +170,7 @@ BASIC_RESPONSE_TEMPLATE = '''
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for {name}: {{str(e)}}")
+            logging.error(f"Error processing message for {name}: {{e}}")
             return None'''
 
 # Template for setup function
@@ -184,7 +184,7 @@ async def setup(bot):
         logging.info(f"[{log_name}] Registered cog with qualified_name: {{cog.qualified_name}}")
         return cog
     except Exception as e:
-        logging.error(f"[{log_name}] Failed to register cog: {{str(e)}}", exc_info=True)
+        logging.error(f"[{log_name}] Failed to register cog: {{e}}", exc_info=True)
         raise'''
 
 # Configuration for each cog
@@ -438,7 +438,7 @@ def update_cog(cog_name, config):
         cog_content = BASE_TEMPLATE.format(**config)
         
         # Add the appropriate response template based on vision support and provider
-        provider_method = 'openpipe' if config['provider'] == 'openpipe' else 'openrouter'
+        provider_method = config['provider'] # Use the actual provider name
         response_template = VISION_RESPONSE_TEMPLATE if config['supports_vision'] == 'True' else BASIC_RESPONSE_TEMPLATE
         cog_content += response_template.format(
             provider=config['provider'],
@@ -457,7 +457,7 @@ def update_cog(cog_name, config):
         logging.info(f"Updated {cog_path}")
         
     except Exception as e:
-        logging.error(f"Error updating {cog_name}: {str(e)}")
+        logging.error(f"Error updating {cog_name}: {e}")
 
 def main():
     """Update all cogs with the new template"""

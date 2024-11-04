@@ -25,7 +25,7 @@ class Claude3SonnetCog(BaseCog):
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Claude-3-Sonnet] Failed to load temperatures.json: {str(e)}")
+            logging.error(f"[Claude-3-Sonnet] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
@@ -104,7 +104,7 @@ class Claude3SonnetCog(BaseCog):
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Claude-3-Sonnet: {str(e)}")
+            logging.error(f"Error processing message for Claude-3-Sonnet: {e}")
             return None
 
 async def setup(bot):
@@ -115,5 +115,5 @@ async def setup(bot):
         logging.info(f"[Claude-3-Sonnet] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Claude-3-Sonnet] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Claude-3-Sonnet] Failed to register cog: {e}", exc_info=True)
         raise

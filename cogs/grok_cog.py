@@ -25,7 +25,7 @@ class GrokCog(BaseCog):
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Grok] Failed to load temperatures.json: {str(e)}")
+            logging.error(f"[Grok] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
@@ -87,7 +87,7 @@ class GrokCog(BaseCog):
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Grok: {str(e)}")
+            logging.error(f"Error processing message for Grok: {e}")
             return None
 
 async def setup(bot):
@@ -98,5 +98,5 @@ async def setup(bot):
         logging.info(f"[Grok] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Grok] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Grok] Failed to register cog: {e}", exc_info=True)
         raise
