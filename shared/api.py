@@ -50,14 +50,52 @@ class API:
             logging.error(f"[API] Failed to apply database schema: {str(e)}")
             raise
 
+    def _validate_message_roles(self, messages: List[Dict]) -> List[Dict]:
+        """Validate and normalize message roles for API compatibility"""
+        valid_roles = {"system", "user", "assistant"}
+        normalized_messages = []
+        
+        for msg in messages:
+            role = msg.get('role', '').lower()
+            
+            # Skip messages with invalid roles
+            if role not in valid_roles:
+                logging.warning(f"[API] Skipping message with invalid role: {role}")
+                continue
+            
+            # Create normalized message
+            normalized_msg = {
+                "role": role,
+                "content": msg.get('content', '')
+            }
+            
+            # Handle multimodal content
+            if isinstance(normalized_msg['content'], list):
+                # Verify each content item has required fields
+                valid_content = []
+                for item in normalized_msg['content']:
+                    if isinstance(item, dict) and 'type' in item:
+                        if item['type'] == 'text' and 'text' in item:
+                            valid_content.append(item)
+                        elif item['type'] == 'image_url' and 'image_url' in item:
+                            valid_content.append(item)
+                normalized_msg['content'] = valid_content
+            
+            normalized_messages.append(normalized_msg)
+        
+        return normalized_messages
+
     async def _stream_openrouter_request(self, messages, model, temperature, max_tokens):
         """Stream responses from OpenRouter API using OpenAI client"""
         logging.debug(f"[API] Making OpenRouter streaming request to model: {model}")
         
         try:
+            # Validate and normalize message roles
+            validated_messages = self._validate_message_roles(messages)
+            
             stream = await self.openrouter_client.chat.completions.create(
                 model=model,
-                messages=messages,
+                messages=validated_messages,
                 temperature=temperature if temperature is not None else 1,
                 max_tokens=max_tokens,
                 stream=True,
@@ -84,7 +122,7 @@ class API:
                 received_at=received_at,
                 req_payload={
                     "model": model,
-                    "messages": messages,
+                    "messages": validated_messages,
                     "temperature": temperature,
                     "max_tokens": max_tokens
                 },
@@ -137,11 +175,14 @@ class API:
             if stream:
                 return self._stream_openrouter_request(messages, model, temperature, max_tokens)
             else:
+                # Validate and normalize message roles
+                validated_messages = self._validate_message_roles(messages)
+                
                 # Non-streaming request
                 requested_at = int(time.time() * 1000)
                 response = await self.openrouter_client.chat.completions.create(
                     model=model,
-                    messages=messages,
+                    messages=validated_messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     store=True
@@ -162,7 +203,7 @@ class API:
                     received_at=received_at,
                     req_payload={
                         "model": model,
-                        "messages": messages,
+                        "messages": validated_messages,
                         "temperature": temperature,
                         "max_tokens": max_tokens
                     },
@@ -196,9 +237,12 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
+            # Validate and normalize message roles
+            validated_messages = self._validate_message_roles(messages)
+            
             stream = await self.openpipe_client.chat.completions.create(
                 model=model,
-                messages=messages,
+                messages=validated_messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
                 stream=True,
@@ -225,7 +269,7 @@ class API:
                 received_at=received_at,
                 req_payload={
                     "model": model,
-                    "messages": messages,
+                    "messages": validated_messages,
                     "temperature": temperature,
                     "max_tokens": max_tokens
                 },
@@ -255,10 +299,13 @@ class API:
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens)
             else:
+                # Validate and normalize message roles
+                validated_messages = self._validate_message_roles(messages)
+                
                 requested_at = int(time.time() * 1000)
                 response = await self.openpipe_client.chat.completions.create(
                     model=model,
-                    messages=messages,
+                    messages=validated_messages,
                     temperature=temperature if temperature is not None else 0.7,
                     max_tokens=max_tokens if max_tokens is not None else 1000,
                     store=True
@@ -279,7 +326,7 @@ class API:
                     received_at=received_at,
                     req_payload={
                         "model": model,
-                        "messages": messages,
+                        "messages": validated_messages,
                         "temperature": temperature,
                         "max_tokens": max_tokens
                     },
