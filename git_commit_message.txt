@@ -1,12 +1,7 @@
-refactor: streamline cog implementation
+docs: update README with new cog system
 
-- Move Sydney's working implementation to base_cog.py including store=True parameter
-- Simplify individual cogs to inherit functionality from base_cog.py
-- Add update_cogs.py script to maintain consistent cog structure
-- Update all cogs to use the new streamlined pattern
-
-This refactor makes the codebase more maintainable by:
-1. Centralizing core functionality in base_cog.py
-2. Reducing code duplication across cogs
-3. Making individual cogs simpler and configuration-focused
-4. Providing a tool to ensure consistent cog structure
+- Document Sydney's pattern in base_cog.py
+- Add update_cogs.py usage and configuration
+- Update architecture section with new cog structure
+- Add instructions for maintaining cogs
+- Document store=True parameter usage
