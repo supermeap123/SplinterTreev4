@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 import re
 import pytz
 import traceback
+from shared.api import api  # Import the API singleton
 
 # Configure logging
 logging.basicConfig(
@@ -128,6 +129,14 @@ async def setup_cogs():
     """Load all cogs"""
     global loaded_cogs
     loaded_cogs = []  # Reset loaded cogs list
+
+    # Initialize API
+    try:
+        # The API singleton is already imported and initialized
+        logging.info("API client initialized")
+    except Exception as e:
+        logging.error(f"Failed to initialize API client: {str(e)}")
+        return
 
     # Load context settings
     await load_context_settings()
