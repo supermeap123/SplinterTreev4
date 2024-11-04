@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
+import json
 
 class GeminiCog(BaseCog):
     def __init__(self, bot):
@@ -15,15 +16,96 @@ class GeminiCog(BaseCog):
             prompt_file="gemini",
             supports_vision=True
         )
-        self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[Gemini] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Gemini] Using provider: {self.provider}")
         logging.debug(f"[Gemini] Vision support: {self.supports_vision}")
+
+        # Load temperature settings
+        try:
+            with open('temperatures.json', 'r') as f:
+                self.temperatures = json.load(f)
+        except Exception as e:
+            logging.error(f"[Gemini] Failed to load temperatures.json: {str(e)}")
+            self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
         return "Gemini"
+
+    def get_temperature(self):
+        """Get temperature setting for this agent"""
+        return self.temperatures.get(self.name.lower(), 0.7)
+
+    async def generate_response(self, message):
+        """Generate a response using openrouter"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{"role": "system", "content": formatted_prompt}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
+
+            # Add current message with any image descriptions
+            if message.attachments:
+                # Get alt text for this message
+                alt_text = await self.context_cog.get_alt_text(str(message.id))
+                if alt_text:
+                    messages.append({
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": message.content},
+                            {"type": "text", "text": f"Image description: {alt_text}"}
+                        ]
+                    })
+                else:
+                    messages.append({
+                        "role": "user",
+                        "content": message.content
+                    })
+            else:
+                messages.append({
+                    "role": "user",
+                    "content": message.content
+                })
+
+            logging.debug(f"[Gemini] Sending {len(messages)} messages to API")
+            logging.debug(f"[Gemini] Formatted prompt: {formatted_prompt}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[Gemini] Using temperature: {temperature}")
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_openrouter(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True
+            )
+
+            return response_stream
+
+        except Exception as e:
+            logging.error(f"Error processing message for Gemini: {str(e)}")
+            return None
 
 async def setup(bot):
     # Register the cog with its proper name

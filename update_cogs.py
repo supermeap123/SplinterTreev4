@@ -5,11 +5,12 @@ import json
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
-# Template for cog files that inherit from base_cog.py
-COG_TEMPLATE = '''import discord
+# Base template for all cogs
+BASE_TEMPLATE = '''import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
+import json
 
 class {class_name}(BaseCog):
     def __init__(self, bot):
@@ -23,15 +24,157 @@ class {class_name}(BaseCog):
             prompt_file="{prompt_file}",
             supports_vision={supports_vision}
         )
-        self.context_cog = bot.get_cog('ContextCog')
         logging.debug(f"[{log_name}] Initialized with raw_prompt: {{self.raw_prompt}}")
         logging.debug(f"[{log_name}] Using provider: {{self.provider}}")
         logging.debug(f"[{log_name}] Vision support: {{self.supports_vision}}")
+
+        # Load temperature settings
+        try:
+            with open('temperatures.json', 'r') as f:
+                self.temperatures = json.load(f)
+        except Exception as e:
+            logging.error(f"[{log_name}] Failed to load temperatures.json: {{str(e)}}")
+            self.temperatures = {{}}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
         return "{qualified_name}"
+
+    def get_temperature(self):
+        """Get temperature setting for this agent"""
+        return self.temperatures.get(self.name.lower(), 0.7)
+'''
+
+# Template for generate_response with vision support
+VISION_RESPONSE_TEMPLATE = '''
+    async def generate_response(self, message):
+        """Generate a response using {provider}"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{{"role": "system", "content": formatted_prompt}}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({{
+                    "role": role,
+                    "content": content
+                }})
+
+            # Add current message with any image descriptions
+            if message.attachments:
+                # Get alt text for this message
+                alt_text = await self.context_cog.get_alt_text(str(message.id))
+                if alt_text:
+                    messages.append({{
+                        "role": "user",
+                        "content": [
+                            {{"type": "text", "text": message.content}},
+                            {{"type": "text", "text": f"Image description: {{alt_text}}"}}
+                        ]
+                    }})
+                else:
+                    messages.append({{
+                        "role": "user",
+                        "content": message.content
+                    }})
+            else:
+                messages.append({{
+                    "role": "user",
+                    "content": message.content
+                }})
+
+            logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
+            logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_{provider_method}(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True
+            )
+
+            return response_stream
+
+        except Exception as e:
+            logging.error(f"Error processing message for {name}: {{str(e)}}")
+            return None'''
+
+# Template for generate_response without vision support
+BASIC_RESPONSE_TEMPLATE = '''
+    async def generate_response(self, message):
+        """Generate a response using {provider}"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{{"role": "system", "content": formatted_prompt}}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({{
+                    "role": role,
+                    "content": content
+                }})
+
+            # Add current message
+            messages.append({{
+                "role": "user",
+                "content": message.content
+            }})
+
+            logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
+            logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_{provider_method}(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True
+            )
+
+            return response_stream
+
+        except Exception as e:
+            logging.error(f"Error processing message for {name}: {{str(e)}}")
+            return None'''
+
+# Template for setup function
+SETUP_TEMPLATE = '''
 
 async def setup(bot):
     # Register the cog with its proper name
@@ -291,8 +434,21 @@ COGS_CONFIG = {
 def update_cog(cog_name, config):
     """Update a single cog file with the new template"""
     try:
-        # Format the template with the cog's configuration
-        cog_content = COG_TEMPLATE.format(**config)
+        # Start with the base template
+        cog_content = BASE_TEMPLATE.format(**config)
+        
+        # Add the appropriate response template based on vision support and provider
+        provider_method = 'openpipe' if config['provider'] == 'openpipe' else 'openrouter'
+        response_template = VISION_RESPONSE_TEMPLATE if config['supports_vision'] == 'True' else BASIC_RESPONSE_TEMPLATE
+        cog_content += response_template.format(
+            provider=config['provider'],
+            provider_method=provider_method,
+            log_name=config['log_name'],
+            name=config['name']
+        )
+        
+        # Add the setup function
+        cog_content += SETUP_TEMPLATE.format(**config)
         
         # Write to the cog file
         cog_path = f'cogs/{cog_name}_cog.py'
