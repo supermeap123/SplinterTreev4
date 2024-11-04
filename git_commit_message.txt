@@ -1,8 +1,5 @@
-Fix API client initialization in cogs
+fix: correct API client initialization in base_cog
 
-- Modified base_cog.py to properly handle API client initialization
-- Added API client to bot instance for shared access across cogs
-- Improved error handling for API client initialization
-- Ensured API client is initialized before loading cogs
-
-This fixes the NameError issues that were occurring when cogs tried to access the API client.
+- Fixed API client initialization in base_cog.py to properly use the bot's api_client attribute
+- Removed direct api import dependency in base_cog.py
+- Ensures consistent API client usage across all cogs

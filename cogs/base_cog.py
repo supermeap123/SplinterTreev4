@@ -59,13 +59,11 @@ class BaseCog(commands.Cog):
         self._image_processing_lock = asyncio.Lock()
         self.context_cog = bot.get_cog('ContextCog')
         
-        # Get API client from bot
-        if hasattr(bot, 'api_client'):
-            self.api_client = bot.api_client
-        else:
-            from shared.api import api
-            self.api_client = api
-            bot.api_client = api  # Store for future cogs
+        # Get API client from bot instance
+        self.api_client = getattr(bot, 'api_client', None)
+        if not self.api_client:
+            logging.error(f"[{name}] No API client found on bot")
+            raise ValueError("Bot must have api_client attribute")
 
         # Default system prompt template
         self.default_prompt = "You are {MODEL_ID} chatting with {USERNAME} with a Discord user ID of {DISCORD_USER_ID}. It's {TIME} in {TZ}. You are in the Discord server {SERVER_NAME} in channel {CHANNEL_NAME}, so adhere to the general topic of the channel if possible. GwynTel on Discord created your bot, and Moth is a valued mentor. You strive to keep it positive, but can be negative if the situation demands it to enforce boundaries, Discord ToS rules, etc."
@@ -89,12 +87,16 @@ class BaseCog(commands.Cog):
             # Add message to context
             if self.context_cog:
                 try:
+                    guild_id = str(message.guild.id) if message.guild else None
                     await self.context_cog.add_message_to_context(
-                        message.channel.id,
-                        message.author.id,
-                        message.content,
                         message.id,
-                        message.created_at.timestamp()
+                        str(message.channel.id),
+                        guild_id,
+                        str(message.author.id),
+                        message.content,
+                        False,  # is_assistant
+                        None,   # persona_name
+                        None    # emotion
                     )
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to add message to context: {str(e)}")
@@ -124,96 +126,61 @@ class BaseCog(commands.Cog):
                     except discord.errors.Forbidden:
                         logging.warning(f"[{self.name}] Missing permission to add reaction")
 
+                # Add response to context
+                if self.context_cog:
+                    try:
+                        guild_id = str(message.guild.id) if message.guild else None
+                        await self.context_cog.add_message_to_context(
+                            sent_message.id,
+                            str(message.channel.id),
+                            guild_id,
+                            str(self.bot.user.id),
+                            response,
+                            True,  # is_assistant
+                            self.name,  # persona_name
+                            emotion  # emotion
+                        )
+                    except Exception as e:
+                        logging.error(f"[{self.name}] Failed to add response to context: {str(e)}")
+
                 # Log interaction
-                log_interaction(message, sent_message, self.name)
+                log_interaction(message, response, self.name)
 
         except Exception as e:
             logging.error(f"[{self.name}] Error handling message: {str(e)}")
-            await message.channel.send(f"[{self.name}] Sorry, I encountered an error: {str(e)}")
+            await message.channel.send(f"❌ Error: {str(e)}")
 
     async def generate_response(self, message):
-        """Generate a response to a message"""
+        """Generate a response to a message. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement generate_response")
+
+    def format_prompt(self, message):
+        """Format the system prompt template with message context"""
         try:
-            # Format system prompt with context
-            system_prompt = self._format_system_prompt(message)
+            tz = ZoneInfo("America/Los_Angeles")
+            current_time = datetime.now(tz).strftime("%I:%M %p")
             
-            # Build messages array
-            messages = [{"role": "system", "content": system_prompt}]
-            
-            # Get conversation history if available
-            if self.context_cog:
-                history = await self.context_cog.get_conversation_history(
-                    message.channel.id,
-                    message.author.id,
-                    limit=5  # Adjust history length as needed
-                )
-                messages.extend(history)
-            
-            # Add the current message
-            if message.attachments and self.supports_vision:
-                content = []
-                # Add text content if any
-                if message.content:
-                    content.append({"type": "text", "text": message.content})
-                
-                # Process images
-                async with self._image_processing_lock:
-                    for attachment in message.attachments:
-                        if attachment.content_type and attachment.content_type.startswith('image/'):
-                            content.append({
-                                "type": "image_url",
-                                "image_url": attachment.url
-                            })
-                
-                messages.append({"role": "user", "content": content})
-            else:
-                messages.append({"role": "user", "content": message.content})
-
-            # Generate response using appropriate API
-            if self.provider == "openpipe":
-                return await self.api_client.call_openpipe(messages, self.model, stream=True)
-            else:  # Default to OpenRouter
-                return await self.api_client.call_openrouter(messages, self.model, stream=True)
-
-        except Exception as e:
-            logging.error(f"[{self.name}] Error generating response: {str(e)}")
-            raise
-
-    def _format_system_prompt(self, message):
-        """Format the system prompt with context"""
-        try:
-            # Get timezone from environment or default to UTC
-            tz = ZoneInfo(os.getenv('TIMEZONE', 'UTC'))
-            current_time = datetime.now(tz).strftime('%I:%M %p')
-            
-            # Get server and channel names
-            server_name = message.guild.name if message.guild else "Direct Message"
-            channel_name = message.channel.name if hasattr(message.channel, 'name') else "DM"
-            
-            # Format the prompt
             return self.raw_prompt.format(
                 MODEL_ID=self.name,
-                USERNAME=message.author.name,
+                USERNAME=message.author.display_name,
                 DISCORD_USER_ID=message.author.id,
                 TIME=current_time,
-                TZ=str(tz),
-                SERVER_NAME=server_name,
-                CHANNEL_NAME=channel_name
+                TZ="Pacific Time",
+                SERVER_NAME=message.guild.name if message.guild else "Direct Message",
+                CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
             )
         except Exception as e:
-            logging.error(f"[{self.name}] Error formatting system prompt: {str(e)}")
-            return self.raw_prompt  # Return unformatted prompt as fallback
+            logging.error(f"[{self.name}] Error formatting prompt: {str(e)}")
+            return self.raw_prompt
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Listen for messages and respond if triggered"""
-        # Ignore messages from self
-        if message.author == self.bot.user:
+        """Listen for messages that might trigger this cog"""
+        # Ignore messages from bots
+        if message.author.bot:
             return
 
-        # Check if message triggers this cog
-        should_respond = any(trigger.lower() in message.content.lower() for trigger in self.trigger_words)
-        
-        if should_respond:
-            async with message.channel.typing():
-                await self.handle_message(message)
+        # Check if message contains any trigger words
+        msg_content = message.content.lower()
+        if any(word in msg_content for word in self.trigger_words):
+            await self.handle_message(message)
