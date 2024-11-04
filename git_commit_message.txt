@@ -1,5 +1,5 @@
-feat: add MOA model
+fix: Update context_cog to use configured message limits
 
-Added support for the Mixture of Agents (MOA) model via OpenPipe.
-
-This commit introduces the MOA model as a new option for users.  The model is accessible through the 'moa' trigger word.  The help command and README have been updated to reflect this addition.
+- Modified get_context_messages to use channel-specific or default context window
+- Added check to ensure limit doesn't exceed MAX_CONTEXT_WINDOW
+- Updated SQL query to use dynamic limit from config instead of hardcoded 10 messages

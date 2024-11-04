@@ -155,8 +155,12 @@ class ContextCog(commands.Cog):
     async def get_context_messages(self, channel_id: str, limit: Optional[int] = None) -> List[Dict]:
         """Get conversation context for a channel"""
         try:
+            # Use channel-specific context window or default
             if limit is None:
                 limit = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+            
+            # Ensure limit doesn't exceed maximum
+            limit = min(limit, MAX_CONTEXT_WINDOW)
 
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
@@ -171,7 +175,7 @@ class ContextCog(commands.Cog):
                 """, (channel_id,))
                 summaries = cursor.fetchall()
 
-                # Get last 10 messages from both users and assistant
+                # Get recent messages using the configured limit
                 cursor.execute("""
                     SELECT 
                         timestamp,
@@ -183,8 +187,8 @@ class ContextCog(commands.Cog):
                     FROM messages
                     WHERE channel_id = ?
                     ORDER BY timestamp DESC
-                    LIMIT 10
-                """, (channel_id,))
+                    LIMIT ?
+                """, (channel_id, limit))
 
                 recent_messages = []
                 for row in cursor.fetchall():
@@ -211,7 +215,7 @@ class ContextCog(commands.Cog):
                         'emotion': None
                     })
 
-                # Add recent messages
+                # Add recent messages in chronological order
                 context.extend(reversed(recent_messages))
 
                 return context
