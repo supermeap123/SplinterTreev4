@@ -2,69 +2,36 @@ import discord
 from discord.ext import commands
 import logging
 from .base_cog import BaseCog
-from shared.utils import log_interaction, analyze_emotion
 
 class RPlusCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="RPlus",
+            name="R-Plus",
             nickname="RPlus",
-            trigger_words=['rplus', 'rplus hi'],
-            model="cohere/command-r-plus",  # Keeping the model line as instructed
-            provider="openrouter",  # Updating the provider as per the instructions
+            trigger_words=['rplus', 'r plus'],
+            model="cohere/command-r-plus",
+            provider="openrouter",
             prompt_file="rplus",
             supports_vision=False
         )
         self.context_cog = bot.get_cog('ContextCog')
-        logging.debug(f"[RPlus] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[RPlus] Using provider: {self.provider}")
-        logging.debug(f"[RPlus] Vision support: {self.supports_vision}")
+        logging.debug(f"[R-Plus] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[R-Plus] Using provider: {self.provider}")
+        logging.debug(f"[R-Plus] Vision support: {self.supports_vision}")
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "RPlus"
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Handle incoming messages"""
-        if message.author == self.bot.user:
-            return
-
-        # Add message to context before processing
-        if self.context_cog:
-            try:
-                channel_id = str(message.channel.id)
-                guild_id = str(message.guild.id) if message.guild else None
-                user_id = str(message.author.id)
-                content = message.content
-                is_assistant = False
-                persona_name = self.name
-                emotion = None
-
-                await self.context_cog.add_message_to_context(
-                    channel_id=channel_id,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    content=content,
-                    is_assistant=is_assistant,
-                    persona_name=persona_name,
-                    emotion=emotion
-                )
-            except Exception as e:
-                logging.error(f"[RPlus] Failed to add message to context: {str(e)}")
-
-        # Let base_cog handle image processing first
-        await super().handle_message(message)
+        return "R-Plus"
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
         cog = RPlusCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[RPlus] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[R-Plus] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[RPlus] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[R-Plus] Failed to register cog: {str(e)}", exc_info=True)
         raise

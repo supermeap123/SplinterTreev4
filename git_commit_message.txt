@@ -1,5 +1,12 @@
-fix: Update context_cog to use configured message limits
+refactor: streamline cog implementation
 
-- Modified get_context_messages to use channel-specific or default context window
-- Added check to ensure limit doesn't exceed MAX_CONTEXT_WINDOW
-- Updated SQL query to use dynamic limit from config instead of hardcoded 10 messages
+- Move Sydney's working implementation to base_cog.py including store=True parameter
+- Simplify individual cogs to inherit functionality from base_cog.py
+- Add update_cogs.py script to maintain consistent cog structure
+- Update all cogs to use the new streamlined pattern
+
+This refactor makes the codebase more maintainable by:
+1. Centralizing core functionality in base_cog.py
+2. Reducing code duplication across cogs
+3. Making individual cogs simpler and configuration-focused
+4. Providing a tool to ensure consistent cog structure
