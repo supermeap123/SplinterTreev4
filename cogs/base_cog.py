@@ -232,14 +232,16 @@ class BaseCog(commands.Cog):
                     messages=messages,
                     model=self.model,
                     temperature=temperature,
-                    stream=True
+                    stream=True,
+                    store=True
                 )
             else:  # openpipe
                 response_data = await self.api_client.call_openpipe(
                     messages=messages,
                     model=self.model,
                     temperature=temperature,
-                    stream=True
+                    stream=True,
+                    store=True
                 )
 
             return response_data
