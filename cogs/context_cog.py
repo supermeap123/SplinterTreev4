@@ -38,24 +38,31 @@ class ContextCog(commands.Cog):
             return "No messages to summarize."
 
         try:
-            # Format messages for the API
+            # Format messages for the API with proper roles
             formatted_messages = []
+            
+            # Add system prompt
+            formatted_messages.append({
+                "role": "system",
+                "content": "You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that captures the main points and key interactions of the conversation. Focus on the important topics discussed and any decisions or conclusions reached."
+            })
+            
+            # Format conversation messages
+            conversation_text = []
             for msg in messages:
                 speaker = "Assistant" if msg['is_assistant'] else f"User {msg['user_id']}"
-                formatted_messages.append(f"{speaker}: {msg['content']}")
-
-            conversation = "\n".join(formatted_messages)
+                conversation_text.append(f"{speaker}: {msg['content']}")
             
-            # Create system prompt for summarization
-            system_prompt = "You are a helpful assistant that summarizes Discord chat conversations. Create a concise summary that captures the main points and key interactions of the conversation. Focus on the important topics discussed and any decisions or conclusions reached."
-
+            # Add conversation as user message
+            formatted_messages.append({
+                "role": "user",
+                "content": f"Please summarize this conversation:\n\n{chr(10).join(conversation_text)}"
+            })
+            
             # Make API call
-            completion = self.openai_client.chat.completions.create(
+            completion = await self.openai_client.chat.completions.acreate(
                 model="openpipe:moa-gpt-4o-v1",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Please summarize this conversation:\n\n{conversation}"}
-                ],
+                messages=formatted_messages,
                 store=True,
                 metadata={"type": "discord_summary"}
             )
