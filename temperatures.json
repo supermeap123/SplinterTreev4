@@ -6,5 +6,6 @@
     "Grok": 0.9,
     "Gemini": 0.6,
     "Gemini-Pro": 0.7,
-    "Liquid": 0.7
+    "Liquid": 0.7,
+    "MOA": 0.8
 }
