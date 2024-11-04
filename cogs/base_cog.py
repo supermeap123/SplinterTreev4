@@ -7,7 +7,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
 from shared.utils import analyze_emotion, log_interaction
-from shared.api import api  # Import the api singleton directly
 import re
 import aiohttp
 import asyncio
@@ -59,7 +58,14 @@ class BaseCog(commands.Cog):
         self.supports_vision = supports_vision
         self._image_processing_lock = asyncio.Lock()
         self.context_cog = bot.get_cog('ContextCog')
-        self.api_client = api  # Use the imported api singleton
+        
+        # Get API client from bot
+        if hasattr(bot, 'api_client'):
+            self.api_client = bot.api_client
+        else:
+            from shared.api import api
+            self.api_client = api
+            bot.api_client = api  # Store for future cogs
 
         # Default system prompt template
         self.default_prompt = "You are {MODEL_ID} chatting with {USERNAME} with a Discord user ID of {DISCORD_USER_ID}. It's {TIME} in {TZ}. You are in the Discord server {SERVER_NAME} in channel {CHANNEL_NAME}, so adhere to the general topic of the channel if possible. GwynTel on Discord created your bot, and Moth is a valued mentor. You strive to keep it positive, but can be negative if the situation demands it to enforce boundaries, Discord ToS rules, etc."

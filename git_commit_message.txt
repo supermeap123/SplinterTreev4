@@ -1,7 +1,8 @@
-feat: add Discord message ID tracking to prevent duplicates
+Fix API client initialization in cogs
 
-- Add discord_message_id column to messages table with UNIQUE constraint
-- Add index for discord_message_id for better query performance
-- Update context_cog to store and track Discord message IDs
-- Handle database integrity errors for duplicate messages
-- Improve message deduplication using both in-memory set and database constraints
+- Modified base_cog.py to properly handle API client initialization
+- Added API client to bot instance for shared access across cogs
+- Improved error handling for API client initialization
+- Ensured API client is initialized before loading cogs
+
+This fixes the NameError issues that were occurring when cogs tried to access the API client.

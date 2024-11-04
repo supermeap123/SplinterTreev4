@@ -43,6 +43,9 @@ intents.members = True
 # Initialize bot with a default command prefix
 bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
 
+# Store API client on bot for cogs to access
+bot.api_client = api
+
 # Store loaded cogs for random selection
 loaded_cogs = []
 
@@ -132,7 +135,7 @@ async def setup_cogs():
 
     # Initialize API
     try:
-        # The API singleton is already imported and initialized
+        # The API singleton is already imported and stored on bot
         logging.info("API client initialized")
     except Exception as e:
         logging.error(f"Failed to initialize API client: {str(e)}")
