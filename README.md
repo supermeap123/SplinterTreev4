@@ -158,14 +158,16 @@ grok tell me a joke
 
 ### Core Components
 - **Base Cog**: Foundation for all model implementations
-  - Handles message processing
-  - Manages streaming responses
+  - Implements Sydney's proven message processing pattern
+  - Handles streaming responses with store=True parameter
   - Provides universal image processing support for all models
   - Implements reroll functionality
   - Manages temperature settings
   - Handles error cases and permissions
   - Supports agent cloning
   - Implements OpenPipe request reporting for each processed message
+  - Uses context_cog for message history management
+  - Centralizes core functionality to reduce code duplication
 - **Context Management**: SQLite-based conversation history
 - **API Integration**: OpenRouter and OpenPipe connections with streaming support
 - **File Processing**: Handles various file types
@@ -180,16 +182,17 @@ grok tell me a joke
 SplinterTreev4/
 ├── bot.py              # Main bot implementation
 ├── config.py           # Configuration settings
+├── update_cogs.py      # Script to maintain consistent cog structure
 ├── cogs/               # Model-specific implementations
 │   ├── base_cog.py    # Base cog with shared functionality
-│   │   ├── Message Processing
+│   │   ├── Message Processing (Sydney's pattern)
 │   │   ├── Vision Support
-│   │   ├── Streaming
+│   │   ├── Streaming with store=True
 │   │   ├── Error Handling
 │   │   └── OpenPipe Reporting
 │   ├── context_cog.py # Context management
 │   ├── settings_cog.py # Settings management
-│   └── [model]_cog.py # Individual model cogs
+│   └── [model]_cog.py # Individual model cogs (configuration only)
 ├── databases/          # SQLite database
 │   ├── schema.sql     # Database schema
 │   └── interaction_logs.db # Conversation history
@@ -201,32 +204,42 @@ SplinterTreev4/
 ## 🔧 Development
 
 ### Adding New Models
-1. Create a new cog file in `cogs/`
-2. Inherit from `BaseCog`
-3. Configure model-specific settings:
+1. Add the model's configuration to `update_cogs.py`:
    ```python
-   class NewModelCog(BaseCog):
-       def __init__(self, bot):
-           super().__init__(
-               bot=bot,
-               name="Model-Name",
-               nickname="Nickname",
-               trigger_words=['trigger1', 'trigger2'],
-               model="provider/model-id",
-               provider="openrouter",  # or "openpipe"
-               prompt_file="prompt_name",
-               supports_vision=False  # or True for vision-capable models
-           )
+   COGS_CONFIG = {
+       'new_model': {
+           'class_name': 'NewModelCog',
+           'name': 'Model-Name',
+           'nickname': 'Nickname',
+           'trigger_words': "['trigger1', 'trigger2']",
+           'model': 'provider/model-id',
+           'provider': 'openrouter',  # or 'openpipe'
+           'prompt_file': 'prompt_name',
+           'supports_vision': 'False',  # or 'True' for vision models
+           'log_name': 'Model-Name',
+           'qualified_name': 'Model-Name'
+       }
+   }
    ```
-4. The base cog provides all core functionality including:
-   - Message processing
+2. Run `python update_cogs.py` to generate the cog file
+3. The generated cog will inherit all functionality from base_cog.py, including:
+   - Message processing using Sydney's proven pattern
    - Universal image processing support
-   - Streaming responses
+   - Streaming responses with store=True
    - Error handling
    - Temperature management
    - Context integration
    - Agent cloning
    - OpenPipe request reporting
+
+### Maintaining Cogs
+- Use `update_cogs.py` to ensure all cogs follow the same structure
+- Core functionality is centralized in `base_cog.py`
+- Individual cogs only contain configuration
+- To update all cogs:
+  ```bash
+  python update_cogs.py
+  ```
 
 ### Custom Prompts
 Channel-specific prompts are stored in `dynamic_prompts.json`:
