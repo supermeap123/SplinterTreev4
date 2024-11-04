@@ -37,7 +37,21 @@ class SydneyCog(BaseCog):
             # Get last 50 messages from database
             channel_id = str(message.channel.id)
             history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
-            messages.extend(history_messages)
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
 
             # Add current message with any image descriptions
             if message.attachments:
