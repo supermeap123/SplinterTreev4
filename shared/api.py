@@ -16,10 +16,10 @@ class API:
         # Initialize aiohttp session
         self.session = aiohttp.ClientSession()
         
-        # Initialize OpenPipe client with correct completions endpoint
+        # Initialize OpenPipe client
         self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
-            base_url=urljoin(OPENPIPE_API_URL, "chat/completions")
+            base_url=OPENPIPE_API_URL  # Base URL already includes /api/v1
         )
 
         # Initialize OpenRouter client
