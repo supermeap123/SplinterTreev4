@@ -144,7 +144,20 @@ class BaseCog(commands.Cog):
                         logging.error(f"[{self.name}] Failed to add response to context: {str(e)}")
 
                 # Log interaction
-                log_interaction(message, response, self.name)
+                try:
+                    await log_interaction(
+                        user_id=message.author.id,
+                        guild_id=message.guild.id if message.guild else None,
+                        persona_name=self.name,
+                        user_message=message.content,
+                        assistant_reply=response,
+                        emotion=emotion,
+                        channel_id=message.channel.id
+                    )
+                except Exception as e:
+                    logging.error(f"[{self.name}] Failed to log interaction: {e}")
+
+
 
         except Exception as e:
             logging.error(f"[{self.name}] Error handling message: {str(e)}")
