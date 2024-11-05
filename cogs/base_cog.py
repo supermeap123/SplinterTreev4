@@ -141,6 +141,7 @@ class BaseCog(commands.Cog):
                 last_update = time.time()
                 current_chunk = f"[{self.name}] "
                 
+                # Consume the async generator
                 async for chunk in response_stream:
                     if chunk:
                         response += chunk
