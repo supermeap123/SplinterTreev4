@@ -1,9 +1,8 @@
-Improve Claude-2 cog image handling
+Improve database connection and schema handling
 
-- Removed unsupported image description method
-- Added simple image attachment notes
-- Maintained existing message processing logic
-- Enhanced error handling
-- Gracefully handles image attachments for non-vision models
+- Ensure databases directory exists
+- Modify schema application to handle multiple statements
+- Maintain robust error handling
+- Preserve existing database functionality
 
-Resolves 'get_image_description' method error
+Resolves database connection and schema application issues
