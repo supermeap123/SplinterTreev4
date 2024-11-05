@@ -1,10 +1,8 @@
-feat: Implement message ID tracking to prevent duplicate messages
+feat: Enhance Llama 3.2 90B Vision cog with full vision capabilities
 
-This commit introduces a message ID tracking system in the context cog to prevent the bot from sending duplicate messages. This addresses an issue where duplicate messages could occur under certain conditions.
-
-The following changes were made:
-
-- Added a `processed_messages` set to the `ContextCog` class to store the IDs of processed messages.
-- Updated the `on_message` listener to check if a message has already been processed before handling it.
-- Updated the `add_message_to_context` method to add message IDs to the `processed_messages` set.
-- Updated the help command and README to document the new feature.
+- Inherit from BaseCog for consistent behavior
+- Add support for both image attachments and embed URLs
+- Implement temperature control and context handling
+- Add trigger words for image description requests
+- Improve error handling and logging
+- Add system prompt for better image descriptions
