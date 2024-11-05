@@ -1,5 +1,15 @@
-feat: Enhance message streaming responsiveness
+Implement legacy context and system prompt commands
 
-- Reduce streaming update interval from 5 seconds to 0.5 seconds
-- Provides more real-time feeling response streaming
-- Maintains all previous functionality of message splitting and handling
+- Added `!st_` prefixed legacy commands to context_cog.py:
+  * `!st_setcontext` - Set the number of previous messages in context
+  * `!st_getcontext` - View current context window size
+  * `!st_resetcontext` - Reset context window to default
+  * `!st_clearcontext` - Clear conversation history
+
+- Added `!st_` prefixed legacy commands to settings_cog.py:
+  * `!st_set_system_prompt` - Set a custom system prompt for an AI agent
+  * `!st_reset_system_prompt` - Reset an AI agent's system prompt to default
+
+- Removed slash command implementations
+
+These changes provide users with more control over context and system prompts using legacy text commands.
