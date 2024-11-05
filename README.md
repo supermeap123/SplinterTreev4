@@ -51,6 +51,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Liquid**: Optimized for specific tasks
 - **O1-Mini**: Lightweight, efficient model
 - **MOA**: Mixture of Agents model
+- **Mystery Merge Nemo**: A mystery model, trigger word is "nemo"
 
 ## 🛠️ Setup
 
