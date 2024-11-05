@@ -1,6 +1,8 @@
-fix: standardize vision handling across all vision-capable cogs
+fix: standardize vision handling and update Gemini model
 
 - Update Claude 3 Opus, Claude 3 Sonnet, Llama 11B Vision, and Gemini cogs to use proper multimodal format
 - Replace text-based image descriptions with native vision capabilities
 - Ensure consistent image handling across all vision models using OpenRouter's multimodal format
-- Each vision cog now properly handles both image attachments and embed images
+- Switch Gemini model from Pro 1.5 to Flash 1.5
+- Add image URL validation to prevent invalid image processing
+- Improve error handling and logging for vision-capable models

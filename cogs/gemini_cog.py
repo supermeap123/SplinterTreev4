@@ -11,7 +11,7 @@ class GeminiCog(BaseCog):
             name="Gemini",
             nickname="Gemini",
             trigger_words=['gemini'],
-            model="google/gemini-pro-1.5",
+            model="google/gemini-flash-1.5",
             provider="openrouter",
             prompt_file="gemini",
             supports_vision=True
@@ -69,19 +69,20 @@ class GeminiCog(BaseCog):
             # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
-                    content.append({
-                        "type": "image_url",
-                        "image_url": attachment.url
-                    })
+                    if self.is_valid_image_url(attachment.url):
+                        content.append({
+                            "type": "image_url",
+                            "image_url": attachment.url
+                        })
 
             # Check for image URLs in embeds
             for embed in message.embeds:
-                if embed.image and embed.image.url:
+                if embed.image and embed.image.url and self.is_valid_image_url(embed.image.url):
                     content.append({
                         "type": "image_url",
                         "image_url": embed.image.url
                     })
-                if embed.thumbnail and embed.thumbnail.url:
+                if embed.thumbnail and embed.thumbnail.url and self.is_valid_image_url(embed.thumbnail.url):
                     content.append({
                         "type": "image_url",
                         "image_url": embed.thumbnail.url
@@ -106,15 +107,13 @@ class GeminiCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Gemini] Using temperature: {temperature}")
 
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openrouter(
+            # Call API and stream the response
+            return await self.api_client.call_openrouter(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True
             )
-
-            return response_stream
 
         except Exception as e:
             logging.error(f"Error processing message for Gemini: {e}")

@@ -12,6 +12,7 @@ import aiohttp
 import asyncio
 import tempfile
 from typing import Optional, Dict
+from urllib.parse import urlparse
 
 # Shared cache for image descriptions across all cogs
 image_description_cache: Dict[str, str] = {}
@@ -92,86 +93,19 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.warning(f"[{self.name}] Failed to start typing indicator: {str(e)}")
 
-    async def get_image_description(self, image_url: str) -> Optional[str]:
-        """Get or generate a description for an image URL"""
-        # Check cache first
-        if image_url in image_description_cache:
-            return image_description_cache[image_url]
-
-        # If this is a vision-capable model, generate the description
-        if self.supports_vision and self.name == "Llama-3.2-90B-Vision":
-            try:
-                async with self._image_processing_lock:
-                    response = await self.api_client.call_openrouter(
-                        model=self.model,
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "You are an expert at describing images accurately and concisely. Focus on the main subjects and important details."
-                            },
-                            {
-                                "role": "user",
-                                "content": [
-                                    {
-                                        "type": "image_url",
-                                        "image_url": image_url
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": "Please describe this image in detail."
-                                    }
-                                ]
-                            }
-                        ],
-                        temperature=0.7,
-                        stream=False
-                    )
-                
-                if response and response['choices']:
-                    description = response['choices'][0]['message']['content'].strip()
-                    # Cache the description
-                    image_description_cache[image_url] = description
-                    return description
-            except Exception as e:
-                logging.error(f"[{self.name}] Error generating image description: {str(e)}")
-        
-        # Fallback for non-vision models: use a generic description generation
+    def is_valid_image_url(self, url: str) -> bool:
+        """Validate image URL format and extension"""
         try:
-            async with self._image_processing_lock:
-                response = await self.api_client.call_openrouter(
-                    model="anthropic/claude-3-sonnet:beta",  # Use a reliable vision model for description
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are an expert at generating concise, generic image descriptions when the original model lacks vision capabilities."
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": image_url
-                                },
-                                {
-                                    "type": "text",
-                                    "text": "Please provide a brief, generic description of this image suitable for a text-only context."
-                                }
-                            ]
-                        }
-                    ],
-                    temperature=0.7,
-                    stream=False
-                )
+            parsed = urlparse(url)
+            # Check if URL has a valid scheme and netloc
+            if not all([parsed.scheme, parsed.netloc]):
+                return False
             
-            if response and response['choices']:
-                description = response['choices'][0]['message']['content'].strip()
-                # Cache the description
-                image_description_cache[image_url] = description
-                return description
-        except Exception as e:
-            logging.error(f"[{self.name}] Fallback image description generation failed: {str(e)}")
-        
-        return None
+            # Check if URL ends with a common image extension
+            valid_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+            return parsed.path.lower().endswith(valid_extensions)
+        except Exception:
+            return False
 
     async def handle_message(self, message, full_content=None):
         """Handle incoming messages and generate responses"""
@@ -181,18 +115,6 @@ class BaseCog(commands.Cog):
 
             # Start typing indicator
             await self.start_typing(message.channel)
-
-            # Process image attachments for non-vision models
-            image_descriptions = []
-            for attachment in message.attachments:
-                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-                    description = await self.get_image_description(attachment.url)
-                    if description:
-                        image_descriptions.append(description)
-
-            # Modify message content to include image descriptions
-            if image_descriptions:
-                modified_content += "\n\n[Image Descriptions]\n" + "\n".join(image_descriptions)
 
             # Add message to context
             if self.context_cog:
