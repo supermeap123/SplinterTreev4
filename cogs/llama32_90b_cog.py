@@ -99,15 +99,14 @@ class Llama3290bVisionCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[{self.name}] Using temperature: {temperature}")
 
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openrouter(
+            # Call API and stream the response
+            async for chunk in await self.api_client.call_openrouter(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True
-            )
-
-            return response_stream
+            ):
+                yield chunk
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {e}")

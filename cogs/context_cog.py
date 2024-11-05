@@ -58,6 +58,46 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to set up database: {str(e)}")
 
+    async def get_context_messages(self, channel_id: str, limit: int = None) -> List[Dict]:
+        """Get previous messages from the context database"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Get context window size for this channel
+                window_size = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+                if limit is not None:
+                    window_size = min(window_size, limit)
+                
+                # Get messages ordered by timestamp
+                cursor.execute('''
+                SELECT id, user_id, content, is_assistant, persona_name, emotion, timestamp
+                FROM messages
+                WHERE channel_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+                ''', (channel_id, window_size))
+                
+                messages = []
+                for row in cursor.fetchall():
+                    messages.append({
+                        'id': row[0],
+                        'user_id': row[1],
+                        'content': row[2],
+                        'is_assistant': bool(row[3]),
+                        'persona_name': row[4],
+                        'emotion': row[5],
+                        'timestamp': row[6]
+                    })
+                
+                # Reverse to get chronological order
+                messages.reverse()
+                return messages
+                
+        except Exception as e:
+            logging.error(f"Failed to get context messages: {str(e)}")
+            return []
+
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""
         try:
@@ -88,8 +128,6 @@ class ContextCog(commands.Cog):
                 self.processed_messages.add(message_id)
         except Exception as e:
             logging.error(f"Failed to add message to context: {str(e)}")
-
-    # [Rest of the previous methods remain the same]
 
     @commands.command(name='st_setcontext')
     @commands.has_permissions(manage_messages=True)

@@ -1,6 +1,6 @@
-Update base_cog.py to handle full_content argument
+Fix streaming responses and context handling
 
-- Modified handle_message method to accept optional full_content parameter
-- Ensures compatibility with bot.py's on_message method
-- Preserves existing functionality while allowing more flexible message processing
-- Fixes TypeError related to method argument count
+- Updated llama32_90b_cog.py to properly handle streaming responses using async generator
+- Added get_context_messages method to context_cog.py
+- Fixed database initialization and message retrieval
+- Improved error handling and logging
