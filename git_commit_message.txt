@@ -1,6 +1,6 @@
-Fix streaming responses and context handling
+Improve streaming response handling in llama32_90b_cog.py
 
-- Updated llama32_90b_cog.py to properly handle streaming responses using async generator
-- Added get_context_messages method to context_cog.py
-- Fixed database initialization and message retrieval
-- Improved error handling and logging
+- Added proper AsyncGenerator type hints
+- Improved streaming response handling with explicit async iteration
+- Ensured proper error handling and logging
+- Maintained store=true parameter in API calls through shared client

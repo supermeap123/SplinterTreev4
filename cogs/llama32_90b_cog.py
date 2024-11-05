@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 import logging
-from typing import Optional
+from typing import Optional, AsyncGenerator
 from .base_cog import BaseCog
 import json
 
@@ -30,7 +30,7 @@ class Llama3290bVisionCog(BaseCog):
             logging.error(f"[{self.name}] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
-    async def generate_response(self, message):
+    async def generate_response(self, message) -> AsyncGenerator[str, None]:
         """Generate a response using the vision model"""
         try:
             # Format system prompt
@@ -100,13 +100,16 @@ class Llama3290bVisionCog(BaseCog):
             logging.debug(f"[{self.name}] Using temperature: {temperature}")
 
             # Call API and stream the response
-            async for chunk in await self.api_client.call_openrouter(
+            response_stream = await self.api_client.call_openrouter(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True
-            ):
-                yield chunk
+            )
+
+            async for chunk in response_stream:
+                if chunk:
+                    yield chunk
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {e}")
