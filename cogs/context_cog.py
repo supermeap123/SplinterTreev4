@@ -24,7 +24,72 @@ class ContextCog(commands.Cog):
         # Track processed message IDs to prevent duplicates
         self.processed_messages = set()
 
-    # [All previous methods remain the same]
+    def _setup_database(self):
+        """Initialize the SQLite database for interaction logs"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Create messages table if not exists
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS messages (
+                    id TEXT PRIMARY KEY,
+                    channel_id TEXT,
+                    guild_id TEXT,
+                    user_id TEXT,
+                    content TEXT,
+                    is_assistant BOOLEAN,
+                    persona_name TEXT,
+                    emotion TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+                ''')
+                
+                # Create context_windows table if not exists
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS context_windows (
+                    channel_id TEXT PRIMARY KEY,
+                    window_size INTEGER
+                )
+                ''')
+                
+                conn.commit()
+                logging.info("Database setup completed successfully")
+        except Exception as e:
+            logging.error(f"Failed to set up database: {str(e)}")
+
+    async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
+        """Add a message to the interaction logs"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Prevent duplicate message entries
+                if message_id in self.processed_messages:
+                    return
+                
+                cursor.execute('''
+                INSERT OR REPLACE INTO messages 
+                (id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    str(message_id), 
+                    str(channel_id), 
+                    str(guild_id) if guild_id else None, 
+                    str(user_id), 
+                    content, 
+                    is_assistant, 
+                    persona_name, 
+                    emotion, 
+                    datetime.now().isoformat()
+                ))
+                
+                conn.commit()
+                self.processed_messages.add(message_id)
+        except Exception as e:
+            logging.error(f"Failed to add message to context: {str(e)}")
+
+    # [Rest of the previous methods remain the same]
 
     @commands.command(name='st_setcontext')
     @commands.has_permissions(manage_messages=True)

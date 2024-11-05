@@ -173,9 +173,12 @@ class BaseCog(commands.Cog):
         
         return None
 
-    async def handle_message(self, message):
+    async def handle_message(self, message, full_content=None):
         """Handle incoming messages and generate responses"""
         try:
+            # If full_content is not provided, use message.content
+            modified_content = full_content or message.content
+
             # Start typing indicator
             await self.start_typing(message.channel)
 
@@ -188,7 +191,6 @@ class BaseCog(commands.Cog):
                         image_descriptions.append(description)
 
             # Modify message content to include image descriptions
-            modified_content = message.content
             if image_descriptions:
                 modified_content += "\n\n[Image Descriptions]\n" + "\n".join(image_descriptions)
 

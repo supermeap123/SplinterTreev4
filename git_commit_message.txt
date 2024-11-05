@@ -1,9 +1,6 @@
-Update help and commands with !st_ prefix
+Update base_cog.py to handle full_content argument
 
-- Updated help_cog.py to use `!st_help` and `!st_listmodels`
-- Verified all other cogs have `!st_` prefixed commands:
-  * management_cog.py: `!st_uptime`, `!st_list_agents`, `!st_clone_agent`
-  * context_cog.py: `!st_setcontext`, `!st_getcontext`, `!st_resetcontext`, `!st_clearcontext`
-  * settings_cog.py: `!st_set_system_prompt`, `!st_reset_system_prompt`
-
-Ensures consistent command naming and improves user experience by using the `!st_` prefix across all commands.
+- Modified handle_message method to accept optional full_content parameter
+- Ensures compatibility with bot.py's on_message method
+- Preserves existing functionality while allowing more flexible message processing
+- Fixes TypeError related to method argument count
