@@ -87,11 +87,7 @@ class Claude3OpusCog(BaseCog):
 
             # Combine message content with image descriptions
             if image_descriptions:
-                content += '
-
-' + '
-
-'.join(image_descriptions) # Join descriptions with newlines
+                content += '\n\n' + '\n\n'.join(image_descriptions)
 
             messages.append({
                 "role": "user",
