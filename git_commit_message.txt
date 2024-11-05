@@ -1,8 +1,8 @@
-Enhance OpenPipe API routing flexibility
+Add call_openrouter method for OpenPipe routing
 
-- Added provider parameter to API methods
-- Conditionally prepend 'openpipe:openrouter/' based on provider
+- Created call_openrouter method as alias for call_openpipe
+- Set provider to 'openrouter' for OpenRouter models
 - Maintained existing error handling
 - Preserved robust image processing functionality
 
-Allows more granular control over model routing
+Ensures seamless routing of OpenRouter models through OpenPipe

@@ -264,6 +264,18 @@ class API:
             logging.error(f"[API] OpenPipe error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
 
+    # Alias for OpenRouter models to use OpenPipe
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None) -> Union[Dict, AsyncGenerator[str, None]]:
+        """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
+        return await self.call_openpipe(
+            messages=messages, 
+            model=model, 
+            temperature=temperature, 
+            stream=stream, 
+            max_tokens=max_tokens, 
+            provider='openrouter'
+        )
+
     async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None):
         """Report interaction metrics"""
         try:
