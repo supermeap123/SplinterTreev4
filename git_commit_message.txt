@@ -1,8 +1,8 @@
-Ensure OpenRouter API method availability
+Enhance OpenPipe API routing flexibility
 
-- Verified call_openrouter method implementation
+- Added provider parameter to API methods
+- Conditionally prepend 'openpipe:openrouter/' based on provider
 - Maintained existing error handling
-- Added async message validation
 - Preserved robust image processing functionality
 
-Resolves missing method error for OpenRouter API calls
+Allows more granular control over model routing
