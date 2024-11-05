@@ -64,34 +64,39 @@ class GeminiCog(BaseCog):
                 })
 
             # Process current message and any images
-            content = message.content
-            image_descriptions = []
-
-            # Get descriptions for any image attachments
+            content = []
+            
+            # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
-                    description = await self.get_image_description(attachment.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({
+                        "type": "image_url",
+                        "image_url": attachment.url
+                    })
 
-            # Get descriptions for image URLs in embeds
+            # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
-                    description = await self.get_image_description(embed.image.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.image.url
+                    })
                 if embed.thumbnail and embed.thumbnail.url:
-                    description = await self.get_image_description(embed.thumbnail.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.thumbnail.url
+                    })
 
-            # Combine message content with image descriptions
-            if image_descriptions:
-                content += '\n\n' + '\n\n'.join(image_descriptions)
+            # Add the text content
+            content.append({
+                "type": "text",
+                "text": message.content
+            })
 
+            # Add the message with multimodal content
             messages.append({
                 "role": "user",
-                "content": content
+                "content": content if len(content) > 1 else message.content
             })
 
             logging.debug(f"[Gemini] Sending {len(messages)} messages to API")
