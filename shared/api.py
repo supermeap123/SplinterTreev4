@@ -4,6 +4,7 @@ import time
 import json
 import asyncio
 import sqlite3
+import base64
 from typing import Dict, Any, List, Union, AsyncGenerator
 import aiohttp
 import backoff
@@ -39,16 +40,49 @@ class API:
             self.db_conn = None
             self.db_cursor = None
 
-    def _apply_schema(self):
+    async def _download_image(self, url: str) -> bytes:
+        """Download image from URL"""
         try:
-            with open('databases/schema.sql', 'r') as schema_file:
-                schema_sql = schema_file.read()
-            self.db_cursor.executescript(schema_sql)
-            self.db_conn.commit()
-            logging.info("[API] Successfully applied database schema")
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    return await response.read()
+                else:
+                    logging.error(f"[API] Failed to download image. Status code: {response.status}")
+                    return None
         except Exception as e:
-            logging.error(f"[API] Failed to apply database schema: {str(e)}")
-            raise
+            logging.error(f"[API] Error downloading image: {str(e)}")
+            return None
+
+    async def _convert_image_to_base64(self, url: str) -> str:
+        """Convert image URL to base64"""
+        try:
+            image_data = await self._download_image(url)
+            if image_data:
+                # Detect MIME type based on image data
+                mime_type = self._detect_mime_type(image_data)
+                base64_image = base64.b64encode(image_data).decode('utf-8')
+                return f"data:{mime_type};base64,{base64_image}"
+            return None
+        except Exception as e:
+            logging.error(f"[API] Error converting image to base64: {str(e)}")
+            return None
+
+    def _detect_mime_type(self, image_data: bytes) -> str:
+        """Detect MIME type of image data"""
+        # Common image signatures
+        signatures = {
+            b'\xFF\xD8\xFF': 'image/jpeg',
+            b'\x89PNG\r\n\x1a\n': 'image/png',
+            b'GIF87a': 'image/gif',
+            b'GIF89a': 'image/gif',
+            b'RIFF': 'image/webp'
+        }
+        
+        for signature, mime_type in signatures.items():
+            if image_data.startswith(signature):
+                return mime_type
+        
+        return 'application/octet-stream'  # Default fallback
 
     def _validate_message_roles(self, messages: List[Dict]) -> List[Dict]:
         """Validate and normalize message roles for API compatibility"""
@@ -71,14 +105,20 @@ class API:
             
             # Handle multimodal content
             if isinstance(normalized_msg['content'], list):
-                # Verify each content item has required fields
+                # Verify and convert image URLs to base64
                 valid_content = []
                 for item in normalized_msg['content']:
                     if isinstance(item, dict) and 'type' in item:
                         if item['type'] == 'text' and 'text' in item:
                             valid_content.append(item)
                         elif item['type'] == 'image_url' and 'image_url' in item:
-                            valid_content.append(item)
+                            # Convert image URL to base64
+                            base64_image = self._convert_image_to_base64(item['image_url'])
+                            if base64_image:
+                                valid_content.append({
+                                    "type": "image_url",
+                                    "image_url": base64_image
+                                })
                 normalized_msg['content'] = valid_content
             
             normalized_messages.append(normalized_msg)

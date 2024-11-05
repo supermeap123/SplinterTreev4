@@ -1,8 +1,8 @@
-Fix async generator handling for vision models
+Enhance image processing for vision models
 
-- Updated base_cog.py to properly consume async generators
-- Improved error handling in handle_message method
-- Ensured robust processing of streaming responses from vision-enabled models
-- Maintained existing message streaming and processing logic
+- Implemented robust image URL to base64 conversion
+- Added MIME type detection for image attachments
+- Improved error handling for image processing
+- Ensures compatibility with OpenRouter vision models
 
-Resolves issue with async generator processing in vision model responses
+Resolves MIME type issues in vision model image handling
