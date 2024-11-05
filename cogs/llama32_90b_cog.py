@@ -30,54 +30,6 @@ class Llama3290bVisionCog(BaseCog):
             logging.error(f"[{self.name}] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
-    async def get_alt_text(self, message: discord.Message) -> Optional[str]:
-        """Generates alternative text for images in the message using Llama 3.2 90b vision instruct."""
-        try:
-            # Check for image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    return await self._generate_image_description(attachment.url)
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    return await self._generate_image_description(embed.image.url)
-                if embed.thumbnail and embed.thumbnail.url:
-                    return await self._generate_image_description(embed.thumbnail.url)
-
-            return None
-
-        except Exception as e:
-            logging.error(f"[{self.name}] Error in get_alt_text: {str(e)}")
-            return None
-
-    async def _generate_image_description(self, image_url: str) -> str:
-        """Generate a description for an image URL using the vision model."""
-        try:
-            response = await self.api_client.call_openrouter(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert at describing images accurately and concisely. Focus on the main subjects and important details."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Please describe this image in detail: {image_url}"
-                    }
-                ],
-                temperature=self.get_temperature(),
-                stream=False
-            )
-            
-            if response:
-                return response.choices[0].message.content.strip()
-            return None
-
-        except Exception as e:
-            logging.error(f"[{self.name}] Error generating image description: {str(e)}")
-            return None
-
     async def generate_response(self, message):
         """Generate a response using the vision model"""
         try:
@@ -104,15 +56,40 @@ class Llama3290bVisionCog(BaseCog):
                     "content": content
                 })
 
-            # Add current message with any image URLs
-            content = message.content
-            image_description = await self.get_alt_text(message)
-            if image_description:
-                content = f"{content}\n[Image Description: {image_description}]"
+            # Process current message and any images
+            content = []
+            
+            # Add any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    content.append({
+                        "type": "image_url",
+                        "image_url": attachment.url
+                    })
 
+            # Check for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.image.url
+                    })
+                if embed.thumbnail and embed.thumbnail.url:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.thumbnail.url
+                    })
+
+            # Add the text content
+            content.append({
+                "type": "text",
+                "text": message.content
+            })
+
+            # Add the message with multimodal content
             messages.append({
                 "role": "user",
-                "content": content
+                "content": content if len(content) > 1 else message.content
             })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")

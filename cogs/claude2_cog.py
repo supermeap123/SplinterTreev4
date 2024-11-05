@@ -64,10 +64,36 @@ class Claude2Cog(BaseCog):
                     "content": content
                 })
 
+            # Process current message and any images
+            content = message.content
+            image_descriptions = []
+
+            # Get descriptions for any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    description = await self.get_image_description(attachment.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+
+            # Get descriptions for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    description = await self.get_image_description(embed.image.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+                if embed.thumbnail and embed.thumbnail.url:
+                    description = await self.get_image_description(embed.thumbnail.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+
+            # Combine message content with image descriptions
+            if image_descriptions:
+                content = f"{content}\n\n{' '.join(image_descriptions)}"
+
             # Add current message
             messages.append({
                 "role": "user",
-                "content": message.content
+                "content": content
             })
 
             logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")

@@ -11,6 +11,10 @@ import re
 import aiohttp
 import asyncio
 import tempfile
+from typing import Optional, Dict
+
+# Shared cache for image descriptions across all cogs
+image_description_cache: Dict[str, str] = {}
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -80,6 +84,51 @@ class BaseCog(commands.Cog):
         except Exception as e:
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
+
+    async def get_image_description(self, image_url: str) -> Optional[str]:
+        """Get or generate a description for an image URL"""
+        # Check cache first
+        if image_url in image_description_cache:
+            return image_description_cache[image_url]
+
+        # If this is a vision-capable model, generate the description
+        if self.supports_vision and self.name == "Llama-3.2-90B-Vision":
+            try:
+                async with self._image_processing_lock:
+                    response = await self.api_client.call_openrouter(
+                        model=self.model,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are an expert at describing images accurately and concisely. Focus on the main subjects and important details."
+                            },
+                            {
+                                "role": "user",
+                                "content": [
+                                    {
+                                        "type": "image_url",
+                                        "image_url": image_url
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": "Please describe this image in detail."
+                                    }
+                                ]
+                            }
+                        ],
+                        temperature=0.7,
+                        stream=False
+                    )
+                
+                if response and response['choices']:
+                    description = response['choices'][0]['message']['content'].strip()
+                    # Cache the description
+                    image_description_cache[image_url] = description
+                    return description
+            except Exception as e:
+                logging.error(f"[{self.name}] Error generating image description: {str(e)}")
+        
+        return None
 
     async def handle_message(self, message):
         """Handle incoming messages and generate responses"""
@@ -156,8 +205,6 @@ class BaseCog(commands.Cog):
                     )
                 except Exception as e:
                     logging.error(f"[{self.name}] Failed to log interaction: {e}")
-
-
 
         except Exception as e:
             logging.error(f"[{self.name}] Error handling message: {str(e)}")

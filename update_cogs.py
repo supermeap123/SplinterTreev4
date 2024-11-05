@@ -74,28 +74,37 @@ VISION_RESPONSE_TEMPLATE = '''
                     "content": content
                 }})
 
-            # Add current message with any image descriptions
-            if message.attachments:
-                # Get alt text for this message
-                alt_text = await self.context_cog.get_alt_text(str(message.id))
-                if alt_text:
-                    messages.append({{
-                        "role": "user",
-                        "content": [
-                            {{"type": "text", "text": message.content}},
-                            {{"type": "text", "text": f"Image description: {{alt_text}}"}}
-                        ]
-                    }})
-                else:
-                    messages.append({{
-                        "role": "user",
-                        "content": message.content
-                    }})
-            else:
-                messages.append({{
-                    "role": "user",
-                    "content": message.content
-                }})
+            # Process current message and any images
+            content = message.content
+            image_descriptions = []
+
+            # Get descriptions for any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    description = await self.get_image_description(attachment.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+
+            # Get descriptions for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    description = await self.get_image_description(embed.image.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+                if embed.thumbnail and embed.thumbnail.url:
+                    description = await self.get_image_description(embed.thumbnail.url)
+                    if description:
+                        image_descriptions.append(f"[Image: {description}]")
+
+            # Combine message content with image descriptions
+            if image_descriptions:
+                content = f"{content}\n\n{' '.join(image_descriptions)}"
+
+
+            messages.append({{
+                "role": "user",
+                "content": content
+            }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
@@ -119,59 +128,7 @@ VISION_RESPONSE_TEMPLATE = '''
             return None'''
 
 # Template for generate_response without vision support
-BASIC_RESPONSE_TEMPLATE = '''
-    async def generate_response(self, message):
-        """Generate a response using {provider}"""
-        try:
-            # Format system prompt
-            formatted_prompt = self.format_prompt(message)
-            messages = [{{"role": "system", "content": formatted_prompt}}]
-
-            # Get last 50 messages from database
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
-            
-            # Format history messages with proper roles
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
-                
-                # Handle system summaries
-                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
-                    role = "system"
-                    content = content[9:].strip()  # Remove [SUMMARY] prefix
-                
-                messages.append({{
-                    "role": role,
-                    "content": content
-                }})
-
-            # Add current message
-            messages.append({{
-                "role": "user",
-                "content": message.content
-            }})
-
-            logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
-            logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
-
-            # Get temperature for this agent
-            temperature = self.get_temperature()
-            logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
-
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_{provider_method}(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=True
-            )
-
-            return response_stream
-
-        except Exception as e:
-            logging.error(f"Error processing message for {name}: {{e}}")
-            return None'''
+BASIC_RESPONSE_TEMPLATE = VISION_RESPONSE_TEMPLATE
 
 # Template for setup function
 SETUP_TEMPLATE = '''
@@ -428,6 +385,18 @@ COGS_CONFIG = {
         'supports_vision': 'False',
         'log_name': 'Mythomax',
         'qualified_name': 'Mythomax'
+    },
+    'mystery_merge_nemo': {
+        'class_name': 'MysteryMergeNemoCog',
+        'name': 'Mystery Merge Nemo',
+        'nickname': 'MysteryNemo',
+        'trigger_words': "['nemo']",
+        'model': 'openpipe:AutoMeta/PygTesting/mystery-merge-nemo',
+        'provider': 'openpipe',
+        'prompt_file': None,
+        'supports_vision': 'False',
+        'log_name': 'Mystery Merge Nemo',
+        'qualified_name': 'Mystery Merge Nemo'
     }
 }
 
