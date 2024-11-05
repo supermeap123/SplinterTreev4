@@ -134,7 +134,13 @@ class BaseCog(commands.Cog):
                     logging.error(f"[{self.name}] Failed to add message to context: {str(e)}")
 
             # Generate and send response
-            response_stream = await self.generate_response(message)
+            try:
+                response_stream = await self.generate_response(message)
+            except Exception as e:
+                logging.error(f"[{self.name}] Error generating response: {str(e)}")
+                await message.channel.send(f"❌ Error generating response: {str(e)}")
+                return
+
             if response_stream:
                 response = ""
                 sent_messages = []
@@ -142,109 +148,114 @@ class BaseCog(commands.Cog):
                 current_chunk = f"[{self.name}] "
                 
                 # Consume the async generator
-                async for chunk in response_stream:
-                    if chunk:
-                        response += chunk
-                        current_chunk += chunk
-                        
-                        # Check if it's time to update (every 0.5 seconds)
-                        current_time = time.time()
-                        if current_time - last_update >= 0.5:
-                            # Split message if needed
-                            while len(current_chunk) > 2000:
-                                # Find last space before 2000 chars
-                                split_index = current_chunk[:2000].rfind(' ')
-                                if split_index == -1:
-                                    split_index = 1999
+                try:
+                    async for chunk in response_stream:
+                        if chunk:
+                            response += chunk
+                            current_chunk += chunk
+                            
+                            # Check if it's time to update (every 0.5 seconds)
+                            current_time = time.time()
+                            if current_time - last_update >= 0.5:
+                                # Split message if needed
+                                while len(current_chunk) > 2000:
+                                    # Find last space before 2000 chars
+                                    split_index = current_chunk[:2000].rfind(' ')
+                                    if split_index == -1:
+                                        split_index = 1999
+                                    
+                                    # Send or edit first part
+                                    if not sent_messages:
+                                        sent_message = await message.channel.send(current_chunk[:split_index])
+                                        sent_messages.append(sent_message)
+                                    else:
+                                        await sent_messages[-1].edit(content=current_chunk[:split_index])
+                                    
+                                    # Prepare next chunk with model name prefix
+                                    current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
                                 
-                                # Send or edit first part
-                                if not sent_messages:
-                                    sent_message = await message.channel.send(current_chunk[:split_index])
-                                    sent_messages.append(sent_message)
+                                # Update or send current chunk
+                                if sent_messages:
+                                    await sent_messages[-1].edit(content=current_chunk)
                                 else:
-                                    await sent_messages[-1].edit(content=current_chunk[:split_index])
+                                    sent_message = await message.channel.send(current_chunk)
+                                    sent_messages.append(sent_message)
                                 
-                                # Prepare next chunk with model name prefix
-                                current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
-                            
-                            # Update or send current chunk
-                            if sent_messages:
-                                await sent_messages[-1].edit(content=current_chunk)
-                            else:
-                                sent_message = await message.channel.send(current_chunk)
-                                sent_messages.append(sent_message)
-                            
-                            last_update = current_time
+                                last_update = current_time
 
-                # Final update
-                while len(current_chunk) > 2000:
-                    split_index = current_chunk[:2000].rfind(' ')
-                    if split_index == -1:
-                        split_index = 1999
+                    # Final update
+                    while len(current_chunk) > 2000:
+                        split_index = current_chunk[:2000].rfind(' ')
+                        if split_index == -1:
+                            split_index = 1999
+                        
+                        if not sent_messages:
+                            sent_message = await message.channel.send(current_chunk[:split_index])
+                            sent_messages.append(sent_message)
+                        else:
+                            await sent_messages[-1].edit(content=current_chunk[:split_index])
+                        
+                        current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
                     
-                    if not sent_messages:
-                        sent_message = await message.channel.send(current_chunk[:split_index])
-                        sent_messages.append(sent_message)
+                    # Send or update final chunk with reroll button
+                    if sent_messages:
+                        await sent_messages[-1].edit(
+                            content=current_chunk,
+                            view=RerollView(self, message, response)
+                        )
                     else:
-                        await sent_messages[-1].edit(content=current_chunk[:split_index])
-                    
-                    current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
-                
-                # Send or update final chunk with reroll button
-                if sent_messages:
-                    await sent_messages[-1].edit(
-                        content=current_chunk,
-                        view=RerollView(self, message, response)
-                    )
-                else:
-                    sent_message = await message.channel.send(
-                        content=current_chunk,
-                        view=RerollView(self, message, response)
-                    )
-                    sent_messages.append(sent_message)
+                        sent_message = await message.channel.send(
+                            content=current_chunk,
+                            view=RerollView(self, message, response)
+                        )
+                        sent_messages.append(sent_message)
 
-                # Add emotion reaction
-                emotion = analyze_emotion(response)
-                if emotion:
-                    try:
-                        await message.add_reaction(emotion)
-                    except discord.errors.Forbidden:
-                        logging.warning(f"[{self.name}] Missing permission to add reaction")
+                    # Add emotion reaction
+                    emotion = analyze_emotion(response)
+                    if emotion:
+                        try:
+                            await message.add_reaction(emotion)
+                        except discord.errors.Forbidden:
+                            logging.warning(f"[{self.name}] Missing permission to add reaction")
 
-                # Add response to context
-                if self.context_cog:
+                    # Add response to context
+                    if self.context_cog:
+                        try:
+                            guild_id = str(message.guild.id) if message.guild else None
+                            await self.context_cog.add_message_to_context(
+                                sent_messages[-1].id,
+                                str(message.channel.id),
+                                guild_id,
+                                str(self.bot.user.id),
+                                response,
+                                True,  # is_assistant
+                                self.name,  # persona_name
+                                emotion  # emotion
+                            )
+                        except Exception as e:
+                            logging.error(f"[{self.name}] Failed to add response to context: {str(e)}")
+
+                    # Log interaction
                     try:
-                        guild_id = str(message.guild.id) if message.guild else None
-                        await self.context_cog.add_message_to_context(
-                            sent_messages[-1].id,
-                            str(message.channel.id),
-                            guild_id,
-                            str(self.bot.user.id),
-                            response,
-                            True,  # is_assistant
-                            self.name,  # persona_name
-                            emotion  # emotion
+                        await log_interaction(
+                            user_id=message.author.id,
+                            guild_id=message.guild.id if message.guild else None,
+                            persona_name=self.name,
+                            user_message=modified_content,
+                            assistant_reply=response,
+                            emotion=emotion,
+                            channel_id=message.channel.id
                         )
                     except Exception as e:
-                        logging.error(f"[{self.name}] Failed to add response to context: {str(e)}")
+                        logging.error(f"[{self.name}] Failed to log interaction: {e}")
 
-                # Log interaction
-                try:
-                    await log_interaction(
-                        user_id=message.author.id,
-                        guild_id=message.guild.id if message.guild else None,
-                        persona_name=self.name,
-                        user_message=modified_content,
-                        assistant_reply=response,
-                        emotion=emotion,
-                        channel_id=message.channel.id
-                    )
                 except Exception as e:
-                    logging.error(f"[{self.name}] Failed to log interaction: {e}")
+                    logging.error(f"[{self.name}] Error processing response stream: {str(e)}")
+                    await message.channel.send(f"❌ Error processing response: {str(e)}")
 
         except Exception as e:
-            logging.error(f"[{self.name}] Error handling message: {str(e)}")
-            await message.channel.send(f"❌ Error: {str(e)}")
+            logging.error(f"[{self.name}] Unexpected error handling message: {str(e)}")
+            await message.channel.send(f"❌ Unexpected error: {str(e)}")
 
     async def generate_response(self, message) -> AsyncGenerator[str, None]:
         """Generate a response to a message. Must be implemented by subclasses."""
