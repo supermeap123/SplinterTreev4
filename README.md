@@ -22,6 +22,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Automatic Database Initialization**: Schema is automatically applied on bot startup
 - **Improved Error Handling and Logging**: Enhanced error reporting for better troubleshooting and maintenance
 - **OpenPipe Request Reporting**: Automatic logging of each message processed by context cogs to OpenPipe for analysis and potential model improvement
+- **Message ID Tracking**: Prevents duplicate messages by tracking processed message IDs.
 
 ### Special Capabilities
 - **Enhanced Vision Processing**: All models can now process and respond to images, with descriptions provided for non-vision models
@@ -201,64 +202,6 @@ SplinterTreev4/
     ├── api.py        # API client implementations
     └── utils.py      # Utility functions
 ```
-
-## 🔧 Development
-
-### Adding New Models
-1. Add the model's configuration to `update_cogs.py`:
-   ```python
-   COGS_CONFIG = {
-       'new_model': {
-           'class_name': 'NewModelCog',
-           'name': 'Model-Name',
-           'nickname': 'Nickname',
-           'trigger_words': "['trigger1', 'trigger2']",
-           'model': 'provider/model-id',
-           'provider': 'openrouter',  # or 'openpipe'
-           'prompt_file': 'prompt_name',
-           'supports_vision': 'False',  # or 'True' for vision models
-           'log_name': 'Model-Name',
-           'qualified_name': 'Model-Name'
-       }
-   }
-   ```
-2. Run `python update_cogs.py` to generate the cog file
-3. The generated cog will inherit all functionality from base_cog.py, including:
-   - Message processing using Sydney's proven pattern
-   - Universal image processing support
-   - Streaming responses with store=True
-   - Error handling
-   - Temperature management
-   - Context integration
-   - Agent cloning
-   - OpenPipe request reporting
-
-### Maintaining Cogs
-- Use `update_cogs.py` to ensure all cogs follow the same structure
-- Core functionality is centralized in `base_cog.py`
-- Individual cogs only contain configuration
-- To update all cogs:
-  ```bash
-  python update_cogs.py
-  ```
-
-### Custom Prompts
-Channel-specific prompts are stored in `dynamic_prompts.json`:
-```json
-{
-  "guild_id": {
-    "channel_id": "Custom system prompt with {MODEL_ID} and other variables"
-  }
-}
-```
-
-### Database Schema
-The SQLite database includes tables for:
-- `messages`: Stores all conversation messages
-- `context_windows`: Stores per-channel context settings
-- `logs`: Stores interaction logs for API calls
-
-The schema is automatically applied when the bot starts, ensuring the database is always up-to-date.
 
 ## 📄 License
 

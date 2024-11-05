@@ -82,6 +82,7 @@ class HelpCog(commands.Cog):
     • **Response Reroll** - Click the 🎲 button to get a different response
     • **Private Responses** - Surround your message with ||spoiler tags|| to get a DM response
     • **Context Memory** - Models remember conversation history for better context
+    • **Duplicate Message Prevention** - A message ID tracking system prevents the bot from sending duplicate messages.
     • **Image Analysis** - Use vision-capable models for image descriptions and analysis
     • **Custom System Prompts** - Set custom prompts for each AI agent
     • **Agent Cloning** - Create custom variants of existing agents with unique system prompts

@@ -1,5 +1,10 @@
-fix: correct API client initialization in base_cog
+feat: Implement message ID tracking to prevent duplicate messages
 
-- Fixed API client initialization in base_cog.py to properly use the bot's api_client attribute
-- Removed direct api import dependency in base_cog.py
-- Ensures consistent API client usage across all cogs
+This commit introduces a message ID tracking system in the context cog to prevent the bot from sending duplicate messages. This addresses an issue where duplicate messages could occur under certain conditions.
+
+The following changes were made:
+
+- Added a `processed_messages` set to the `ContextCog` class to store the IDs of processed messages.
+- Updated the `on_message` listener to check if a message has already been processed before handling it.
+- Updated the `add_message_to_context` method to add message IDs to the `processed_messages` set.
+- Updated the help command and README to document the new feature.
