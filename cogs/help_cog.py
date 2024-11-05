@@ -68,7 +68,7 @@ class HelpCog(commands.Cog):
 
         return model_list
 
-    @commands.command(name="splintertree_help", aliases=["help"])
+    @commands.command(name="st_help", aliases=["help"])
     async def help_command(self, ctx):
         """Send a comprehensive help message with all available features"""
         try:
@@ -97,20 +97,20 @@ class HelpCog(commands.Cog):
     6. Chat summaries help maintain context over longer conversations
 
     **Available Commands:**
-    • `splintertree_help` or `help` - Show this help message
-    • `!listmodels` - Show all available models (simple list)
-    • `!list_agents` - Show all available agents with detailed info (formatted embed)
-    • `!uptime` - Show how long the bot has been running
-    • `!set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
-    • `!reset_system_prompt agent` - Reset an AI agent's system prompt to default
-    • `!clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
-    • `!setcontext size` - Set the number of previous messages to include in context (Admin only)
-    • `!getcontext` - View current context window size
-    • `!resetcontext` - Reset context window to default size (Admin only)
-    • `!clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
-    • `!summarize` - Force create a summary for the current channel (Admin only)
-    • `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
-    • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
+    • `!st_help` - Show this help message
+    • `!st_listmodels` - Show all available models (simple list)
+    • `!st_list_agents` - Show all available agents with detailed info (formatted embed)
+    • `!st_uptime` - Show how long the bot has been running
+    • `!st_set_system_prompt agent prompt` - Set a custom system prompt for an AI agent
+    • `!st_reset_system_prompt agent` - Reset an AI agent's system prompt to default
+    • `!st_clone_agent agent new_name system_prompt` - Create a new agent based on an existing one (Admin only)
+    • `!st_setcontext size` - Set the number of previous messages to include in context (Admin only)
+    • `!st_getcontext` - View current context window size
+    • `!st_resetcontext` - Reset context window to default size (Admin only)
+    • `!st_clearcontext [hours]` - Clear conversation history, optionally specify hours (Admin only)
+    • `!st_summarize` - Force create a summary for the current channel (Admin only)
+    • `!st_getsummaries [hours]` - View chat summaries for specified hours (default: 24)
+    • `!st_clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
 
 
     **System Prompt Variables:**
@@ -132,7 +132,7 @@ class HelpCog(commands.Cog):
             logging.error(f"[Help] Error sending help message: {str(e)}", exc_info=True)
             await ctx.send("An error occurred while fetching the help message. Please try again later.")
 
-    @commands.command(name="listmodels")
+    @commands.command(name="st_listmodels")
     async def list_models_command(self, ctx):
         """Send a simple list of all available models"""
         try:

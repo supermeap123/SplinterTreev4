@@ -1,15 +1,9 @@
-Implement legacy context and system prompt commands
+Update help and commands with !st_ prefix
 
-- Added `!st_` prefixed legacy commands to context_cog.py:
-  * `!st_setcontext` - Set the number of previous messages in context
-  * `!st_getcontext` - View current context window size
-  * `!st_resetcontext` - Reset context window to default
-  * `!st_clearcontext` - Clear conversation history
+- Updated help_cog.py to use `!st_help` and `!st_listmodels`
+- Verified all other cogs have `!st_` prefixed commands:
+  * management_cog.py: `!st_uptime`, `!st_list_agents`, `!st_clone_agent`
+  * context_cog.py: `!st_setcontext`, `!st_getcontext`, `!st_resetcontext`, `!st_clearcontext`
+  * settings_cog.py: `!st_set_system_prompt`, `!st_reset_system_prompt`
 
-- Added `!st_` prefixed legacy commands to settings_cog.py:
-  * `!st_set_system_prompt` - Set a custom system prompt for an AI agent
-  * `!st_reset_system_prompt` - Reset an AI agent's system prompt to default
-
-- Removed slash command implementations
-
-These changes provide users with more control over context and system prompts using legacy text commands.
+Ensures consistent command naming and improves user experience by using the `!st_` prefix across all commands.
