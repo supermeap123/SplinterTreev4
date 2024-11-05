@@ -1,7 +1,5 @@
-feat: Add message streaming and splitting
+feat: Enhance message streaming responsiveness
 
-- Implement 5-second streaming updates for responses
-- Add automatic message splitting when content exceeds 2000 chars
-- Maintain model name prefix in split messages
-- Preserve existing functionality (reactions, context, logging)
-- Handle edge cases for very long responses
+- Reduce streaming update interval from 5 seconds to 0.5 seconds
+- Provides more real-time feeling response streaming
+- Maintains all previous functionality of message splitting and handling

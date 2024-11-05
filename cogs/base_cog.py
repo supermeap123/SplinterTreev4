@@ -222,9 +222,9 @@ class BaseCog(commands.Cog):
                         response += chunk
                         current_chunk += chunk
                         
-                        # Check if it's time to update (every 5 seconds)
+                        # Check if it's time to update (every 0.5 seconds)
                         current_time = time.time()
-                        if current_time - last_update >= 5:
+                        if current_time - last_update >= 0.5:
                             # Split message if needed
                             while len(current_chunk) > 2000:
                                 # Find last space before 2000 chars
