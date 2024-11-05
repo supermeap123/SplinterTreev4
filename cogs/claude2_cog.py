@@ -66,29 +66,23 @@ class Claude2Cog(BaseCog):
 
             # Process current message and any images
             content = message.content
-            image_descriptions = []
+            image_notes = []
 
-            # Get descriptions for any image attachments
+            # Add notes for any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
-                    description = await self.get_image_description(attachment.url)
-                    if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                    image_notes.append(f"[Attachment: Image of type {attachment.content_type}]")
 
-            # Get descriptions for image URLs in embeds
+            # Add notes for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
-                    description = await self.get_image_description(embed.image.url)
-                    if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                    image_notes.append("[Embed: Image present]")
                 if embed.thumbnail and embed.thumbnail.url:
-                    description = await self.get_image_description(embed.thumbnail.url)
-                    if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                    image_notes.append("[Embed: Thumbnail present]")
 
-            # Combine message content with image descriptions
-            if image_descriptions:
-                content = f"{content}\n\n{' '.join(image_descriptions)}"
+            # Combine message content with image notes
+            if image_notes:
+                content = f"{content}\n\n{' '.join(image_notes)}"
 
             # Add current message
             messages.append({
@@ -115,7 +109,9 @@ class Claude2Cog(BaseCog):
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {e}")
-            return None
+            async def error_generator():
+                yield f"❌ Error: {str(e)}"
+            return error_generator()
 
 async def setup(bot):
     # Register the cog with its proper name

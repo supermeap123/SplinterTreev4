@@ -1,8 +1,9 @@
-Enhance image processing in API class
+Improve Claude-2 cog image handling
 
-- Improved async image URL to base64 conversion
-- Added robust MIME type detection
-- Resolved coroutine serialization issues
-- Enhanced error handling for image processing
+- Removed unsupported image description method
+- Added simple image attachment notes
+- Maintained existing message processing logic
+- Enhanced error handling
+- Gracefully handles image attachments for non-vision models
 
-Improves reliability of vision model image handling
+Resolves 'get_image_description' method error
