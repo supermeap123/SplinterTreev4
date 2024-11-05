@@ -85,6 +85,13 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    async def start_typing(self, channel):
+        """Start a typing indicator in the channel"""
+        try:
+            await channel.typing()
+        except Exception as e:
+            logging.warning(f"[{self.name}] Failed to start typing indicator: {str(e)}")
+
     async def get_image_description(self, image_url: str) -> Optional[str]:
         """Get or generate a description for an image URL"""
         # Check cache first
@@ -128,11 +135,63 @@ class BaseCog(commands.Cog):
             except Exception as e:
                 logging.error(f"[{self.name}] Error generating image description: {str(e)}")
         
+        # Fallback for non-vision models: use a generic description generation
+        try:
+            async with self._image_processing_lock:
+                response = await self.api_client.call_openrouter(
+                    model="anthropic/claude-3-sonnet:beta",  # Use a reliable vision model for description
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert at generating concise, generic image descriptions when the original model lacks vision capabilities."
+                        },
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": image_url
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "Please provide a brief, generic description of this image suitable for a text-only context."
+                                }
+                            ]
+                        }
+                    ],
+                    temperature=0.7,
+                    stream=False
+                )
+            
+            if response and response['choices']:
+                description = response['choices'][0]['message']['content'].strip()
+                # Cache the description
+                image_description_cache[image_url] = description
+                return description
+        except Exception as e:
+            logging.error(f"[{self.name}] Fallback image description generation failed: {str(e)}")
+        
         return None
 
     async def handle_message(self, message):
         """Handle incoming messages and generate responses"""
         try:
+            # Start typing indicator
+            await self.start_typing(message.channel)
+
+            # Process image attachments for non-vision models
+            image_descriptions = []
+            for attachment in message.attachments:
+                if attachment.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                    description = await self.get_image_description(attachment.url)
+                    if description:
+                        image_descriptions.append(description)
+
+            # Modify message content to include image descriptions
+            modified_content = message.content
+            if image_descriptions:
+                modified_content += "\n\n[Image Descriptions]\n" + "\n".join(image_descriptions)
+
             # Add message to context
             if self.context_cog:
                 try:
@@ -142,7 +201,7 @@ class BaseCog(commands.Cog):
                         str(message.channel.id),
                         guild_id,
                         str(message.author.id),
-                        message.content,
+                        modified_content,
                         False,  # is_assistant
                         None,   # persona_name
                         None    # emotion
@@ -198,7 +257,7 @@ class BaseCog(commands.Cog):
                         user_id=message.author.id,
                         guild_id=message.guild.id if message.guild else None,
                         persona_name=self.name,
-                        user_message=message.content,
+                        user_message=modified_content,
                         assistant_reply=response,
                         emotion=emotion,
                         channel_id=message.channel.id

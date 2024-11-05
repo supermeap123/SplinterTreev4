@@ -11,7 +11,7 @@ class Llama3290bVisionCog(BaseCog):
             bot=bot,
             name="Llama-3.2-90B-Vision",
             nickname="Llama Vision",
-            trigger_words=['llamavision', 'describe image', 'what is this image'],
+            trigger_words=['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision'],
             model="meta-llama/llama-3.2-90b-vision-instruct:free",
             provider="openrouter",
             prompt_file="llama32_90b",
@@ -111,7 +111,7 @@ class Llama3290bVisionCog(BaseCog):
 
         except Exception as e:
             logging.error(f"Error processing message for {self.name}: {e}")
-            return None
+            yield f"❌ Error: {str(e)}"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
