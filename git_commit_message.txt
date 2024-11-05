@@ -1,8 +1,8 @@
-Improve database connection and schema handling
+Ensure OpenRouter API method availability
 
-- Ensure databases directory exists
-- Modify schema application to handle multiple statements
-- Maintain robust error handling
-- Preserve existing database functionality
+- Verified call_openrouter method implementation
+- Maintained existing error handling
+- Added async message validation
+- Preserved robust image processing functionality
 
-Resolves database connection and schema application issues
+Resolves missing method error for OpenRouter API calls
