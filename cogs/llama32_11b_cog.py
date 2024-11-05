@@ -63,28 +63,40 @@ class Llama32_11bCog(BaseCog):
                     "content": content
                 })
 
-            # Add current message with any image descriptions
-            if message.attachments:
-                # Get alt text for this message
-                alt_text = await self.context_cog.get_alt_text(str(message.id))
-                if alt_text:
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": message.content},
-                            {"type": "text", "text": f"Image description: {alt_text}"}
-                        ]
-                    })
-                else:
-                    messages.append({
-                        "role": "user",
-                        "content": message.content
-                    })
-            else:
-                messages.append({
-                    "role": "user",
-                    "content": message.content
-                })
+            # Process current message and any images
+            content = message.content
+            image_descriptions = []
+
+            # Get descriptions for any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    description = await self.get_image_description(attachment.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+
+            # Get descriptions for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    description = await self.get_image_description(embed.image.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+                if embed.thumbnail and embed.thumbnail.url:
+                    description = await self.get_image_description(embed.thumbnail.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+
+            # Combine message content with image descriptions
+            if image_descriptions:
+                content += '
+
+' + '
+
+'.join(image_descriptions) # Join descriptions with newlines
+
+            messages.append({
+                "role": "user",
+                "content": content
+            })
 
             logging.debug(f"[Llama-3.2-11b] Sending {len(messages)} messages to API")
             logging.debug(f"[Llama-3.2-11b] Formatted prompt: {formatted_prompt}")

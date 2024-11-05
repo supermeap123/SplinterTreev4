@@ -13,7 +13,7 @@ class MysteryMergeNemoCog(BaseCog):
             trigger_words=['nemo'],
             model="openpipe:AutoMeta/PygTesting/mystery-merge-nemo",
             provider="openpipe",
-            prompt_file=None,
+            prompt_file="None",
             supports_vision=False
         )
         logging.debug(f"[Mystery Merge Nemo] Initialized with raw_prompt: {self.raw_prompt}")
@@ -25,7 +25,7 @@ class MysteryMergeNemoCog(BaseCog):
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Mystery Merge Nemo] Failed to load temperatures.json: {str(e)}")
+            logging.error(f"[Mystery Merge Nemo] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
@@ -38,7 +38,7 @@ class MysteryMergeNemoCog(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using OpenPipe"""
+        """Generate a response using openpipe"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -63,10 +63,39 @@ class MysteryMergeNemoCog(BaseCog):
                     "content": content
                 })
 
-            # Add current message
+            # Process current message and any images
+            content = message.content
+            image_descriptions = []
+
+            # Get descriptions for any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    description = await self.get_image_description(attachment.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+
+            # Get descriptions for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    description = await self.get_image_description(embed.image.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+                if embed.thumbnail and embed.thumbnail.url:
+                    description = await self.get_image_description(embed.thumbnail.url)
+                    if description:
+                        image_descriptions.append(description)  # Append the description directly
+
+            # Combine message content with image descriptions
+            if image_descriptions:
+                content += '
+
+' + '
+
+'.join(image_descriptions) # Join descriptions with newlines
+
             messages.append({
                 "role": "user",
-                "content": message.content
+                "content": content
             })
 
             logging.debug(f"[Mystery Merge Nemo] Sending {len(messages)} messages to API")
@@ -76,7 +105,7 @@ class MysteryMergeNemoCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Mystery Merge Nemo] Using temperature: {temperature}")
 
-            # Call OpenPipe API and return the stream directly
+            # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
@@ -87,7 +116,7 @@ class MysteryMergeNemoCog(BaseCog):
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Mystery Merge Nemo: {str(e)}")
+            logging.error(f"Error processing message for Mystery Merge Nemo: {e}")
             return None
 
 async def setup(bot):
@@ -98,5 +127,5 @@ async def setup(bot):
         logging.info(f"[Mystery Merge Nemo] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Mystery Merge Nemo] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"[Mystery Merge Nemo] Failed to register cog: {e}", exc_info=True)
         raise

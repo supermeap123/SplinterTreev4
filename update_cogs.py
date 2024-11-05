@@ -46,8 +46,8 @@ class {class_name}(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 '''
 
-# Template for generate_response with vision support
-VISION_RESPONSE_TEMPLATE = '''
+# Template for generate_response with and without vision support
+RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
         """Generate a response using {provider}"""
         try:
@@ -83,23 +83,22 @@ VISION_RESPONSE_TEMPLATE = '''
                 if attachment.content_type and attachment.content_type.startswith("image/"):
                     description = await self.get_image_description(attachment.url)
                     if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                        image_descriptions.append(description)  # Append the description directly
 
             # Get descriptions for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
                     description = await self.get_image_description(embed.image.url)
                     if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                        image_descriptions.append(description)  # Append the description directly
                 if embed.thumbnail and embed.thumbnail.url:
                     description = await self.get_image_description(embed.thumbnail.url)
                     if description:
-                        image_descriptions.append(f"[Image: {description}]")
+                        image_descriptions.append(description)  # Append the description directly
 
             # Combine message content with image descriptions
             if image_descriptions:
-                content = f"{content}\n\n{' '.join(image_descriptions)}"
-
+                content += '\n\n' + '\n\n'.join(image_descriptions) # Join descriptions with newlines
 
             messages.append({{
                 "role": "user",
@@ -127,8 +126,6 @@ VISION_RESPONSE_TEMPLATE = '''
             logging.error(f"Error processing message for {name}: {{e}}")
             return None'''
 
-# Template for generate_response without vision support
-BASIC_RESPONSE_TEMPLATE = VISION_RESPONSE_TEMPLATE
 
 # Template for setup function
 SETUP_TEMPLATE = '''
@@ -408,8 +405,8 @@ def update_cog(cog_name, config):
         
         # Add the appropriate response template based on vision support and provider
         provider_method = config['provider'] # Use the actual provider name
-        response_template = VISION_RESPONSE_TEMPLATE if config['supports_vision'] == 'True' else BASIC_RESPONSE_TEMPLATE
-        cog_content += response_template.format(
+
+        cog_content += RESPONSE_TEMPLATE.format(
             provider=config['provider'],
             provider_method=provider_method,
             log_name=config['log_name'],
