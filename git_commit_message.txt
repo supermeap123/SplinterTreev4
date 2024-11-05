@@ -1,8 +1,8 @@
-Fix async generator handling in Llama 90B Vision cog
+Improve async generator handling in base cog
 
-- Refactored generate_response to use nested async generator
-- Resolved 'object async_generator can't be used in await expression' error
-- Maintained existing message and image processing logic
-- Improved error handling and logging
+- Refactored generate_response method for robust async generator support
+- Added fallback error generators
+- Ensured consistent return type across all cogs
+- Enhanced error handling and logging
 
-Ensures consistent async generator behavior for vision models
+Resolves async generator issues in vision and other model cogs

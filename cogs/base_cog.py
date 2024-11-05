@@ -11,7 +11,7 @@ import re
 import aiohttp
 import asyncio
 import tempfile
-from typing import Optional, Dict
+from typing import Optional, Dict, AsyncGenerator
 from urllib.parse import urlparse
 
 # Shared cache for image descriptions across all cogs
@@ -246,9 +246,35 @@ class BaseCog(commands.Cog):
             logging.error(f"[{self.name}] Error handling message: {str(e)}")
             await message.channel.send(f"❌ Error: {str(e)}")
 
-    async def generate_response(self, message):
+    async def generate_response(self, message) -> AsyncGenerator[str, None]:
         """Generate a response to a message. Must be implemented by subclasses."""
-        raise NotImplementedError("Subclasses must implement generate_response")
+        async def error_generator():
+            yield f"❌ Error: {self.name} does not support response generation"
+        
+        try:
+            # Attempt to call the subclass's generate_response method
+            response = await self._generate_response(message)
+            
+            # If the subclass method returns an async generator, return it
+            if response is not None:
+                return response
+            
+            # If the subclass method returns None or an invalid response, use error generator
+            return error_generator()
+        
+        except NotImplementedError:
+            # If the subclass hasn't implemented generate_response, use error generator
+            return error_generator()
+        except Exception as e:
+            # Catch any other exceptions and return an error generator
+            logging.error(f"[{self.name}] Error in generate_response: {str(e)}")
+            async def error_generator():
+                yield f"❌ Error: {str(e)}"
+            return error_generator()
+
+    async def _generate_response(self, message) -> Optional[AsyncGenerator[str, None]]:
+        """Placeholder method to be overridden by subclasses"""
+        raise NotImplementedError("Subclasses must implement _generate_response")
 
     def format_prompt(self, message):
         """Format the system prompt template with message context"""
