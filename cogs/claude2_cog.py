@@ -94,12 +94,12 @@ class Claude2Cog(BaseCog):
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        logging.info(f"[{self.name}] Starting cog setup...")
+        logging.info("Starting Claude-2 cog setup...")
         cog = Claude2Cog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[{self.name}] Registered cog with qualified_name: {cog.qualified_name}")
-        logging.info(f"[{self.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
+        logging.info(f"[{cog.name}] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[{cog.name}] Cog is loaded and listening for triggers: {cog.trigger_words}")
         return cog
     except Exception as e:
-        logging.error(f"[{self.name}] Failed to register cog: {str(e)}", exc_info=True)
+        logging.error(f"Failed to register Claude-2 cog: {str(e)}", exc_info=True)
         raise
