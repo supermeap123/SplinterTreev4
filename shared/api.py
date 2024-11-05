@@ -40,6 +40,18 @@ class API:
             self.db_conn = None
             self.db_cursor = None
 
+    def _apply_schema(self):
+        """Apply database schema"""
+        try:
+            with open('databases/schema.sql', 'r') as schema_file:
+                schema_sql = schema_file.read()
+            self.db_cursor.executescript(schema_sql)
+            self.db_conn.commit()
+            logging.info("[API] Successfully applied database schema")
+        except Exception as e:
+            logging.error(f"[API] Failed to apply database schema: {str(e)}")
+            raise
+
     async def _download_image(self, url: str) -> bytes:
         """Download image from URL"""
         try:
@@ -84,7 +96,7 @@ class API:
         
         return 'application/octet-stream'  # Default fallback
 
-    def _validate_message_roles(self, messages: List[Dict]) -> List[Dict]:
+    async def _validate_message_roles(self, messages: List[Dict]) -> List[Dict]:
         """Validate and normalize message roles for API compatibility"""
         valid_roles = {"system", "user", "assistant"}
         normalized_messages = []
@@ -112,8 +124,8 @@ class API:
                         if item['type'] == 'text' and 'text' in item:
                             valid_content.append(item)
                         elif item['type'] == 'image_url' and 'image_url' in item:
-                            # Convert image URL to base64
-                            base64_image = self._convert_image_to_base64(item['image_url'])
+                            # Convert image URL to base64 with proper awaiting
+                            base64_image = await self._convert_image_to_base64(item['image_url'])
                             if base64_image:
                                 valid_content.append({
                                     "type": "image_url",

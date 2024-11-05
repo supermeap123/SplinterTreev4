@@ -1,8 +1,8 @@
-Improve async generator handling in base cog
+Enhance image processing in API class
 
-- Refactored generate_response method for robust async generator support
-- Added fallback error generators
-- Ensured consistent return type across all cogs
-- Enhanced error handling and logging
+- Improved async image URL to base64 conversion
+- Added robust MIME type detection
+- Resolved coroutine serialization issues
+- Enhanced error handling for image processing
 
-Resolves async generator issues in vision and other model cogs
+Improves reliability of vision model image handling
