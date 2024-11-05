@@ -1,3 +1,7 @@
-Reverted repository to commit e6f0186762ffaa68ac42b6345c840990ea528fdf
+feat: Add message streaming and splitting
 
-Reason: Rolled back to a previous stable state as requested.
+- Implement 5-second streaming updates for responses
+- Add automatic message splitting when content exceeds 2000 chars
+- Maintain model name prefix in split messages
+- Preserve existing functionality (reactions, context, logging)
+- Handle edge cases for very long responses
