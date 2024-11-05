@@ -1,8 +1,8 @@
-Enhance image processing for vision models
+Fix async generator handling in Llama 90B Vision cog
 
-- Implemented robust image URL to base64 conversion
-- Added MIME type detection for image attachments
-- Improved error handling for image processing
-- Ensures compatibility with OpenRouter vision models
+- Refactored generate_response to use nested async generator
+- Resolved 'object async_generator can't be used in await expression' error
+- Maintained existing message and image processing logic
+- Improved error handling and logging
 
-Resolves MIME type issues in vision model image handling
+Ensures consistent async generator behavior for vision models

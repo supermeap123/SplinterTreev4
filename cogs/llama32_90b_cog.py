@@ -4,6 +4,7 @@ import logging
 from typing import Optional, AsyncGenerator
 from .base_cog import BaseCog
 import json
+import asyncio
 
 class Llama3290bVisionCog(BaseCog):
     def __init__(self, bot):
@@ -30,90 +31,93 @@ class Llama3290bVisionCog(BaseCog):
             logging.error(f"[{self.name}] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
-    async def generate_response(self, message) -> AsyncGenerator[str, None]:
+    async def generate_response(self, message):
         """Generate a response using the vision model"""
-        try:
-            # Format system prompt
-            formatted_prompt = self.format_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
+        async def response_generator():
+            try:
+                # Format system prompt
+                formatted_prompt = self.format_prompt(message)
+                messages = [{"role": "system", "content": formatted_prompt}]
 
-            # Get last 50 messages from database
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
-            
-            # Format history messages with proper roles
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
+                # Get last 50 messages from database
+                channel_id = str(message.channel.id)
+                history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
                 
-                # Handle system summaries
-                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
-                    role = "system"
-                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                # Format history messages with proper roles
+                for msg in history_messages:
+                    role = "assistant" if msg['is_assistant'] else "user"
+                    content = msg['content']
+                    
+                    # Handle system summaries
+                    if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                        role = "system"
+                        content = content[9:].strip()  # Remove [SUMMARY] prefix
+                    
+                    messages.append({
+                        "role": role,
+                        "content": content
+                    })
+
+                # Process current message and any images
+                content = []
                 
-                messages.append({
-                    "role": role,
-                    "content": content
+                # Add any image attachments
+                for attachment in message.attachments:
+                    if attachment.content_type and attachment.content_type.startswith("image/"):
+                        content.append({
+                            "type": "image_url",
+                            "image_url": attachment.url
+                        })
+
+                # Check for image URLs in embeds
+                for embed in message.embeds:
+                    if embed.image and embed.image.url:
+                        content.append({
+                            "type": "image_url",
+                            "image_url": embed.image.url
+                        })
+                    if embed.thumbnail and embed.thumbnail.url:
+                        content.append({
+                            "type": "image_url",
+                            "image_url": embed.thumbnail.url
+                        })
+
+                # Add the text content
+                content.append({
+                    "type": "text",
+                    "text": message.content
                 })
 
-            # Process current message and any images
-            content = []
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    content.append({
-                        "type": "image_url",
-                        "image_url": attachment.url
-                    })
+                # Add the message with multimodal content
+                messages.append({
+                    "role": "user",
+                    "content": content if len(content) > 1 else message.content
+                })
 
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": embed.image.url
-                    })
-                if embed.thumbnail and embed.thumbnail.url:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": embed.thumbnail.url
-                    })
+                logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
+                logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
 
-            # Add the text content
-            content.append({
-                "type": "text",
-                "text": message.content
-            })
+                # Get temperature for this agent
+                temperature = self.get_temperature()
+                logging.debug(f"[{self.name}] Using temperature: {temperature}")
 
-            # Add the message with multimodal content
-            messages.append({
-                "role": "user",
-                "content": content if len(content) > 1 else message.content
-            })
+                # Call API and stream the response
+                response_stream = await self.api_client.call_openrouter(
+                    messages=messages,
+                    model=self.model,
+                    temperature=temperature,
+                    stream=True
+                )
 
-            logging.debug(f"[{self.name}] Sending {len(messages)} messages to API")
-            logging.debug(f"[{self.name}] Formatted prompt: {formatted_prompt}")
+                async for chunk in response_stream:
+                    if chunk:
+                        yield chunk
 
-            # Get temperature for this agent
-            temperature = self.get_temperature()
-            logging.debug(f"[{self.name}] Using temperature: {temperature}")
+            except Exception as e:
+                logging.error(f"Error processing message for {self.name}: {e}")
+                yield f"❌ Error: {str(e)}"
 
-            # Call API and stream the response
-            response_stream = await self.api_client.call_openrouter(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=True
-            )
-
-            async for chunk in response_stream:
-                if chunk:
-                    yield chunk
-
-        except Exception as e:
-            logging.error(f"Error processing message for {self.name}: {e}")
-            yield f"❌ Error: {str(e)}"
+        return response_generator()
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
