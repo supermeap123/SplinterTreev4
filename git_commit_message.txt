@@ -1,8 +1,6 @@
-feat: Enhance Llama 3.2 90B Vision cog with full vision capabilities
+fix: Improve cog interaction between ContextCog and Llama Vision
 
-- Inherit from BaseCog for consistent behavior
-- Add support for both image attachments and embed URLs
-- Implement temperature control and context handling
-- Add trigger words for image description requests
-- Improve error handling and logging
-- Add system prompt for better image descriptions
+- Remove direct import of Llama3290bVisionCog from context_cog
+- Use proper bot.get_cog() to access Llama Vision functionality
+- Add error handling for when vision cog is not available
+- Improve alt text handling in message processing
