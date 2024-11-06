@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Union, AsyncGenerator
 import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
-from config import OPENPIPE_API_KEY, OPENROUTER_API_KEY, OPENPIPE_API_URL
+from config import OPENPIPE_API_KEY, OPENPIPE_API_URL
 from openai import AsyncOpenAI
 
 class API:
