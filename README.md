@@ -34,10 +34,6 @@ A powerful Discord bot that provides access to multiple AI language models with 
 ## 🤖 Available Models
 
 ### OpenRouter Models
-- **Claude-3 Opus**: State-of-the-art model with exceptional capabilities
-- **Claude-3 Sonnet**: Balanced performance and efficiency
-- **Claude-2**: Reliable general-purpose model
-- **Claude-1.1**: Legacy model for specific use cases
 - **Magnum**: High-performance 72B parameter model
 - **Gemini Pro**: Google's advanced model
 - **Mistral**: Efficient open-source model
@@ -52,7 +48,6 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Liquid**: Optimized for specific tasks
 - **O1-Mini**: Lightweight, efficient model
 - **MOA**: Mixture of Agents model
-- **Mystery Merge Nemo**: A mystery model, trigger word is "nemo"
 
 ## 🛠️ Setup
 

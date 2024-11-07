@@ -1,8 +1,14 @@
-Add call_openrouter method for OpenPipe routing
+Removed gemma, claude, and mystery merge nemo cogs
 
-- Created call_openrouter method as alias for call_openpipe
-- Set provider to 'openrouter' for OpenRouter models
-- Maintained existing error handling
-- Preserved robust image processing functionality
+Removed the gemma, claude, and mystery merge nemo cogs from the bot. This was done to reduce the number of models available and to simplify the bot's codebase.
 
-Ensures seamless routing of OpenRouter models through OpenPipe
+The following files were deleted:
+
+- cogs/gemma_cog.py
+- cogs/claude1_1_cog.py
+- cogs/claude2_cog.py
+- cogs/claude3opus_cog.py
+- cogs/claude3sonnet_cog.py
+- cogs/mystery_merge_nemo_cog.py
+
+The help command and README.md file were also updated to reflect these changes.
