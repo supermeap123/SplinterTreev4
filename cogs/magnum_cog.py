@@ -10,7 +10,7 @@ class MagnumCog(BaseCog):
             bot=bot,
             name="Magnum",
             nickname="Magnum",
-            trigger_words=['magnum'],
+            trigger_words=['magnum', 'claude', 'qwen', '72b'],
             model="anthracite-org/magnum-v4-72b",
             provider="openrouter",
             prompt_file="magnum",

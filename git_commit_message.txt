@@ -1,14 +1,3 @@
-Removed gemma, claude, and mystery merge nemo cogs
+feat: update magnum cog keywords
 
-Removed the gemma, claude, and mystery merge nemo cogs from the bot. This was done to reduce the number of models available and to simplify the bot's codebase.
-
-The following files were deleted:
-
-- cogs/gemma_cog.py
-- cogs/claude1_1_cog.py
-- cogs/claude2_cog.py
-- cogs/claude3opus_cog.py
-- cogs/claude3sonnet_cog.py
-- cogs/mystery_merge_nemo_cog.py
-
-The help command and README.md file were also updated to reflect these changes.
+Updated the magnum cog keywords to include "magnum", "claude", "qwen", and "72b".
