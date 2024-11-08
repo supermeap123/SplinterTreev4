@@ -147,18 +147,21 @@ class API:
         
         return normalized_messages
 
+    def _get_prefixed_model(self, model: str, provider: str = None) -> str:
+        """Get the appropriate model name with prefix based on provider"""
+        if provider == 'openrouter':
+            return f"openpipe:openrouter/{model}"
+        elif provider == 'groq':
+            return f"openpipe:groq/{model}"
+        return model
+
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None):
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
-            # Add appropriate prefix based on provider
-            if provider == 'openrouter':
-                openpipe_model = f"openpipe:openrouter/{model}"
-            elif provider == 'groq':
-                openpipe_model = f"openpipe:groq/{model}"
-            else:
-                openpipe_model = model
+            # Get prefixed model name
+            openpipe_model = self._get_prefixed_model(model, provider)
             
             # Validate and normalize message roles
             validated_messages = await self._validate_message_roles(messages)
@@ -213,13 +216,8 @@ class API:
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
-            # Add appropriate prefix based on provider
-            if provider == 'openrouter':
-                openpipe_model = f"openpipe:openrouter/{model}"
-            elif provider == 'groq':
-                openpipe_model = f"openpipe:groq/{model}"
-            else:
-                openpipe_model = model
+            # Get prefixed model name
+            openpipe_model = self._get_prefixed_model(model, provider)
             
             logging.debug(f"[API] Making OpenPipe request to model: {openpipe_model}")
             logging.debug(f"[API] Request messages structure:")

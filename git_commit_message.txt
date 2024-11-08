@@ -1,6 +1,6 @@
-chore: final regeneration of model cogs
+refactor(api): Fix model prefixing logic and reduce code duplication
 
-- Regenerated all model cogs with correct configurations
-- Ensured consistent provider settings
-- Maintained essential system cogs
-- Verified all cogs are properly configured
+- Add _get_prefixed_model helper method to centralize model prefixing logic
+- Fix streaming requests to properly use prefixed model names
+- Ensure consistent model prefixing behavior across streaming and non-streaming requests
+- Remove duplicated model prefixing code
