@@ -216,6 +216,17 @@ async def setup(bot):
 
 # Configuration for each cog based on OpenRouter models
 COGS_CONFIG = {
+    'sydney': {
+        'class_name': 'SydneyCog',
+        'name': 'Sydney',
+        'nickname': 'Sydney',
+        'trigger_words': "['syd', 'sydney']",
+        'model': 'meta-llama/llama-3.1-405b-instruct:free',
+        'prompt_file': 'sydney_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Sydney',
+        'qualified_name': 'Sydney'
+    },
     'gemini': {
         'class_name': 'GeminiCog',
         'name': 'Gemini',
@@ -403,3 +414,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,8 +1,8 @@
-feat: Add user tracking and standardize OpenRouter models
+feat: Add Sydney cog and update prompts
 
-- Add user_id and guild_id tracking to API logs
-- Update all models to use OpenRouter provider
-- Update model names to match current OpenRouter offerings
-- Add meta-llama vision models with correct paths
-- Remove non-OpenRouter models and providers
-- Add user and guild ID tracking to all API calls
+- Add Sydney cog with meta-llama/llama-3.1-405b-instruct:free model
+- Add Sydney's unique roleplay prompt with internal system context
+- Add user_id and guild_id tracking to all API calls
+- Update all cogs to use OpenRouter provider
+- Add missing prompts for all models
+- Ensure all prompts are properly configured in consolidated_prompts.json
