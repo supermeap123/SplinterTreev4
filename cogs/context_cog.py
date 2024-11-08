@@ -58,7 +58,7 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to set up database: {str(e)}")
 
-    async def get_context_messages(self, channel_id: str, limit: int = None) -> List[Dict]:
+    async def get_context_messages(self, channel_id: str, limit: int = None, exclude_message_id: str = None) -> List[Dict]:
         """Get previous messages from the context database"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -69,14 +69,14 @@ class ContextCog(commands.Cog):
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Get messages ordered by timestamp, excluding duplicates
+                # Get messages ordered by timestamp, excluding duplicates and specified message
                 cursor.execute('''
                 WITH RankedMessages AS (
                     SELECT 
                         id, user_id, content, is_assistant, persona_name, emotion, timestamp,
                         LAG(content) OVER (PARTITION BY is_assistant ORDER BY timestamp) as prev_content
                     FROM messages
-                    WHERE channel_id = ?
+                    WHERE channel_id = ? AND (? IS NULL OR id != ?)
                     ORDER BY timestamp DESC
                     LIMIT ?
                 )
@@ -84,14 +84,22 @@ class ContextCog(commands.Cog):
                 FROM RankedMessages
                 WHERE content != prev_content OR prev_content IS NULL
                 ORDER BY timestamp ASC
-                ''', (channel_id, window_size))
+                ''', (channel_id, exclude_message_id, exclude_message_id, window_size))
                 
                 messages = []
+                seen_contents = set()  # Track seen message contents
+                
                 for row in cursor.fetchall():
+                    content = row[2]
+                    # Skip if we've seen this content before
+                    if content in seen_contents:
+                        continue
+                    seen_contents.add(content)
+                    
                     messages.append({
                         'id': row[0],
                         'user_id': row[1],
-                        'content': row[2],
+                        'content': content,
                         'is_assistant': bool(row[3]),
                         'persona_name': row[4],
                         'emotion': row[5],
@@ -115,6 +123,16 @@ class ContextCog(commands.Cog):
 
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                
+                # Check if this message already exists
+                cursor.execute('''
+                SELECT content FROM messages WHERE id = ?
+                ''', (str(message_id),))
+                
+                existing = cursor.fetchone()
+                if existing:
+                    logging.debug(f"Message {message_id} already exists in context")
+                    return
                 
                 cursor.execute('''
                 INSERT OR REPLACE INTO messages 

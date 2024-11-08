@@ -1,10 +1,9 @@
-fix: improve message handling and rate limiting
+fix: prevent duplicate messages in conversation history
 
-- Add proper rate limiting with minimum request interval
-- Add rate limit lock to prevent concurrent API requests
+- Add exclude_message_id parameter to context retrieval
 - Improve message deduplication in ContextCog
-- Add request timing tracking in API
-- Ensure chronological message ordering
-- Fix duplicate message handling in base_cog
+- Remove redundant content tracking in SydneyCog
+- Ensure current message isn't included in history
+- Add proper message ordering in context
 
-This fix prevents duplicate messages, maintains proper conversation order, and adds robust rate limiting to prevent API errors.
+This fix prevents messages from appearing twice in the conversation by properly excluding the current message from history and improving deduplication logic.
