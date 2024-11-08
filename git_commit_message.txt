@@ -1,6 +1,7 @@
-feat: regenerate cogs with updated templates
+feat: update model configurations with correct providers and slugs
 
-- Regenerated all cogs with new vision handling
-- Updated llama32_90b to use groq provider
-- Fixed API call templates to properly pass provider parameter
-- Ensured consistent configuration across all cogs
+- Updated OpenRouter models with exact slugs
+- Added Groq models with correct slugs
+- Set correct providers for each model
+- Removed models not in provider lists
+- Updated vision support flags based on model capabilities

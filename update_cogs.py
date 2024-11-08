@@ -204,101 +204,17 @@ async def setup(bot):
 
 # Configuration for each cog
 COGS_CONFIG = {
-    'hermes': {
-        'class_name': 'HermesCog',
-        'name': 'Hermes-3',
-        'nickname': 'Hermes',
-        'trigger_words': "['hermes', 'nous', 'hermes 3']",
-        'model': 'nousresearch/hermes-3-llama-3.1-405b',
-        'provider': 'openrouter',
-        'prompt_file': 'hermes',
-        'supports_vision': 'False',
-        'log_name': 'Hermes-3',
-        'qualified_name': 'Hermes-3'
-    },
-    'moa': {
-        'class_name': 'MOACog',
-        'name': 'MOA',
-        'nickname': 'MOA',
-        'trigger_words': "['moa']",
-        'model': 'openpipe:moa-gpt-4o-v1',
-        'provider': 'openpipe',
-        'prompt_file': None,
-        'supports_vision': 'False',
-        'log_name': 'MOA',
-        'qualified_name': 'MOA'
-    },
-    'claude3opus': {
-        'class_name': 'Claude3OpusCog',
-        'name': 'Claude-3-Opus',
-        'nickname': 'Claude',
-        'trigger_words': "['claude3opus', 'opus', 'claude 3 opus']",
-        'model': 'anthropic/claude-3-opus:beta',
-        'provider': 'openrouter',
-        'prompt_file': 'claude',
-        'supports_vision': 'True',
-        'log_name': 'Claude-3-Opus',
-        'qualified_name': 'Claude-3-Opus'
-    },
-    'claude3sonnet': {
-        'class_name': 'Claude3SonnetCog',
-        'name': 'Claude-3-Sonnet',
-        'nickname': 'Sonnet',
-        'trigger_words': "['claude3sonnet', 'sonnet', 'claude 3 sonnet']",
-        'model': 'anthropic/claude-3.5-sonnet:beta',
-        'provider': 'openrouter',
-        'prompt_file': 'claude',
-        'supports_vision': 'True',
-        'log_name': 'Claude-3-Sonnet',
-        'qualified_name': 'Claude-3-Sonnet'
-    },
     'gemini': {
         'class_name': 'GeminiCog',
         'name': 'Gemini',
         'nickname': 'Gemini',
         'trigger_words': "['gemini']",
-        'model': 'google/gemini-pro-1.5',
+        'model': 'google/gemini-flash-1.5',
         'provider': 'openrouter',
         'prompt_file': 'gemini',
         'supports_vision': 'True',
         'log_name': 'Gemini',
         'qualified_name': 'Gemini'
-    },
-    'geminipro': {
-        'class_name': 'GeminiProCog',
-        'name': 'Gemini-Pro',
-        'nickname': 'GeminiPro',
-        'trigger_words': "['geminipro', 'gemini pro']",
-        'model': 'google/gemini-pro-1.5',
-        'provider': 'openrouter',
-        'prompt_file': 'gemini',
-        'supports_vision': 'True',
-        'log_name': 'Gemini-Pro',
-        'qualified_name': 'Gemini-Pro'
-    },
-    'gemma': {
-        'class_name': 'GemmaCog',
-        'name': 'Gemma',
-        'nickname': 'Gemma',
-        'trigger_words': "['gemma']",
-        'model': 'google/gemma-2-27b-it',
-        'provider': 'openrouter',
-        'prompt_file': 'gemma',
-        'supports_vision': 'False',
-        'log_name': 'Gemma',
-        'qualified_name': 'Gemma'
-    },
-    'grok': {
-        'class_name': 'GrokCog',
-        'name': 'Grok',
-        'nickname': 'Grok',
-        'trigger_words': "['grok']",
-        'model': 'x-ai/grok-beta',
-        'provider': 'openrouter',
-        'prompt_file': 'grok',
-        'supports_vision': 'False',
-        'log_name': 'Grok',
-        'qualified_name': 'Grok'
     },
     'hermes': {
         'class_name': 'HermesCog',
@@ -312,66 +228,6 @@ COGS_CONFIG = {
         'log_name': 'Hermes',
         'qualified_name': 'Hermes'
     },
-    'liquid': {
-        'class_name': 'LiquidCog',
-        'name': 'Liquid',
-        'nickname': 'Liquid',
-        'trigger_words': "['liquid']",
-        'model': 'liquid/lfm-40b',
-        'provider': 'openrouter',
-        'prompt_file': 'liquid',
-        'supports_vision': 'False',
-        'log_name': 'Liquid',
-        'qualified_name': 'Liquid'
-    },
-    'llama32_11b': {
-        'class_name': 'Llama32_11bCog',
-        'name': 'Llama-3.2-11b',
-        'nickname': 'Llama',
-        'trigger_words': "['llama32', 'llama 32', 'llama']",
-        'model': 'meta-llama/llama-3.2-11b-vision-instruct',
-        'provider': 'openrouter',
-        'prompt_file': 'llama',
-        'supports_vision': 'True',
-        'log_name': 'Llama-3.2-11b',
-        'qualified_name': 'Llama-3.2-11b'
-    },
-    'llama32_90b': {
-        'class_name': 'Llama3290bVisionCog',
-        'name': 'Llama-3.2-90B-Vision',
-        'nickname': 'Llama Vision',
-        'trigger_words': "['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision']",
-        'model': 'meta-llama/llama-3.2-90b-vision-instruct:free',
-        'provider': 'groq',
-        'prompt_file': 'llama32_90b',
-        'supports_vision': 'True',
-        'log_name': 'Llama-3.2-90B-Vision',
-        'qualified_name': 'Llama-3.2-90B-Vision'
-    },
-    'magnum': {
-        'class_name': 'MagnumCog',
-        'name': 'Magnum',
-        'nickname': 'Magnum',
-        'trigger_words': "['magnum']",
-        'model': 'anthracite-org/magnum-v4-72b',
-        'provider': 'openrouter',
-        'prompt_file': 'magnum',
-        'supports_vision': 'False',
-        'log_name': 'Magnum',
-        'qualified_name': 'Magnum'
-    },
-    'ministral': {
-        'class_name': 'MinistralCog',
-        'name': 'Ministral',
-        'nickname': 'Ministral',
-        'trigger_words': "['ministral']",
-        'model': 'mistralai/ministral-8b',
-        'provider': 'openrouter',
-        'prompt_file': 'ministral',
-        'supports_vision': 'False',
-        'log_name': 'Ministral',
-        'qualified_name': 'Ministral'
-    },
     'nemotron': {
         'class_name': 'NemotronCog',
         'name': 'Nemotron',
@@ -384,41 +240,29 @@ COGS_CONFIG = {
         'log_name': 'Nemotron',
         'qualified_name': 'Nemotron'
     },
-    'noromaid': {
-        'class_name': 'NoromaidCog',
-        'name': 'Noromaid',
-        'nickname': 'Noromaid',
-        'trigger_words': "['noromaid']",
-        'model': 'neversleep/noromaid-20b',
-        'provider': 'openrouter',
-        'prompt_file': 'noromaid',
-        'supports_vision': 'False',
-        'log_name': 'Noromaid',
-        'qualified_name': 'Noromaid'
-    },
-    'o1mini': {
-        'class_name': 'O1MiniCog',
-        'name': 'O1-Mini',
-        'nickname': 'O1Mini',
-        'trigger_words': "['o1mini', 'o1 mini']",
-        'model': 'openai/o1-mini',
-        'provider': 'openrouter',
-        'prompt_file': 'o1mini',
-        'supports_vision': 'False',
-        'log_name': 'O1-Mini',
-        'qualified_name': 'O1-Mini'
-    },
     'openchat': {
         'class_name': 'OpenChatCog',
         'name': 'OpenChat',
         'nickname': 'OpenChat',
         'trigger_words': "['openchat']",
-        'model': 'openchat/openchat-7b',
+        'model': 'openchat/openchat-7b:free',
         'provider': 'openrouter',
         'prompt_file': 'openchat',
         'supports_vision': 'False',
         'log_name': 'OpenChat',
         'qualified_name': 'OpenChat'
+    },
+    'magnum': {
+        'class_name': 'MagnumCog',
+        'name': 'Magnum',
+        'nickname': 'Magnum',
+        'trigger_words': "['magnum']",
+        'model': 'anthracite-org/magnum-v4-72b',
+        'provider': 'openrouter',
+        'prompt_file': 'magnum',
+        'supports_vision': 'False',
+        'log_name': 'Magnum',
+        'qualified_name': 'Magnum'
     },
     'rplus': {
         'class_name': 'RPlusCog',
@@ -444,29 +288,101 @@ COGS_CONFIG = {
         'log_name': 'Sonar',
         'qualified_name': 'Sonar'
     },
-    'mythomax': {
-        'class_name': 'MythomaxCog',
-        'name': 'Mythomax',
-        'nickname': 'Mythomax',
-        'trigger_words': "['mythomax']",
-        'model': 'gryphe/mythomax-l2-13b',
+    'ministral': {
+        'class_name': 'MinistralCog',
+        'name': 'Ministral',
+        'nickname': 'Ministral',
+        'trigger_words': "['ministral']",
+        'model': 'mistralai/ministral-8b',
         'provider': 'openrouter',
-        'prompt_file': 'mythomax',
+        'prompt_file': 'ministral',
         'supports_vision': 'False',
-        'log_name': 'Mythomax',
-        'qualified_name': 'Mythomax'
+        'log_name': 'Ministral',
+        'qualified_name': 'Ministral'
     },
-    'mystery_merge_nemo': {
-        'class_name': 'MysteryMergeNemoCog',
-        'name': 'Mystery Merge Nemo',
-        'nickname': 'MysteryNemo',
-        'trigger_words': "['nemo']",
-        'model': 'openpipe:AutoMeta/PygTesting/mystery-merge-nemo',
-        'provider': 'openpipe',
-        'prompt_file': None,
+    'liquid': {
+        'class_name': 'LiquidCog',
+        'name': 'Liquid',
+        'nickname': 'Liquid',
+        'trigger_words': "['liquid']",
+        'model': 'liquid/lfm-40b:free',
+        'provider': 'openrouter',
+        'prompt_file': 'liquid',
         'supports_vision': 'False',
-        'log_name': 'Mystery Merge Nemo',
-        'qualified_name': 'Mystery Merge Nemo'
+        'log_name': 'Liquid',
+        'qualified_name': 'Liquid'
+    },
+    'noromaid': {
+        'class_name': 'NoromaidCog',
+        'name': 'Noromaid',
+        'nickname': 'Noromaid',
+        'trigger_words': "['noromaid']",
+        'model': 'neversleep/noromaid-20b',
+        'provider': 'openrouter',
+        'prompt_file': 'noromaid',
+        'supports_vision': 'False',
+        'log_name': 'Noromaid',
+        'qualified_name': 'Noromaid'
+    },
+    'claude3haiku': {
+        'class_name': 'Claude3HaikuCog',
+        'name': 'Claude-3-Haiku',
+        'nickname': 'Haiku',
+        'trigger_words': "['claude3haiku', 'haiku', 'claude 3 haiku']",
+        'model': 'anthropic/claude-3-5-haiku:beta',
+        'provider': 'openrouter',
+        'prompt_file': 'claude',
+        'supports_vision': 'True',
+        'log_name': 'Claude-3-Haiku',
+        'qualified_name': 'Claude-3-Haiku'
+    },
+    'llama32_90b': {
+        'class_name': 'Llama3290bVisionCog',
+        'name': 'Llama-3.2-90B-Vision',
+        'nickname': 'Llama Vision',
+        'trigger_words': "['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision']",
+        'model': 'llama-3.2-90b-vision-preview',
+        'provider': 'groq',
+        'prompt_file': 'llama32_90b',
+        'supports_vision': 'True',
+        'log_name': 'Llama-3.2-90B-Vision',
+        'qualified_name': 'Llama-3.2-90B-Vision'
+    },
+    'llama32_11b': {
+        'class_name': 'Llama32_11bCog',
+        'name': 'Llama-3.2-11b',
+        'nickname': 'Llama',
+        'trigger_words': "['llama32', 'llama 32', 'llama']",
+        'model': 'llama-3.2-11b-vision-preview',
+        'provider': 'groq',
+        'prompt_file': 'llama',
+        'supports_vision': 'True',
+        'log_name': 'Llama-3.2-11b',
+        'qualified_name': 'Llama-3.2-11b'
+    },
+    'gemma': {
+        'class_name': 'GemmaCog',
+        'name': 'Gemma',
+        'nickname': 'Gemma',
+        'trigger_words': "['gemma']",
+        'model': 'gemma2-9b-it',
+        'provider': 'groq',
+        'prompt_file': 'gemma',
+        'supports_vision': 'False',
+        'log_name': 'Gemma',
+        'qualified_name': 'Gemma'
+    },
+    'mixtral': {
+        'class_name': 'MixtralCog',
+        'name': 'Mixtral',
+        'nickname': 'Mixtral',
+        'trigger_words': "['mixtral']",
+        'model': 'mixtral-8x7b-32768',
+        'provider': 'groq',
+        'prompt_file': 'mixtral',
+        'supports_vision': 'False',
+        'log_name': 'Mixtral',
+        'qualified_name': 'Mixtral'
     }
 }
 
