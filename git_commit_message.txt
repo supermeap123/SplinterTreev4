@@ -1,6 +1,6 @@
-refactor(api): Fix model prefixing logic and reduce code duplication
+refactor(api): Replace conditional logic with explicit provider prefixes
 
-- Add _get_prefixed_model helper method to centralize model prefixing logic
-- Fix streaming requests to properly use prefixed model names
-- Ensure consistent model prefixing behavior across streaming and non-streaming requests
-- Remove duplicated model prefixing code
+- Replace if/elif statements with explicit provider prefix mapping
+- Add comprehensive list of supported providers (anthropic, mistral, google, etc.)
+- Improve maintainability by centralizing provider prefix definitions
+- Ensure consistent model name prefixing across all API calls

@@ -149,11 +149,25 @@ class API:
 
     def _get_prefixed_model(self, model: str, provider: str = None) -> str:
         """Get the appropriate model name with prefix based on provider"""
-        if provider == 'openrouter':
-            return f"openpipe:openrouter/{model}"
-        elif provider == 'groq':
-            return f"openpipe:groq/{model}"
-        return model
+        provider_prefixes = {
+            'openrouter': f"openpipe:openrouter/{model}",
+            'groq': f"openpipe:groq/{model}",
+            'anthropic': f"openpipe:anthropic/{model}",
+            'mistral': f"openpipe:mistral/{model}",
+            'google': f"openpipe:google/{model}",
+            'meta': f"openpipe:meta/{model}",
+            'perplexity': f"openpipe:perplexity/{model}",
+            'azure': f"openpipe:azure/{model}",
+            'aws': f"openpipe:aws/{model}",
+            'cohere': f"openpipe:cohere/{model}",
+            'anyscale': f"openpipe:anyscale/{model}",
+            'deepinfra': f"openpipe:deepinfra/{model}",
+            'together': f"openpipe:together/{model}",
+            'ollama': f"openpipe:ollama/{model}",
+            None: model  # Default case when no provider is specified
+        }
+        
+        return provider_prefixes.get(provider, model)
 
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None):
         """Stream responses from OpenPipe API"""
