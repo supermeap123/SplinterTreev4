@@ -263,7 +263,7 @@ COGS_CONFIG = {
         'name': 'Sydney',
         'nickname': 'Sydney',
         'trigger_words': "['syd', 'sydney']",
-        'model': 'meta-llama/llama-3.1-405b-instruct:free',
+        'model': 'meta-llama/llama-3.1-405b-instruct',
         'prompt_file': 'sydney_prompts',
         'supports_vision': 'False',
         'log_name': 'Sydney',
