@@ -1,6 +1,8 @@
-feat: include prompt file name in API tags
+fix: update vision handling in cogs
 
-- Added prompt_file parameter to API call tags for better tracking
-- Updated API class to include prompt_file in tags dictionary
-- Modified update_cogs.py templates to pass prompt_file to API calls
-- Ensures both user/guild IDs and prompt file names are tracked in API logs
+- Fix vision=true cases in VISION_RESPONSE_TEMPLATE with proper image URL formatting
+- Update vision=false cases to use llama 11b for image description
+- Add custom prompt for llama32_11b image description
+- Update image handling logic in both templates
+- Fix model configuration for llama32_11b
+- Regenerate all cogs with updated templates

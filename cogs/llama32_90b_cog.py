@@ -65,26 +65,30 @@ class Llama3290bVisionCog(BaseCog):
 
             # Process current message and any images
             content = []
+            has_images = False
             
             # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": attachment.url
+                        "image_url": { "url": attachment.url }
                     })
 
             # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": embed.image.url
+                        "image_url": { "url": embed.image.url }
                     })
                 if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": embed.thumbnail.url
+                        "image_url": { "url": embed.thumbnail.url }
                     })
 
             # Add the text content
@@ -96,11 +100,12 @@ class Llama3290bVisionCog(BaseCog):
             # Add the message with multimodal content
             messages.append({
                 "role": "user",
-                "content": content if len(content) > 1 else message.content
+                "content": content
             })
 
             logging.debug(f"[Llama-3.2-90B-Vision] Sending {len(messages)} messages to API")
             logging.debug(f"[Llama-3.2-90B-Vision] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Llama-3.2-90B-Vision] Has images: {has_images}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()

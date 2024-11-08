@@ -13,8 +13,8 @@ class Llama32_11bCog(BaseCog):
             trigger_words=['11b'],
             model="meta-llama/llama-3.2-11b-vision-instruct:free",
             provider="openrouter",
-            prompt_file="llama",
-            supports_vision=True
+            prompt_file="llama32_11b",
+            supports_vision=False
         )
         logging.debug(f"[Llama-3.2-11b] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Llama-3.2-11b] Using provider: {self.provider}")
@@ -65,42 +65,47 @@ class Llama32_11bCog(BaseCog):
 
             # Process current message and any images
             content = []
+            has_images = False
             
             # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": attachment.url
+                        "image_url": { "url": attachment.url }
                     })
 
             # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": embed.image.url
+                        "image_url": { "url": embed.image.url }
                     })
                 if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
                     content.append({
                         "type": "image_url",
-                        "image_url": embed.thumbnail.url
+                        "image_url": { "url": embed.thumbnail.url }
                     })
 
             # Add the text content
             content.append({
                 "type": "text",
-                "text": message.content
+                "text": "Please describe this image in detail." if has_images else message.content
             })
 
             # Add the message with multimodal content
             messages.append({
                 "role": "user",
-                "content": content if len(content) > 1 else message.content
+                "content": content
             })
 
             logging.debug(f"[Llama-3.2-11b] Sending {len(messages)} messages to API")
             logging.debug(f"[Llama-3.2-11b] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Llama-3.2-11b] Has images: {has_images}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()

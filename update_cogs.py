@@ -76,26 +76,30 @@ VISION_RESPONSE_TEMPLATE = '''
 
             # Process current message and any images
             content = []
+            has_images = False
             
             # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
                     content.append({{
                         "type": "image_url",
-                        "image_url": attachment.url
+                        "image_url": {{ "url": attachment.url }}
                     }})
 
             # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
+                    has_images = True
                     content.append({{
                         "type": "image_url",
-                        "image_url": embed.image.url
+                        "image_url": {{ "url": embed.image.url }}
                     }})
                 if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
                     content.append({{
                         "type": "image_url",
-                        "image_url": embed.thumbnail.url
+                        "image_url": {{ "url": embed.thumbnail.url }}
                     }})
 
             # Add the text content
@@ -107,11 +111,12 @@ VISION_RESPONSE_TEMPLATE = '''
             # Add the message with multimodal content
             messages.append({{
                 "role": "user",
-                "content": content if len(content) > 1 else message.content
+                "content": content
             }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
+            logging.debug(f"[{log_name}] Has images: {{has_images}}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -139,7 +144,7 @@ VISION_RESPONSE_TEMPLATE = '''
             logging.error(f"Error processing message for {name}: {{e}}")
             return None'''
 
-# Template for generate_response without vision support
+# Template for generate_response without vision support but with image description
 TEXT_RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
         """Generate a response using openrouter"""
@@ -167,14 +172,49 @@ TEXT_RESPONSE_TEMPLATE = '''
                     "content": content
                 }})
 
-            # Add current message
+            # Process current message and any images
+            content = []
+            has_images = False
+            
+            # Add any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": {{ "url": attachment.url }}
+                    }})
+
+            # Check for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    has_images = True
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": {{ "url": embed.image.url }}
+                    }})
+                if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": {{ "url": embed.thumbnail.url }}
+                    }})
+
+            # Add the text content
+            content.append({{
+                "type": "text",
+                "text": "Please describe this image in detail." if has_images else message.content
+            }})
+
+            # Add the message with multimodal content
             messages.append({{
                 "role": "user",
-                "content": message.content
+                "content": content
             }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
+            logging.debug(f"[{log_name}] Has images: {{has_images}}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -367,8 +407,8 @@ COGS_CONFIG = {
         'nickname': 'Llama',
         'trigger_words': "['11b']",
         'model': 'meta-llama/llama-3.2-11b-vision-instruct:free',
-        'prompt_file': 'llama',
-        'supports_vision': 'True',
+        'prompt_file': 'llama32_11b',
+        'supports_vision': 'False',
         'log_name': 'Llama-3.2-11b',
         'qualified_name': 'Llama-3.2-11b'
     }
