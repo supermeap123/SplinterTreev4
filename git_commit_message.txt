@@ -1,7 +1,6 @@
-fix: restore essential system cogs
+chore: final regeneration of model cogs
 
-- Restored base_cog.py
-- Restored help_cog.py
-- Restored context_cog.py
-- Restored management_cog.py
-- Restored settings_cog.py
+- Regenerated all model cogs with correct configurations
+- Ensured consistent provider settings
+- Maintained essential system cogs
+- Verified all cogs are properly configured
