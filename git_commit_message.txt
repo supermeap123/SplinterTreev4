@@ -1,3 +1,7 @@
-feat(sydney): limit output to 800 tokens
+security: update dependencies to latest stable versions
 
-Added max_tokens parameter to sydney_cog.py to limit response length to 800 tokens
+- Update python-dotenv to 1.0.1
+- Update Pillow to 10.2.0 for security patches
+- Update pytz to 2024.1
+- Maintain other dependencies at their current stable versions
+- Python runtime remains at latest 3.12.7
