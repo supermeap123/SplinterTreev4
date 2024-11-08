@@ -62,13 +62,12 @@ class API:
     async def _download_image(self, url: str) -> bytes:
         """Download image from URL"""
         try:
-            async with asyncio.timeout(10):  # Add timeout context
-                async with self.session.get(url) as response:
-                    if response.status == 200:
-                        return await response.read()
-                    else:
-                        logging.error(f"[API] Failed to download image. Status code: {response.status}")
-                        return None
+            async with self.session.get(url, timeout=10) as response:
+                if response.status == 200:
+                    return await response.read()
+                else:
+                    logging.error(f"[API] Failed to download image. Status code: {response.status}")
+                    return None
         except asyncio.TimeoutError:
             logging.error("[API] Image download timed out")
             return None

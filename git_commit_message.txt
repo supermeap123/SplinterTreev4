@@ -1,6 +1,6 @@
-fix: add proper groq provider prefix handling in API
+fix: resolve image download timeout and model prefix issues
 
-- Added support for 'groq' provider in OpenPipe API calls
-- Uses 'openpipe:groq/' prefix for Groq models
-- Maintains 'openpipe:openrouter/' prefix for OpenRouter models
-- Updated both streaming and non-streaming API calls
+- Fixed timeout handling in _download_image method
+- Removed asyncio.timeout context manager in favor of session timeout
+- Added proper provider prefix handling for groq models
+- Fixed model prefix for OpenRouter models
