@@ -1,7 +1,7 @@
-feat: regenerate cogs with updated model configurations
+feat: clean regeneration of cogs with updated providers
 
-- Regenerated all cogs with new model slugs
-- Updated OpenRouter and Groq provider settings
-- Fixed vision support flags
-- Removed outdated cogs
-- Added new cogs for supported models
+- Removed all existing cogs
+- Regenerated cogs with correct OpenRouter and Groq providers
+- Updated model slugs to match provider specifications
+- Ensured consistent configuration across all cogs
+- Added new cogs for supported models only
