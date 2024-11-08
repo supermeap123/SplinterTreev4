@@ -11,7 +11,7 @@ class GeminiCog(BaseCog):
             name="Gemini",
             nickname="Gemini",
             trigger_words=['gemini'],
-            model="google/gemini-pro-1.5",
+            model="google/gemini-flash-1.5",
             provider="openrouter",
             prompt_file="gemini",
             supports_vision=True

@@ -11,8 +11,8 @@ class GemmaCog(BaseCog):
             name="Gemma",
             nickname="Gemma",
             trigger_words=['gemma'],
-            model="google/gemma-2-27b-it",
-            provider="openrouter",
+            model="gemma2-9b-it",
+            provider="groq",
             prompt_file="gemma",
             supports_vision=False
         )
@@ -38,7 +38,7 @@ class GemmaCog(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a response using groq"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -82,7 +82,7 @@ class GemmaCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter"
+                provider="groq"
             )
 
             return response_stream

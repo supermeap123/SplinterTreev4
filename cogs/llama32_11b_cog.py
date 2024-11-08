@@ -11,8 +11,8 @@ class Llama32_11bCog(BaseCog):
             name="Llama-3.2-11b",
             nickname="Llama",
             trigger_words=['llama32', 'llama 32', 'llama'],
-            model="meta-llama/llama-3.2-11b-vision-instruct",
-            provider="openrouter",
+            model="llama-3.2-11b-vision-preview",
+            provider="groq",
             prompt_file="llama",
             supports_vision=True
         )
@@ -38,7 +38,7 @@ class Llama32_11bCog(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a response using groq"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -112,7 +112,7 @@ class Llama32_11bCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter"
+                provider="groq"
             )
 
             return response_stream
