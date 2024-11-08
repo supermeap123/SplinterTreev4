@@ -44,9 +44,13 @@ class GeminiCog(BaseCog):
             formatted_prompt = self.format_prompt(message)
             messages = [{"role": "system", "content": formatted_prompt}]
 
-            # Get last 50 messages from database
+            # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            history_messages = await self.context_cog.get_context_messages(
+                channel_id, 
+                limit=50,
+                exclude_message_id=str(message.id)
+            )
             
             # Format history messages with proper roles
             for msg in history_messages:
