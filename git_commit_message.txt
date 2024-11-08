@@ -1,9 +1,3 @@
-fix: prevent duplicate messages in conversation history
+feat(sydney): limit output to 800 tokens
 
-- Add exclude_message_id parameter to context retrieval
-- Improve message deduplication in ContextCog
-- Remove redundant content tracking in SydneyCog
-- Ensure current message isn't included in history
-- Add proper message ordering in context
-
-This fix prevents messages from appearing twice in the conversation by properly excluding the current message from history and improving deduplication logic.
+Added max_tokens parameter to sydney_cog.py to limit response length to 800 tokens

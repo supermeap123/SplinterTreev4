@@ -128,7 +128,8 @@ class SydneyCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file=self.prompt_file
+                prompt_file=self.prompt_file,
+                max_tokens=800  # Add token limit
             )
 
             return response_stream
