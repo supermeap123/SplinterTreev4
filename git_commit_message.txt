@@ -1,7 +1,13 @@
-security: update dependencies to latest stable versions
+feat: Add router cog for automatic model selection
 
-- Update python-dotenv to 1.0.1
-- Update Pillow to 10.2.0 for security patches
-- Update pytz to 2024.1
-- Maintain other dependencies at their current stable versions
-- Python runtime remains at latest 3.12.7
+Add a new router cog that automatically selects the most appropriate model for messages without explicit keywords. Uses ministral-3b to analyze message content and route to specialized models:
+
+- Magnum for formal analytical reasoning
+- Gemini for conversational complex reasoning
+- Claude-3-Haiku for basic coding
+- Nemotron for complex technical tasks
+- Sydney for emotional support
+- Sonar for trends and current events
+- Ministral for general queries
+
+The router uses a structured decision system with clear prioritization rules to ensure consistent and appropriate model selection.
