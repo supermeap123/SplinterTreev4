@@ -1,8 +1,10 @@
-fix: prevent duplicate message processing
+refactor: fix duplicate message processing
 
-- Move processed_messages check to start of on_message handler
-- Mark messages as processed immediately after check
-- Save processed messages right after marking
-- Remove redundant processed_messages operations
+- Create custom SplinterTreeBot class to properly manage bot state
+- Move processed_messages and other state into bot class
+- Ensure processed_messages is checked and updated early in message handling
+- Remove separate processed_messages set from ContextCog
+- Make ContextCog use bot's processed_messages set
+- Improve message processing flow to prevent duplicate API calls
 
-This change prevents messages from being processed multiple times by ensuring they are marked as processed before any handlers or cogs process them.
+This refactor centralizes message tracking in the bot class and ensures all cogs use the same message tracking system, preventing duplicate processing and API calls.

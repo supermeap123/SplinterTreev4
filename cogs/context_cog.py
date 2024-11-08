@@ -21,8 +21,6 @@ class ContextCog(commands.Cog):
             base_url=OPENPIPE_API_URL,
             api_key=OPENPIPE_API_KEY
         )
-        # Track processed message IDs to prevent duplicates
-        self.processed_messages = set()
 
     def _setup_database(self):
         """Initialize the SQLite database for interaction logs"""
@@ -101,12 +99,13 @@ class ContextCog(commands.Cog):
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""
         try:
+            # Use bot's processed_messages set to check for duplicates
+            if message_id in self.bot.processed_messages:
+                logging.debug(f"[ContextCog] Skipping duplicate message {message_id}")
+                return
+                
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                
-                # Prevent duplicate message entries
-                if message_id in self.processed_messages:
-                    return
                 
                 cursor.execute('''
                 INSERT OR REPLACE INTO messages 
@@ -125,7 +124,7 @@ class ContextCog(commands.Cog):
                 ))
                 
                 conn.commit()
-                self.processed_messages.add(message_id)
+                logging.debug(f"[ContextCog] Added message {message_id} to context")
         except Exception as e:
             logging.error(f"Failed to add message to context: {str(e)}")
 

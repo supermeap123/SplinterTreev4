@@ -319,6 +319,10 @@ class BaseCog(commands.Cog):
         if message.author.bot:
             return
 
+        # Check if message has already been processed by the bot
+        if hasattr(self.bot, 'processed_messages') and message.id in self.bot.processed_messages:
+            return
+
         # Check if message contains any trigger words
         msg_content = message.content.lower()
         if any(word in msg_content for word in self.trigger_words):

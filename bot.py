@@ -40,42 +40,33 @@ intents.dm_messages = True
 intents.guilds = True
 intents.members = True
 
+class SplinterTreeBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.processed_messages = set()
+        self.api_client = api
+        self.loaded_cogs = []
+        self.message_history = {}
+        self.last_used_cogs = {}
+        self.start_time = None
+        self.last_interaction = {
+            'user': None,
+            'time': None
+        }
+
 # Initialize bot with a default command prefix
-bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
-
-# Store API client on bot for cogs to access
-bot.api_client = api
-
-# Store loaded cogs for random selection
-loaded_cogs = []
-
-# Store message history
-message_history = {}
-
-# Track bot statistics
-start_time = None
-last_interaction = {
-    'user': None,
-    'time': None
-}
-
-# Keep track of last used cog per channel
-last_used_cogs = {}
-
-# Track processed messages to prevent double handling
-processed_messages = set()
+bot = SplinterTreeBot(command_prefix='!', intents=intents, help_command=None)
 
 # File to persist processed messages
 PROCESSED_MESSAGES_FILE = os.path.join(BOT_DIR, 'processed_messages.json')
 
 def load_processed_messages():
     """Load processed messages from file"""
-    global processed_messages
     if os.path.exists(PROCESSED_MESSAGES_FILE):
         try:
             with open(PROCESSED_MESSAGES_FILE, 'r') as f:
-                processed_messages = set(json.load(f))
-            logging.info(f"Loaded {len(processed_messages)} processed messages from file")
+                bot.processed_messages = set(json.load(f))
+            logging.info(f"Loaded {len(bot.processed_messages)} processed messages from file")
         except Exception as e:
             logging.error(f"Error loading processed messages: {str(e)}")
 
@@ -83,8 +74,8 @@ def save_processed_messages():
     """Save processed messages to file"""
     try:
         with open(PROCESSED_MESSAGES_FILE, 'w') as f:
-            json.dump(list(processed_messages), f)
-        logging.info(f"Saved {len(processed_messages)} processed messages to file")
+            json.dump(list(bot.processed_messages), f)
+        logging.info(f"Saved {len(bot.processed_messages)} processed messages to file")
     except Exception as e:
         logging.error(f"Error saving processed messages: {str(e)}")
 
@@ -97,11 +88,11 @@ def get_history_file(channel_id: str) -> str:
 
 def get_uptime():
     """Get bot uptime as a formatted string"""
-    if start_time is None:
+    if bot.start_time is None:
         return "Unknown"
     pst = pytz.timezone('US/Pacific')
     current_time = datetime.now(pst)
-    uptime = current_time - start_time.astimezone(pst)
+    uptime = current_time - bot.start_time.astimezone(pst)
     days = uptime.days
     hours, remainder = divmod(uptime.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -130,16 +121,7 @@ async def load_context_settings():
 
 async def setup_cogs():
     """Load all cogs"""
-    global loaded_cogs
-    loaded_cogs = []  # Reset loaded cogs list
-
-    # Initialize API
-    try:
-        # The API singleton is already imported and stored on bot
-        logging.info("API client initialized")
-    except Exception as e:
-        logging.error(f"Failed to initialize API client: {str(e)}")
-        return
+    bot.loaded_cogs = []  # Reset loaded cogs list
 
     # Load context settings
     await load_context_settings()
@@ -168,7 +150,7 @@ async def setup_cogs():
                 # Get the cog from bot.cogs using the module name
                 for cog in bot.cogs.values():
                     if isinstance(cog, commands.Cog) and hasattr(cog, 'name'):
-                        loaded_cogs.append(cog)
+                        bot.loaded_cogs.append(cog)
                         logging.info(f"Loaded cog: {cog.name}")
                         break
                 
@@ -191,8 +173,8 @@ async def setup_cogs():
         logging.error(f"Failed to load help cog: {str(e)}")
         logging.error(traceback.format_exc())
 
-    logging.info(f"Total loaded cogs: {len(loaded_cogs)}")
-    for cog in loaded_cogs:
+    logging.info(f"Total loaded cogs: {len(bot.loaded_cogs)}")
+    for cog in bot.loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
 
 @tasks.loop(seconds=30)
@@ -205,9 +187,8 @@ async def update_status():
 
 @bot.event
 async def on_ready():
-    global start_time
     pst = pytz.timezone('US/Pacific')
-    start_time = datetime.now(pst)
+    bot.start_time = datetime.now(pst)
     logging.info(f"Bot is ready! Logged in as {bot.user.name}")
     
     # Set initial "Booting..." status
@@ -255,16 +236,16 @@ async def on_message(message):
         return
 
     # Check if message has already been processed - do this check first
-    if message.id in processed_messages:
+    if message.id in bot.processed_messages:
         return
 
     # Mark message as processed immediately to prevent duplicate handling
-    processed_messages.add(message.id)
+    bot.processed_messages.add(message.id)
     save_processed_messages()
 
     # Update last interaction
-    last_interaction['user'] = message.author.display_name
-    last_interaction['time'] = datetime.now(pytz.timezone('US/Pacific'))
+    bot.last_interaction['user'] = message.author.display_name
+    bot.last_interaction['time'] = datetime.now(pytz.timezone('US/Pacific'))
 
     # Resolve user IDs to usernames
     content_with_usernames = message.content
@@ -318,12 +299,12 @@ async def on_message(message):
             await claude2_cog.handle_message(message, full_content)
         else:
             # If Claude2 is not available, use a random cog
-            cog = random.choice(loaded_cogs)
+            cog = random.choice(bot.loaded_cogs)
             await cog.handle_message(message, full_content)
 
     # Clean up old processed messages (keep last 1000)
-    if len(processed_messages) > 1000:
-        processed_messages.clear()
+    if len(bot.processed_messages) > 1000:
+        bot.processed_messages.clear()
 
 @bot.event
 async def on_command_error(ctx, error):
