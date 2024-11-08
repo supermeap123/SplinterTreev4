@@ -94,6 +94,12 @@ Return model ID:"""
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
+    def update_nickname(self, selected_model):
+        """Update the nickname to reflect the selected model"""
+        new_nickname = f"Router → {selected_model}"
+        self.nickname = new_nickname
+        logging.info(f"[Router] Updated nickname to: {new_nickname}")
+
     async def generate_response(self, message):
         """Generate a response using the router model"""
         try:
@@ -126,6 +132,9 @@ Return model ID:"""
             # Remove any quotes if present
             selected_model = selected_model.replace('"', '').replace("'", '')
             logging.info(f"[Router] Selected model: {selected_model}")
+
+            # Update nickname to reflect selected model
+            self.update_nickname(selected_model)
 
             # Construct the full cog name by appending 'Cog'
             selected_cog_name = f"{selected_model}Cog"
