@@ -1,7 +1,7 @@
-feat: clean regeneration of cogs with updated providers
+fix: restore essential system cogs
 
-- Removed all existing cogs
-- Regenerated cogs with correct OpenRouter and Groq providers
-- Updated model slugs to match provider specifications
-- Ensured consistent configuration across all cogs
-- Added new cogs for supported models only
+- Restored base_cog.py
+- Restored help_cog.py
+- Restored context_cog.py
+- Restored management_cog.py
+- Restored settings_cog.py
