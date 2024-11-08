@@ -1,8 +1,6 @@
-fix: Improve router cog model selection with context
+Update Router Model Selection Prompt
 
-- Add context from previous messages to selection prompt
-- Update model selection criteria with detailed analysis steps
-- Fix exact cog name matching for all models
-- Add more comprehensive logging
-
-The router now makes more informed model selections by considering message context and using clearer decision criteria.
+- Modified model selection prompt for 3B parameter LLM
+- Swapped Gemini and Magnum roles in model selection logic
+- Updated prompt formatting and comments
+- Adjusted complex reasoning tone detection

@@ -28,7 +28,9 @@ class RouterCog(BaseCog):
             self.temperatures = {}
 
         # Model selection system prompt using exact cog class names
-        self.model_selection_prompt = """Given message: "{user_message}"
+        self.model_selection_prompt = """### Model Router Prompt for 3B Parameter LLM ###
+
+Given message: "{user_message}"
 Given context: "{context}"
 
 # TASK
@@ -36,8 +38,8 @@ You are a model router that selects the most appropriate AI model based on messa
 Return ONLY the exact model ID without explanation or additional text.
 
 # AVAILABLE MODELS AND USE CASES
-Magnum: Complex analytical reasoning with formal tone
-Gemini: Complex reasoning with casual/conversational tone  
+Gemini: Complex analytical reasoning with formal tone  
+Magnum: Complex reasoning with casual/conversational tone
 Claude3Haiku: Basic coding questions and programming help
 Nemotron: Complex coding and technical programming
 Sydney: Emotional support and empathy
@@ -56,8 +58,8 @@ Ministral: General factual queries
    - Message length > 20 words
    - Analysis terms (analyze, evaluate, compare)
    IF found:
-     IF formal/academic tone -> Magnum
-     IF casual/conversational -> Gemini
+     IF formal/academic tone -> Gemini
+     IF casual/conversational -> Magnum
 
 3. Check for trends/events:
    - News/current event terms
@@ -74,11 +76,11 @@ Ministral: General factual queries
 5. If no other match -> Ministral
 
 # OUTPUT FORMAT
-Return exactly one of: Magnum, Gemini, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral
+Return exactly one of: Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral
 
 # PRIORITY ORDER (IF MULTIPLE MATCH)
 1. Code (Nemotron/Claude3Haiku)
-2. Complex reasoning (Magnum/Gemini)
+2. Complex reasoning (Gemini/Magnum)
 3. Trends (Sonar)
 4. Emotional (Sydney)
 5. General (Ministral)
@@ -93,12 +95,6 @@ Return model ID:"""
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
-
-    def update_nickname(self, selected_model):
-        """Update the nickname to reflect the selected model"""
-        new_nickname = f"Router → {selected_model}"
-        self.nickname = new_nickname
-        logging.info(f"[Router] Updated nickname to: {new_nickname}")
 
     async def generate_response(self, message):
         """Generate a response using the router model"""
@@ -132,9 +128,6 @@ Return model ID:"""
             # Remove any quotes if present
             selected_model = selected_model.replace('"', '').replace("'", '')
             logging.info(f"[Router] Selected model: {selected_model}")
-
-            # Update nickname to reflect selected model
-            self.update_nickname(selected_model)
 
             # Construct the full cog name by appending 'Cog'
             selected_cog_name = f"{selected_model}Cog"
