@@ -129,7 +129,8 @@ VISION_RESPONSE_TEMPLATE = '''
                 stream=True,
                 provider="openrouter",
                 user_id=user_id,
-                guild_id=guild_id
+                guild_id=guild_id,
+                prompt_file=self.prompt_file
             )
 
             return response_stream
@@ -191,7 +192,8 @@ TEXT_RESPONSE_TEMPLATE = '''
                 stream=True,
                 provider="openrouter",
                 user_id=user_id,
-                guild_id=guild_id
+                guild_id=guild_id,
+                prompt_file=self.prompt_file
             )
 
             return response_stream
@@ -414,4 +416,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

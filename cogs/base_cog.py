@@ -60,6 +60,7 @@ class BaseCog(commands.Cog):
         self.trigger_words = trigger_words
         self.model = model
         self.provider = provider
+        self.prompt_file = prompt_file  # Store prompt_file for use in API calls
         self.supports_vision = supports_vision
         self._image_processing_lock = asyncio.Lock()
         self.context_cog = bot.get_cog('ContextCog')

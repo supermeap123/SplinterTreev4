@@ -1,8 +1,6 @@
-feat: Add Sydney cog and update prompts
+feat: include prompt file name in API tags
 
-- Add Sydney cog with meta-llama/llama-3.1-405b-instruct:free model
-- Add Sydney's unique roleplay prompt with internal system context
-- Add user_id and guild_id tracking to all API calls
-- Update all cogs to use OpenRouter provider
-- Add missing prompts for all models
-- Ensure all prompts are properly configured in consolidated_prompts.json
+- Added prompt_file parameter to API call tags for better tracking
+- Updated API class to include prompt_file in tags dictionary
+- Modified update_cogs.py templates to pass prompt_file to API calls
+- Ensures both user/guild IDs and prompt file names are tracked in API logs
