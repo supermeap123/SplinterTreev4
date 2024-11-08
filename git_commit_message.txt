@@ -1,6 +1,5 @@
-refactor(api): Replace conditional logic with explicit provider prefixes
+fix(api): Use documented openpipe:provider/ format consistently
 
-- Replace if/elif statements with explicit provider prefix mapping
-- Add comprehensive list of supported providers (anthropic, mistral, google, etc.)
-- Improve maintainability by centralizing provider prefix definitions
-- Ensure consistent model name prefixing across all API calls
+- Simplify _get_prefixed_model to always use openpipe:provider/ format
+- Remove provider-specific prefix variations
+- Fix model prefixing to match OpenPipe API documentation
