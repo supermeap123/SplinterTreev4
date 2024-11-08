@@ -1,6 +1,6 @@
-fix: resolve image download timeout and model prefix issues
+fix: add llama32_90b configuration with groq provider
 
-- Fixed timeout handling in _download_image method
-- Removed asyncio.timeout context manager in favor of session timeout
-- Added proper provider prefix handling for groq models
-- Fixed model prefix for OpenRouter models
+- Added llama32_90b configuration to COGS_CONFIG
+- Set provider to 'groq' for llama32_90b
+- Maintained existing model name and vision support
+- Kept all other cog configurations unchanged

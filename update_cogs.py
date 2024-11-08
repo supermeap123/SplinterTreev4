@@ -46,8 +46,8 @@ class {class_name}(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 '''
 
-# Template for generate_response with and without vision support
-RESPONSE_TEMPLATE = '''
+# Template for generate_response with vision support
+VISION_RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
         """Generate a response using {provider}"""
         try:
@@ -75,34 +75,39 @@ RESPONSE_TEMPLATE = '''
                 }})
 
             # Process current message and any images
-            content = message.content
-            image_descriptions = []
-
-            # Get descriptions for any image attachments
+            content = []
+            
+            # Add any image attachments
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
-                    description = await self.get_image_description(attachment.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": attachment.url
+                    }})
 
-            # Get descriptions for image URLs in embeds
+            # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
-                    description = await self.get_image_description(embed.image.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": embed.image.url
+                    }})
                 if embed.thumbnail and embed.thumbnail.url:
-                    description = await self.get_image_description(embed.thumbnail.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
+                    content.append({{
+                        "type": "image_url",
+                        "image_url": embed.thumbnail.url
+                    }})
 
-            # Combine message content with image descriptions
-            if image_descriptions:
-                content += '\n\n' + '\n\n'.join(image_descriptions) # Join descriptions with newlines
+            # Add the text content
+            content.append({{
+                "type": "text",
+                "text": message.content
+            }})
 
+            # Add the message with multimodal content
             messages.append({{
                 "role": "user",
-                "content": content
+                "content": content if len(content) > 1 else message.content
             }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
@@ -113,11 +118,12 @@ RESPONSE_TEMPLATE = '''
             logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
 
             # Call API and return the stream directly
-            response_stream = await self.api_client.call_{provider_method}(
+            response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
-                stream=True
+                stream=True,
+                provider="{provider}"
             )
 
             return response_stream
@@ -126,6 +132,61 @@ RESPONSE_TEMPLATE = '''
             logging.error(f"Error processing message for {name}: {{e}}")
             return None'''
 
+# Template for generate_response without vision support
+TEXT_RESPONSE_TEMPLATE = '''
+    async def generate_response(self, message):
+        """Generate a response using {provider}"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{{"role": "system", "content": formatted_prompt}}]
+
+            # Get last 50 messages from database
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({{
+                    "role": role,
+                    "content": content
+                }})
+
+            # Add current message
+            messages.append({{
+                "role": "user",
+                "content": message.content
+            }})
+
+            logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
+            logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_openpipe(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True,
+                provider="{provider}"
+            )
+
+            return response_stream
+
+        except Exception as e:
+            logging.error(f"Error processing message for {name}: {{e}}")
+            return None'''
 
 # Template for setup function
 SETUP_TEMPLATE = '''
@@ -275,6 +336,18 @@ COGS_CONFIG = {
         'log_name': 'Llama-3.2-11b',
         'qualified_name': 'Llama-3.2-11b'
     },
+    'llama32_90b': {
+        'class_name': 'Llama3290bVisionCog',
+        'name': 'Llama-3.2-90B-Vision',
+        'nickname': 'Llama Vision',
+        'trigger_words': "['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision']",
+        'model': 'meta-llama/llama-3.2-90b-vision-instruct:free',
+        'provider': 'groq',
+        'prompt_file': 'llama32_90b',
+        'supports_vision': 'True',
+        'log_name': 'Llama-3.2-90B-Vision',
+        'qualified_name': 'Llama-3.2-90B-Vision'
+    },
     'magnum': {
         'class_name': 'MagnumCog',
         'name': 'Magnum',
@@ -403,12 +476,14 @@ def update_cog(cog_name, config):
         # Start with the base template
         cog_content = BASE_TEMPLATE.format(**config)
         
-        # Add the appropriate response template based on vision support and provider
-        provider_method = config['provider'] # Use the actual provider name
+        # Add the appropriate response template based on vision support
+        if config['supports_vision'] == 'True':
+            template = VISION_RESPONSE_TEMPLATE
+        else:
+            template = TEXT_RESPONSE_TEMPLATE
 
-        cog_content += RESPONSE_TEMPLATE.format(
+        cog_content += template.format(
             provider=config['provider'],
-            provider_method=provider_method,
             log_name=config['log_name'],
             name=config['name']
         )
