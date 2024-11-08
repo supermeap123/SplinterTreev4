@@ -10,4 +10,9 @@ Add a new router cog that automatically selects the most appropriate model for m
 - Sonar for trends and current events
 - Ministral for general queries
 
-The router uses a structured decision system with clear prioritization rules to ensure consistent and appropriate model selection.
+Key implementation details:
+- Proper generate_response method override from BaseCog
+- Structured decision system with clear prioritization rules
+- Graceful error handling with async generators
+- Fallback to Ministral for unmatched cases
+- Comprehensive logging for debugging

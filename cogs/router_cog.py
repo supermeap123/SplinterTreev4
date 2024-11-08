@@ -67,7 +67,7 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
-    async def _generate_response(self, message):
+    async def generate_response(self, message):
         """Generate a response using the router model"""
         try:
             # First, get model selection
@@ -99,11 +99,15 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
                     return await fallback_cog.generate_response(message)
                 else:
                     logging.error("[Router] Neither selected nor fallback cog found")
-                    return None
+                    async def error_generator():
+                        yield "❌ Error: Could not find appropriate model for response"
+                    return error_generator()
 
         except Exception as e:
             logging.error(f"[Router] Error processing message: {e}")
-            return None
+            async def error_generator():
+                yield f"❌ Error: {str(e)}"
+            return error_generator()
 
     @commands.Cog.listener()
     async def on_message(self, message):
