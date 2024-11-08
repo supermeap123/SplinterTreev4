@@ -11,7 +11,7 @@ class Llama32_11bCog(BaseCog):
             name="Llama-3.2-11b",
             nickname="Llama",
             trigger_words=['11b'],
-            model="meta-llama/llama-3.2-11b-vision-instruct:free",
+            model="meta-llama/llama-3.2-11b-vision-instruct",
             provider="openrouter",
             prompt_file="llama32_11b",
             supports_vision=False

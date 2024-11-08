@@ -11,7 +11,7 @@ class Llama3290bVisionCog(BaseCog):
             name="Llama-3.2-90B-Vision",
             nickname="Llama Vision",
             trigger_words=['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision'],
-            model="meta-llama/llama-3.2-90b-vision-instruct:free",
+            model="meta-llama/llama-3.2-90b-vision-instruct",
             provider="openrouter",
             prompt_file="llama32_90b",
             supports_vision=True

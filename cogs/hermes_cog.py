@@ -11,7 +11,7 @@ class HermesCog(BaseCog):
             name="Hermes",
             nickname="Hermes",
             trigger_words=['hermes'],
-            model="nousresearch/hermes-3-llama-3.1-405b:free",
+            model="nousresearch/hermes-3-llama-3.1-405b",
             provider="openrouter",
             prompt_file="hermes",
             supports_vision=False
