@@ -16,6 +16,8 @@ from urllib.parse import urlparse
 
 # Shared cache for image descriptions across all cogs
 image_description_cache: Dict[str, str] = {}
+# Shared set to track handled messages
+handled_messages = set()
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -323,6 +325,6 @@ class BaseCog(commands.Cog):
         msg_content = message.content.lower()
         if any(word in msg_content for word in self.trigger_words):
             # Only handle if not already processed by another cog
-            if not hasattr(message, 'handled_by_cog'):
-                message.handled_by_cog = self.name
+            if message.id not in handled_messages:
+                handled_messages.add(message.id)
                 await self.handle_message(message)

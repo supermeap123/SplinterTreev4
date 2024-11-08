@@ -1,10 +1,9 @@
-refactor: fix duplicate message processing
+fix: prevent duplicate message processing while preserving triggers
 
-- Create custom SplinterTreeBot class to properly manage bot state
-- Move processed_messages and other state into bot class
-- Ensure processed_messages is checked and updated early in message handling
-- Remove separate processed_messages set from ContextCog
+- Add module-level handled_messages set in base_cog.py
+- Use handled_messages set to track which messages have been processed
+- Remove attempt to modify Message objects directly
 - Make ContextCog use bot's processed_messages set
-- Improve message processing flow to prevent duplicate API calls
+- Preserve trigger word functionality while preventing duplicates
 
-This refactor centralizes message tracking in the bot class and ensures all cogs use the same message tracking system, preventing duplicate processing and API calls.
+This fix ensures messages are properly tracked without modifying Discord objects, while maintaining trigger word functionality.
