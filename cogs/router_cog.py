@@ -32,22 +32,22 @@ class RouterCog(BaseCog):
 
 Task: Analyze the message content and select the most appropriate AI model.
 Available models and their specialties:
-- "Magnum": Complex analytical reasoning requiring detailed, formal prose
-- "Gemini": Complex reasoning needing conversational style
-- "Claude-3-Haiku": Basic coding and programming questions
-- "Nemotron": Complex coding tasks and technical programming
-- "Sydney": Emotional support and empathetic responses
-- "Sonar": Internet trends, search topics, current events
-- "Ministral": General factual queries and straightforward information
+- Magnum: Complex analytical reasoning requiring detailed, formal prose
+- Gemini: Complex reasoning needing conversational style
+- Claude-3-Haiku: Basic coding and programming questions
+- Nemotron: Complex coding tasks and technical programming
+- Sydney: Emotional support and empathetic responses
+- Sonar: Internet trends, search topics, current events
+- Ministral: General factual queries and straightforward information
 
 Decision criteria:
-1. Complex reasoning + formal tone -> "Magnum"
-2. Complex reasoning + casual tone -> "Gemini"
-3. Basic coding questions -> "Claude-3-Haiku"
-4. Complex coding/technical -> "Nemotron"
-5. Emotional/personal support -> "Sydney"
-6. Trends/current events -> "Sonar"
-7. General queries -> "Ministral"
+1. Complex reasoning + formal tone -> Magnum
+2. Complex reasoning + casual tone -> Gemini
+3. Basic coding questions -> Claude-3-Haiku
+4. Complex coding/technical -> Nemotron
+5. Emotional/personal support -> Sydney
+6. Trends/current events -> Sonar
+7. General queries -> Ministral
 
 If multiple criteria match, prioritize in this order:
 1. Code (Nemotron/Claude-3-Haiku)
@@ -56,7 +56,7 @@ If multiple criteria match, prioritize in this order:
 4. Emotional (Sydney)
 5. General (Ministral)
 
-Return ONLY the model ID exactly as shown above (case-sensitive), no explanation."""
+Return ONLY the model ID exactly as shown above (case-sensitive), no explanation or quotes."""
 
     @property
     def qualified_name(self):
@@ -85,6 +85,8 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
             )
 
             selected_model = response['choices'][0]['message']['content'].strip()
+            # Remove any quotes if present
+            selected_model = selected_model.replace('"', '').replace("'", '')
             logging.info(f"[Router] Selected model: {selected_model}")
 
             # Get the corresponding cog
@@ -96,9 +98,10 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
                 # Fallback to Ministral if selected cog not found
                 fallback_cog = self.bot.get_cog('Ministral')
                 if fallback_cog:
+                    logging.warning(f"[Router] Selected model {selected_model} not found, falling back to Ministral")
                     return await fallback_cog.generate_response(message)
                 else:
-                    logging.error("[Router] Neither selected nor fallback cog found")
+                    logging.error(f"[Router] Neither selected model {selected_model} nor fallback Ministral found")
                     async def error_generator():
                         yield "❌ Error: Could not find appropriate model for response"
                     return error_generator()

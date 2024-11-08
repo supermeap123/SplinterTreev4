@@ -1,18 +1,9 @@
-feat: Add router cog for automatic model selection
+fix: Improve router cog model selection and error handling
 
-Add a new router cog that automatically selects the most appropriate model for messages without explicit keywords. Uses ministral-3b to analyze message content and route to specialized models:
+- Remove quotes from model names in selection prompt
+- Add quote stripping from model selection response
+- Add more detailed logging for debugging
+- Update error messages to be more informative
+- Fix fallback logic to properly handle Ministral cog
 
-- Magnum for formal analytical reasoning
-- Gemini for conversational complex reasoning
-- Claude-3-Haiku for basic coding
-- Nemotron for complex technical tasks
-- Sydney for emotional support
-- Sonar for trends and current events
-- Ministral for general queries
-
-Key implementation details:
-- Proper generate_response method override from BaseCog
-- Structured decision system with clear prioritization rules
-- Graceful error handling with async generators
-- Fallback to Ministral for unmatched cases
-- Comprehensive logging for debugging
+The router now correctly handles model selection and provides better error reporting when models aren't found.
