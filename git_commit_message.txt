@@ -1,8 +1,10 @@
-fix: Improve router cog model selection to match exact cog names
+fix: Improve router cog message handling conditions
 
-- Update model selection prompt to use full model names
-- Modify cog selection logic to match exact `[ModelName]Cog` names
-- Maintain existing routing and fallback strategy
-- Improve logging and error handling
+- Add specific conditions for router response:
+  * Bot mentions (ID: 1270760587022041088)
+  * "splintertree" keyword
+  * "!st_" commands not handled by other cogs
+- Add should_handle_message method for cleaner logic
+- Maintain existing model selection and routing
 
-The router now correctly identifies and routes to cogs based on their exact class names, resolving previous routing issues.
+The router now only responds to explicit bot interactions, preventing unwanted responses to regular messages.

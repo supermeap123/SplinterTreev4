@@ -120,26 +120,44 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
                 yield f"❌ Error: {str(e)}"
             return error_generator()
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Listen for messages that don't have explicit keywords"""
+    def should_handle_message(self, message):
+        """Check if the router should handle this message"""
         # Ignore messages from bots
         if message.author.bot:
-            return
+            return False
 
         # Check if message has already been handled
         if message.id in handled_messages:
-            return
+            return False
 
-        # Check if message contains any trigger words from other cogs
         msg_content = message.content.lower()
-        for cog in self.bot.cogs.values():
-            if hasattr(cog, 'trigger_words') and any(word in msg_content for word in cog.trigger_words):
-                return
 
-        # If we get here, no other cog has claimed this message
-        handled_messages.add(message.id)
-        await self.handle_message(message)
+        # Check if bot is mentioned
+        if self.bot.user.id == 1270760587022041088 and self.bot.user in message.mentions:
+            return True
+
+        # Check if "splintertree" is mentioned
+        if "splintertree" in msg_content:
+            return True
+
+        # Check if message starts with !st_ and doesn't match other cogs' triggers
+        if msg_content.startswith("!st_"):
+            # Check if any other cog would handle this message
+            for cog in self.bot.cogs.values():
+                if cog == self:  # Skip checking our own triggers
+                    continue
+                if hasattr(cog, 'trigger_words') and any(word in msg_content for word in cog.trigger_words):
+                    return False
+            return True
+
+        return False
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Listen for messages that should be handled by the router"""
+        if self.should_handle_message(message):
+            handled_messages.add(message.id)
+            await self.handle_message(message)
 
 async def setup(bot):
     try:
