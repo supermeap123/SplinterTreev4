@@ -1,6 +1,6 @@
-fix: add llama32_90b configuration with groq provider
+feat: regenerate cogs with updated templates
 
-- Added llama32_90b configuration to COGS_CONFIG
-- Set provider to 'groq' for llama32_90b
-- Maintained existing model name and vision support
-- Kept all other cog configurations unchanged
+- Regenerated all cogs with new vision handling
+- Updated llama32_90b to use groq provider
+- Fixed API call templates to properly pass provider parameter
+- Ensured consistent configuration across all cogs

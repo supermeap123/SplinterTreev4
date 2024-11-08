@@ -10,7 +10,7 @@ class MagnumCog(BaseCog):
             bot=bot,
             name="Magnum",
             nickname="Magnum",
-            trigger_words=['magnum', 'claude', 'qwen', '72b'],
+            trigger_words=['magnum'],
             model="anthracite-org/magnum-v4-72b",
             provider="openrouter",
             prompt_file="magnum",
@@ -63,35 +63,10 @@ class MagnumCog(BaseCog):
                     "content": content
                 })
 
-            # Process current message and any images
-            content = message.content
-            image_descriptions = []
-
-            # Get descriptions for any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    description = await self.get_image_description(attachment.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
-
-            # Get descriptions for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    description = await self.get_image_description(embed.image.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
-                if embed.thumbnail and embed.thumbnail.url:
-                    description = await self.get_image_description(embed.thumbnail.url)
-                    if description:
-                        image_descriptions.append(description)  # Append the description directly
-
-            # Combine message content with image descriptions
-            if image_descriptions:
-                content += '\n\n' + '\n\n'.join(image_descriptions)
-
+            # Add current message
             messages.append({
                 "role": "user",
-                "content": content
+                "content": message.content
             })
 
             logging.debug(f"[Magnum] Sending {len(messages)} messages to API")
@@ -102,11 +77,12 @@ class MagnumCog(BaseCog):
             logging.debug(f"[Magnum] Using temperature: {temperature}")
 
             # Call API and return the stream directly
-            response_stream = await self.api_client.call_openrouter(
+            response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
-                stream=True
+                stream=True,
+                provider="openrouter"
             )
 
             return response_stream

@@ -4,41 +4,41 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class NemotronCog(BaseCog):
+class MysteryMergeNemoCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Nemotron",
-            nickname="Nemotron",
-            trigger_words=['nemotron'],
-            model="nvidia/llama-3.1-nemotron-70b-instruct",
-            provider="openrouter",
-            prompt_file="nemotron",
+            name="Mystery Merge Nemo",
+            nickname="MysteryNemo",
+            trigger_words=['nemo'],
+            model="openpipe:AutoMeta/PygTesting/mystery-merge-nemo",
+            provider="openpipe",
+            prompt_file="None",
             supports_vision=False
         )
-        logging.debug(f"[Nemotron] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Nemotron] Using provider: {self.provider}")
-        logging.debug(f"[Nemotron] Vision support: {self.supports_vision}")
+        logging.debug(f"[Mystery Merge Nemo] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Mystery Merge Nemo] Using provider: {self.provider}")
+        logging.debug(f"[Mystery Merge Nemo] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Nemotron] Failed to load temperatures.json: {e}")
+            logging.error(f"[Mystery Merge Nemo] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Nemotron"
+        return "Mystery Merge Nemo"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a response using openpipe"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -69,12 +69,12 @@ class NemotronCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Nemotron] Sending {len(messages)} messages to API")
-            logging.debug(f"[Nemotron] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Mystery Merge Nemo] Sending {len(messages)} messages to API")
+            logging.debug(f"[Mystery Merge Nemo] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Nemotron] Using temperature: {temperature}")
+            logging.debug(f"[Mystery Merge Nemo] Using temperature: {temperature}")
 
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
@@ -82,22 +82,22 @@ class NemotronCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter"
+                provider="openpipe"
             )
 
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Nemotron: {e}")
+            logging.error(f"Error processing message for Mystery Merge Nemo: {e}")
             return None
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        cog = NemotronCog(bot)
+        cog = MysteryMergeNemoCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Nemotron] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Mystery Merge Nemo] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Nemotron] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Mystery Merge Nemo] Failed to register cog: {e}", exc_info=True)
         raise

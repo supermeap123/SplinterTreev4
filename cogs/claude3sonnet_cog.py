@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class NemotronCog(BaseCog):
+class Claude3SonnetCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Nemotron",
-            nickname="Nemotron",
-            trigger_words=['nemotron'],
-            model="nvidia/llama-3.1-nemotron-70b-instruct",
+            name="Claude-3-Sonnet",
+            nickname="Sonnet",
+            trigger_words=['claude3sonnet', 'sonnet', 'claude 3 sonnet'],
+            model="anthropic/claude-3.5-sonnet:beta",
             provider="openrouter",
-            prompt_file="nemotron",
-            supports_vision=False
+            prompt_file="claude",
+            supports_vision=True
         )
-        logging.debug(f"[Nemotron] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Nemotron] Using provider: {self.provider}")
-        logging.debug(f"[Nemotron] Vision support: {self.supports_vision}")
+        logging.debug(f"[Claude-3-Sonnet] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Claude-3-Sonnet] Using provider: {self.provider}")
+        logging.debug(f"[Claude-3-Sonnet] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Nemotron] Failed to load temperatures.json: {e}")
+            logging.error(f"[Claude-3-Sonnet] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Nemotron"
+        return "Claude-3-Sonnet"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -63,18 +63,48 @@ class NemotronCog(BaseCog):
                     "content": content
                 })
 
-            # Add current message
-            messages.append({
-                "role": "user",
-                "content": message.content
+            # Process current message and any images
+            content = []
+            
+            # Add any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    content.append({
+                        "type": "image_url",
+                        "image_url": attachment.url
+                    })
+
+            # Check for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.image.url
+                    })
+                if embed.thumbnail and embed.thumbnail.url:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": embed.thumbnail.url
+                    })
+
+            # Add the text content
+            content.append({
+                "type": "text",
+                "text": message.content
             })
 
-            logging.debug(f"[Nemotron] Sending {len(messages)} messages to API")
-            logging.debug(f"[Nemotron] Formatted prompt: {formatted_prompt}")
+            # Add the message with multimodal content
+            messages.append({
+                "role": "user",
+                "content": content if len(content) > 1 else message.content
+            })
+
+            logging.debug(f"[Claude-3-Sonnet] Sending {len(messages)} messages to API")
+            logging.debug(f"[Claude-3-Sonnet] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Nemotron] Using temperature: {temperature}")
+            logging.debug(f"[Claude-3-Sonnet] Using temperature: {temperature}")
 
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
@@ -88,16 +118,16 @@ class NemotronCog(BaseCog):
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Nemotron: {e}")
+            logging.error(f"Error processing message for Claude-3-Sonnet: {e}")
             return None
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        cog = NemotronCog(bot)
+        cog = Claude3SonnetCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Nemotron] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Claude-3-Sonnet] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Nemotron] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Claude-3-Sonnet] Failed to register cog: {e}", exc_info=True)
         raise

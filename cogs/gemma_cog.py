@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class NemotronCog(BaseCog):
+class GemmaCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Nemotron",
-            nickname="Nemotron",
-            trigger_words=['nemotron'],
-            model="nvidia/llama-3.1-nemotron-70b-instruct",
+            name="Gemma",
+            nickname="Gemma",
+            trigger_words=['gemma'],
+            model="google/gemma-2-27b-it",
             provider="openrouter",
-            prompt_file="nemotron",
+            prompt_file="gemma",
             supports_vision=False
         )
-        logging.debug(f"[Nemotron] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Nemotron] Using provider: {self.provider}")
-        logging.debug(f"[Nemotron] Vision support: {self.supports_vision}")
+        logging.debug(f"[Gemma] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Gemma] Using provider: {self.provider}")
+        logging.debug(f"[Gemma] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Nemotron] Failed to load temperatures.json: {e}")
+            logging.error(f"[Gemma] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Nemotron"
+        return "Gemma"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -69,12 +69,12 @@ class NemotronCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Nemotron] Sending {len(messages)} messages to API")
-            logging.debug(f"[Nemotron] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Gemma] Sending {len(messages)} messages to API")
+            logging.debug(f"[Gemma] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Nemotron] Using temperature: {temperature}")
+            logging.debug(f"[Gemma] Using temperature: {temperature}")
 
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
@@ -88,16 +88,16 @@ class NemotronCog(BaseCog):
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Nemotron: {e}")
+            logging.error(f"Error processing message for Gemma: {e}")
             return None
 
 async def setup(bot):
     # Register the cog with its proper name
     try:
-        cog = NemotronCog(bot)
+        cog = GemmaCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Nemotron] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Gemma] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Nemotron] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Gemma] Failed to register cog: {e}", exc_info=True)
         raise
