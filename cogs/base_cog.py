@@ -157,44 +157,49 @@ class BaseCog(commands.Cog):
                             # Check if it's time to update (every 0.5 seconds)
                             current_time = time.time()
                             if current_time - last_update >= 0.5:
-                                # Split message if needed
+                                # If current chunk exceeds Discord's limit, split and create new message
                                 while len(current_chunk) > 2000:
                                     # Find last space before 2000 chars
                                     split_index = current_chunk[:2000].rfind(' ')
                                     if split_index == -1:
                                         split_index = 1999
-                                    
-                                    # Send or edit first part
+
+                                    # Send first part
                                     if not sent_messages:
+                                        # First message
                                         sent_message = await message.channel.send(current_chunk[:split_index])
                                         sent_messages.append(sent_message)
                                     else:
+                                        # Update last message
                                         await sent_messages[-1].edit(content=current_chunk[:split_index])
-                                    
-                                    # Prepare next chunk with model name prefix
-                                    current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
-                                
-                                # Update or send current chunk
-                                if sent_messages:
-                                    await sent_messages[-1].edit(content=current_chunk)
-                                else:
-                                    sent_message = await message.channel.send(current_chunk)
-                                    sent_messages.append(sent_message)
+                                        # Create new message for overflow
+                                        sent_message = await message.channel.send(f"[{self.name}] " + current_chunk[split_index:].lstrip())
+                                        sent_messages.append(sent_message)
+                                        current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
+
+                                # Update or send current chunk if under 2000 chars
+                                if len(current_chunk) <= 2000:
+                                    if sent_messages:
+                                        await sent_messages[-1].edit(content=current_chunk)
+                                    else:
+                                        sent_message = await message.channel.send(current_chunk)
+                                        sent_messages.append(sent_message)
                                 
                                 last_update = current_time
 
-                    # Final update
+                    # Handle final update
                     while len(current_chunk) > 2000:
                         split_index = current_chunk[:2000].rfind(' ')
                         if split_index == -1:
                             split_index = 1999
-                        
+
                         if not sent_messages:
                             sent_message = await message.channel.send(current_chunk[:split_index])
                             sent_messages.append(sent_message)
                         else:
                             await sent_messages[-1].edit(content=current_chunk[:split_index])
-                        
+                            sent_message = await message.channel.send(f"[{self.name}] " + current_chunk[split_index:].lstrip())
+                            sent_messages.append(sent_message)
                         current_chunk = f"[{self.name}] " + current_chunk[split_index:].lstrip()
                     
                     # Send or update final chunk with reroll button

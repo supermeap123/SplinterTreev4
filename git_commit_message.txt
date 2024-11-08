@@ -1,3 +1,6 @@
-feat: update magnum cog keywords
+fix: properly handle message streaming over 2000 char limit
 
-Updated the magnum cog keywords to include "magnum", "claude", "qwen", and "72b".
+- Modified handle_message to create new messages when content exceeds Discord's 2000 char limit
+- Ensures proper model name prefix on split messages
+- Maintains streaming functionality across multiple messages
+- Fixes bug where content would overflow into first message instead of creating new ones
