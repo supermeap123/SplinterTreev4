@@ -365,7 +365,7 @@ COGS_CONFIG = {
         'class_name': 'Llama32_11bCog',
         'name': 'Llama-3.2-11b',
         'nickname': 'Llama',
-        'trigger_words': "['llama32', 'llama 32', 'llama']",
+        'trigger_words': "['11b']",
         'model': 'meta-llama/llama-3.2-11b-vision-instruct:free',
         'prompt_file': 'llama',
         'supports_vision': 'True',

@@ -88,7 +88,8 @@ class MagnumCog(BaseCog):
                 stream=True,
                 provider="openrouter",
                 user_id=user_id,
-                guild_id=guild_id
+                guild_id=guild_id,
+                prompt_file=self.prompt_file
             )
 
             return response_stream

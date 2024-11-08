@@ -10,7 +10,7 @@ class Llama32_11bCog(BaseCog):
             bot=bot,
             name="Llama-3.2-11b",
             nickname="Llama",
-            trigger_words=['llama32', 'llama 32', 'llama'],
+            trigger_words=['11b'],
             model="meta-llama/llama-3.2-11b-vision-instruct:free",
             provider="openrouter",
             prompt_file="llama",
@@ -118,7 +118,8 @@ class Llama32_11bCog(BaseCog):
                 stream=True,
                 provider="openrouter",
                 user_id=user_id,
-                guild_id=guild_id
+                guild_id=guild_id,
+                prompt_file=self.prompt_file
             )
 
             return response_stream
