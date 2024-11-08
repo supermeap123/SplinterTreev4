@@ -1,10 +1,8 @@
-fix: Improve router cog message handling conditions
+fix: Improve router cog model selection with context
 
-- Add specific conditions for router response:
-  * Bot mentions (ID: 1270760587022041088)
-  * "splintertree" keyword
-  * "!st_" commands not handled by other cogs
-- Add should_handle_message method for cleaner logic
-- Maintain existing model selection and routing
+- Add context from previous messages to selection prompt
+- Update model selection criteria with detailed analysis steps
+- Fix exact cog name matching for all models
+- Add more comprehensive logging
 
-The router now only responds to explicit bot interactions, preventing unwanted responses to regular messages.
+The router now makes more informed model selections by considering message context and using clearer decision criteria.

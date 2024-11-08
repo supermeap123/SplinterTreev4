@@ -27,36 +27,63 @@ class RouterCog(BaseCog):
             logging.error(f"[Router] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
-        # Model selection system prompt using exact cog names
-        self.model_selection_prompt = """Given a user message, analyze it and return a single model ID based on these criteria:
+        # Model selection system prompt using exact cog class names
+        self.model_selection_prompt = """Given message: "{user_message}"
+Given context: "{context}"
 
-Task: Analyze the message content and select the most appropriate AI model.
-Available models and their specialties:
-- Magnum: Complex analytical reasoning requiring detailed, formal prose
-- Gemini: Complex reasoning needing conversational style
-- Claude-3-Haiku: Basic coding and programming questions
-- Nemotron: Complex coding tasks and technical programming
-- Sydney: Emotional support and empathetic responses
-- Sonar: Internet trends, search topics, current events
-- Ministral: General factual queries and straightforward information
+# TASK
+You are a model router that selects the most appropriate AI model based on message content.
+Return ONLY the exact model ID without explanation or additional text.
 
-Decision criteria:
-1. Complex reasoning + formal tone -> Magnum
-2. Complex reasoning + casual tone -> Gemini
-3. Basic coding questions -> Claude-3-Haiku
-4. Complex coding/technical -> Nemotron
-5. Emotional/personal support -> Sydney
-6. Trends/current events -> Sonar
-7. General queries -> Ministral
+# AVAILABLE MODELS AND USE CASES
+Magnum: Complex analytical reasoning with formal tone
+Gemini: Complex reasoning with casual/conversational tone  
+Claude3Haiku: Basic coding questions and programming help
+Nemotron: Complex coding and technical programming
+Sydney: Emotional support and empathy
+Sonar: Internet trends and current events
+Ministral: General factual queries
 
-If multiple criteria match, prioritize in this order:
-1. Code (Nemotron/Claude-3-Haiku)
+# ANALYSIS STEPS
+1. Check for code indicators:
+   - Code blocks (```)
+   - Programming terms (function, code, api, database)
+   IF found:
+     IF complex/advanced -> Nemotron
+     IF basic/simple -> Claude3Haiku
+
+2. Check for complex reasoning:
+   - Message length > 20 words
+   - Analysis terms (analyze, evaluate, compare)
+   IF found:
+     IF formal/academic tone -> Magnum
+     IF casual/conversational -> Gemini
+
+3. Check for trends/events:
+   - News/current event terms
+   - "What's happening"
+   - Trends/popularity
+   IF found -> Sonar
+
+4. Check for emotional content:
+   - Feeling words
+   - Support seeking
+   - Personal issues
+   IF found -> Sydney
+
+5. If no other match -> Ministral
+
+# OUTPUT FORMAT
+Return exactly one of: Magnum, Gemini, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral
+
+# PRIORITY ORDER (IF MULTIPLE MATCH)
+1. Code (Nemotron/Claude3Haiku)
 2. Complex reasoning (Magnum/Gemini)
-3. Search/trends (Sonar)
+3. Trends (Sonar)
 4. Emotional (Sydney)
 5. General (Ministral)
 
-Return ONLY the model ID exactly as shown above (case-sensitive), no explanation or quotes."""
+Return model ID:"""
 
     @property
     def qualified_name(self):
@@ -70,9 +97,20 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
     async def generate_response(self, message):
         """Generate a response using the router model"""
         try:
-            # First, get model selection
+            # Get context from previous messages
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
+            context = "\n".join([msg['content'] for msg in history_messages])
+
+            # Format the prompt with message and context
+            formatted_prompt = self.model_selection_prompt.format(
+                user_message=message.content,
+                context=context if context else "No previous context"
+            )
+
+            # Get model selection
             messages = [
-                {"role": "system", "content": self.model_selection_prompt},
+                {"role": "system", "content": formatted_prompt},
                 {"role": "user", "content": message.content}
             ]
 
@@ -91,10 +129,12 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
 
             # Construct the full cog name by appending 'Cog'
             selected_cog_name = f"{selected_model}Cog"
+            logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
 
             # Get the corresponding cog
             selected_cog = None
             for cog_name, cog in self.bot.cogs.items():
+                logging.debug(f"[Router] Checking cog: {cog_name}")
                 if cog_name == selected_cog_name:
                     selected_cog = cog
                     break
