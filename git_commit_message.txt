@@ -1,8 +1,8 @@
-fix: update vision handling in cogs
+fix: prevent duplicate message processing
 
-- Fix vision=true cases in VISION_RESPONSE_TEMPLATE with proper image URL formatting
-- Update vision=false cases to use llama 11b for image description
-- Add custom prompt for llama32_11b image description
-- Update image handling logic in both templates
-- Fix model configuration for llama32_11b
-- Regenerate all cogs with updated templates
+- Move processed_messages check to start of on_message handler
+- Mark messages as processed immediately after check
+- Save processed messages right after marking
+- Remove redundant processed_messages operations
+
+This change prevents messages from being processed multiple times by ensuring they are marked as processed before any handlers or cogs process them.

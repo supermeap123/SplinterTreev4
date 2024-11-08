@@ -250,12 +250,17 @@ def get_model_from_message(content):
 
 @bot.event
 async def on_message(message):
+    # Ignore bot's own messages
     if message.author == bot.user:
         return
 
-    # Check if message has already been processed
+    # Check if message has already been processed - do this check first
     if message.id in processed_messages:
         return
+
+    # Mark message as processed immediately to prevent duplicate handling
+    processed_messages.add(message.id)
+    save_processed_messages()
 
     # Update last interaction
     last_interaction['user'] = message.author.display_name
@@ -296,8 +301,6 @@ async def on_message(message):
                     if cog:
                         logging.debug(f"Using {model_name} cog to handle reply")
                         await cog.handle_message(message, full_content)
-                        processed_messages.add(message.id)
-                        save_processed_messages()  # Save processed messages after handling
                         return
         except Exception as e:
             logging.error(f"Error handling reply: {str(e)}")
@@ -317,10 +320,6 @@ async def on_message(message):
             # If Claude2 is not available, use a random cog
             cog = random.choice(loaded_cogs)
             await cog.handle_message(message, full_content)
-
-    # Mark message as processed
-    processed_messages.add(message.id)
-    save_processed_messages()  # Save processed messages after handling
 
     # Clean up old processed messages (keep last 1000)
     if len(processed_messages) > 1000:
