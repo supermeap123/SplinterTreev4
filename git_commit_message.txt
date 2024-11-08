@@ -1,9 +1,10 @@
-fix: prevent duplicate message processing while preserving triggers
+fix: improve message handling and rate limiting
 
-- Add module-level handled_messages set in base_cog.py
-- Use handled_messages set to track which messages have been processed
-- Remove attempt to modify Message objects directly
-- Make ContextCog use bot's processed_messages set
-- Preserve trigger word functionality while preventing duplicates
+- Add proper rate limiting with minimum request interval
+- Add rate limit lock to prevent concurrent API requests
+- Improve message deduplication in ContextCog
+- Add request timing tracking in API
+- Ensure chronological message ordering
+- Fix duplicate message handling in base_cog
 
-This fix ensures messages are properly tracked without modifying Discord objects, while maintaining trigger word functionality.
+This fix prevents duplicate messages, maintains proper conversation order, and adds robust rate limiting to prevent API errors.

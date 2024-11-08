@@ -21,6 +21,8 @@ class ContextCog(commands.Cog):
             base_url=OPENPIPE_API_URL,
             api_key=OPENPIPE_API_KEY
         )
+        # Track last message per role to prevent duplicates
+        self.last_messages = {}  # Format: {channel_id: {'user': msg, 'assistant': msg}}
 
     def _setup_database(self):
         """Initialize the SQLite database for interaction logs"""
@@ -67,13 +69,21 @@ class ContextCog(commands.Cog):
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Get messages ordered by timestamp
+                # Get messages ordered by timestamp, excluding duplicates
                 cursor.execute('''
+                WITH RankedMessages AS (
+                    SELECT 
+                        id, user_id, content, is_assistant, persona_name, emotion, timestamp,
+                        LAG(content) OVER (PARTITION BY is_assistant ORDER BY timestamp) as prev_content
+                    FROM messages
+                    WHERE channel_id = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                )
                 SELECT id, user_id, content, is_assistant, persona_name, emotion, timestamp
-                FROM messages
-                WHERE channel_id = ?
-                ORDER BY timestamp DESC
-                LIMIT ?
+                FROM RankedMessages
+                WHERE content != prev_content OR prev_content IS NULL
+                ORDER BY timestamp ASC
                 ''', (channel_id, window_size))
                 
                 messages = []
@@ -88,8 +98,6 @@ class ContextCog(commands.Cog):
                         'timestamp': row[6]
                     })
                 
-                # Reverse to get chronological order
-                messages.reverse()
                 return messages
                 
         except Exception as e:
@@ -99,11 +107,12 @@ class ContextCog(commands.Cog):
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""
         try:
-            # Use bot's processed_messages set to check for duplicates
-            if message_id in self.bot.processed_messages:
-                logging.debug(f"[ContextCog] Skipping duplicate message {message_id}")
+            # Check for duplicate content
+            last_msg = self.last_messages.get(channel_id, {}).get('assistant' if is_assistant else 'user')
+            if last_msg and last_msg['content'] == content:
+                logging.debug(f"Skipping duplicate message content in channel {channel_id}")
                 return
-                
+
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
@@ -124,7 +133,16 @@ class ContextCog(commands.Cog):
                 ))
                 
                 conn.commit()
-                logging.debug(f"[ContextCog] Added message {message_id} to context")
+
+            # Update last message tracking
+            if channel_id not in self.last_messages:
+                self.last_messages[channel_id] = {}
+            self.last_messages[channel_id]['assistant' if is_assistant else 'user'] = {
+                'content': content,
+                'timestamp': datetime.now()
+            }
+
+            logging.debug(f"Added message to context: {message_id} in channel {channel_id}")
         except Exception as e:
             logging.error(f"Failed to add message to context: {str(e)}")
 
@@ -235,6 +253,10 @@ class ContextCog(commands.Cog):
                     """, (channel_id,))
                 
                 conn.commit()
+
+            # Clear last messages tracking for this channel
+            if channel_id in self.last_messages:
+                del self.last_messages[channel_id]
 
             await ctx.reply(f"🗑️ Cleared conversation history{f' older than {hours} hours' if hours else ''}")
         except Exception as e:

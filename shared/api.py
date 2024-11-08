@@ -23,6 +23,11 @@ class API:
             base_url=OPENPIPE_API_URL  # Base URL already includes /api/v1
         )
 
+        # Rate limiting
+        self.rate_limit_lock = asyncio.Lock()
+        self.last_request_time = 0
+        self.min_request_interval = 0.1  # 100ms between requests
+
         # Connect to SQLite database and apply schema
         try:
             # Ensure the databases directory exists
@@ -153,11 +158,23 @@ class API:
             return f"openpipe:{provider}/{model}"
         return model
 
+    async def _enforce_rate_limit(self):
+        """Enforce rate limiting between requests"""
+        async with self.rate_limit_lock:
+            current_time = time.time()
+            time_since_last = current_time - self.last_request_time
+            if time_since_last < self.min_request_interval:
+                await asyncio.sleep(self.min_request_interval - time_since_last)
+            self.last_request_time = time.time()
+
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None, prompt_file=None):
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
+            # Enforce rate limit
+            await self._enforce_rate_limit()
+            
             # Get prefixed model name
             openpipe_model = self._get_prefixed_model(model, provider)
             
@@ -224,6 +241,9 @@ class API:
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
+            # Enforce rate limit
+            await self._enforce_rate_limit()
+            
             # Get prefixed model name
             openpipe_model = self._get_prefixed_model(model, provider)
             
