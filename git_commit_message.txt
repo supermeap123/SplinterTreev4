@@ -1,6 +1,6 @@
-fix: properly handle message streaming over 2000 char limit
+fix: add proper groq provider prefix handling in API
 
-- Modified handle_message to create new messages when content exceeds Discord's 2000 char limit
-- Ensures proper model name prefix on split messages
-- Maintains streaming functionality across multiple messages
-- Fixes bug where content would overflow into first message instead of creating new ones
+- Added support for 'groq' provider in OpenPipe API calls
+- Uses 'openpipe:groq/' prefix for Groq models
+- Maintains 'openpipe:openrouter/' prefix for OpenRouter models
+- Updated both streaming and non-streaming API calls

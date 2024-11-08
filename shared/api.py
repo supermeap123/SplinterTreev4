@@ -153,8 +153,13 @@ class API:
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
-            # Prepend 'openpipe:openrouter/' only for OpenRouter provider
-            openpipe_model = f"openpipe:openrouter/{model}" if provider == 'openrouter' else model
+            # Add appropriate prefix based on provider
+            if provider == 'openrouter':
+                openpipe_model = f"openpipe:openrouter/{model}"
+            elif provider == 'groq':
+                openpipe_model = f"openpipe:groq/{model}"
+            else:
+                openpipe_model = model
             
             # Validate and normalize message roles
             validated_messages = await self._validate_message_roles(messages)
@@ -209,8 +214,13 @@ class API:
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
-            # Prepend 'openpipe:openrouter/' only for OpenRouter provider
-            openpipe_model = f"openpipe:openrouter/{model}" if provider == 'openrouter' else model
+            # Add appropriate prefix based on provider
+            if provider == 'openrouter':
+                openpipe_model = f"openpipe:openrouter/{model}"
+            elif provider == 'groq':
+                openpipe_model = f"openpipe:groq/{model}"
+            else:
+                openpipe_model = model
             
             logging.debug(f"[API] Making OpenPipe request to model: {openpipe_model}")
             logging.debug(f"[API] Request messages structure:")
