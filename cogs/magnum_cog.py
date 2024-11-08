@@ -11,7 +11,7 @@ class MagnumCog(BaseCog):
             name="Magnum",
             nickname="Magnum",
             trigger_words=['magnum'],
-            model="anthropic-org/magnum-v4-72b",
+            model="anthracite-org/magnum-v4-72b",
             provider="openrouter",
             prompt_file="magnum",
             supports_vision=False
