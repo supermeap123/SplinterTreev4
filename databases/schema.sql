@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS logs (
     response TEXT NOT NULL,
     status_code INTEGER NOT NULL,
     tags TEXT,
+    user_id TEXT,
+    guild_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -63,3 +65,5 @@ CREATE INDEX IF NOT EXISTS idx_summaries_channel ON chat_summaries(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_timestamp ON chat_summaries(end_timestamp);
 CREATE INDEX IF NOT EXISTS idx_logs_requested_at ON logs(requested_at);
 CREATE INDEX IF NOT EXISTS idx_logs_status_code ON logs(status_code);
+CREATE INDEX IF NOT EXISTS idx_logs_user_id ON logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_logs_guild_id ON logs(guild_id);

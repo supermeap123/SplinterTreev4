@@ -11,7 +11,7 @@ class HermesCog(BaseCog):
             name="Hermes",
             nickname="Hermes",
             trigger_words=['hermes'],
-            model="nousresearch/hermes-3-llama-3.1-405b",
+            model="nousresearch/hermes-3-llama-3.1-405b:free",
             provider="openrouter",
             prompt_file="hermes",
             supports_vision=False
@@ -76,13 +76,19 @@ class HermesCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Hermes] Using temperature: {temperature}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter"
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id
             )
 
             return response_stream

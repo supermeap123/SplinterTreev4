@@ -11,8 +11,8 @@ class Llama32_11bCog(BaseCog):
             name="Llama-3.2-11b",
             nickname="Llama",
             trigger_words=['llama32', 'llama 32', 'llama'],
-            model="llama-3.2-11b-vision-preview",
-            provider="groq",
+            model="meta-llama/llama-3.2-11b-vision-instruct:free",
+            provider="openrouter",
             prompt_file="llama",
             supports_vision=True
         )
@@ -38,7 +38,7 @@ class Llama32_11bCog(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using groq"""
+        """Generate a response using openrouter"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -106,13 +106,19 @@ class Llama32_11bCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Llama-3.2-11b] Using temperature: {temperature}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="groq"
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id
             )
 
             return response_stream

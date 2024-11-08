@@ -20,7 +20,7 @@ class {class_name}(BaseCog):
             nickname="{nickname}",
             trigger_words={trigger_words},
             model="{model}",
-            provider="{provider}",
+            provider="openrouter",
             prompt_file="{prompt_file}",
             supports_vision={supports_vision}
         )
@@ -49,7 +49,7 @@ class {class_name}(BaseCog):
 # Template for generate_response with vision support
 VISION_RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
-        """Generate a response using {provider}"""
+        """Generate a response using openrouter"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -117,13 +117,19 @@ VISION_RESPONSE_TEMPLATE = '''
             temperature = self.get_temperature()
             logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="{provider}"
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id
             )
 
             return response_stream
@@ -135,7 +141,7 @@ VISION_RESPONSE_TEMPLATE = '''
 # Template for generate_response without vision support
 TEXT_RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
-        """Generate a response using {provider}"""
+        """Generate a response using openrouter"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -173,13 +179,19 @@ TEXT_RESPONSE_TEMPLATE = '''
             temperature = self.get_temperature()
             logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="{provider}"
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id
             )
 
             return response_stream
@@ -202,7 +214,7 @@ async def setup(bot):
         logging.error(f"[{log_name}] Failed to register cog: {{e}}", exc_info=True)
         raise'''
 
-# Configuration for each cog
+# Configuration for each cog based on OpenRouter models
 COGS_CONFIG = {
     'gemini': {
         'class_name': 'GeminiCog',
@@ -210,7 +222,6 @@ COGS_CONFIG = {
         'nickname': 'Gemini',
         'trigger_words': "['gemini']",
         'model': 'google/gemini-flash-1.5',
-        'provider': 'openrouter',
         'prompt_file': 'gemini',
         'supports_vision': 'True',
         'log_name': 'Gemini',
@@ -221,8 +232,7 @@ COGS_CONFIG = {
         'name': 'Hermes',
         'nickname': 'Hermes',
         'trigger_words': "['hermes']",
-        'model': 'nousresearch/hermes-3-llama-3.1-405b',
-        'provider': 'openrouter',
+        'model': 'nousresearch/hermes-3-llama-3.1-405b:free',
         'prompt_file': 'hermes',
         'supports_vision': 'False',
         'log_name': 'Hermes',
@@ -234,7 +244,6 @@ COGS_CONFIG = {
         'nickname': 'Nemotron',
         'trigger_words': "['nemotron']",
         'model': 'nvidia/llama-3.1-nemotron-70b-instruct',
-        'provider': 'openrouter',
         'prompt_file': 'nemotron',
         'supports_vision': 'False',
         'log_name': 'Nemotron',
@@ -246,7 +255,6 @@ COGS_CONFIG = {
         'nickname': 'OpenChat',
         'trigger_words': "['openchat']",
         'model': 'openchat/openchat-7b:free',
-        'provider': 'openrouter',
         'prompt_file': 'openchat',
         'supports_vision': 'False',
         'log_name': 'OpenChat',
@@ -257,8 +265,7 @@ COGS_CONFIG = {
         'name': 'Magnum',
         'nickname': 'Magnum',
         'trigger_words': "['magnum']",
-        'model': 'anthracite-org/magnum-v4-72b',
-        'provider': 'openrouter',
+        'model': 'anthropic-org/magnum-v4-72b',
         'prompt_file': 'magnum',
         'supports_vision': 'False',
         'log_name': 'Magnum',
@@ -270,7 +277,6 @@ COGS_CONFIG = {
         'nickname': 'RPlus',
         'trigger_words': "['rplus', 'r plus']",
         'model': 'cohere/command-r-plus',
-        'provider': 'openrouter',
         'prompt_file': 'rplus',
         'supports_vision': 'False',
         'log_name': 'R-Plus',
@@ -282,7 +288,6 @@ COGS_CONFIG = {
         'nickname': 'Sonar',
         'trigger_words': "['sonar']",
         'model': 'perplexity/llama-3.1-sonar-huge-128k-online',
-        'provider': 'openrouter',
         'prompt_file': 'sonar',
         'supports_vision': 'False',
         'log_name': 'Sonar',
@@ -294,7 +299,6 @@ COGS_CONFIG = {
         'nickname': 'Ministral',
         'trigger_words': "['ministral']",
         'model': 'mistralai/ministral-8b',
-        'provider': 'openrouter',
         'prompt_file': 'ministral',
         'supports_vision': 'False',
         'log_name': 'Ministral',
@@ -306,7 +310,6 @@ COGS_CONFIG = {
         'nickname': 'Liquid',
         'trigger_words': "['liquid']",
         'model': 'liquid/lfm-40b:free',
-        'provider': 'openrouter',
         'prompt_file': 'liquid',
         'supports_vision': 'False',
         'log_name': 'Liquid',
@@ -318,7 +321,6 @@ COGS_CONFIG = {
         'nickname': 'Noromaid',
         'trigger_words': "['noromaid']",
         'model': 'neversleep/noromaid-20b',
-        'provider': 'openrouter',
         'prompt_file': 'noromaid',
         'supports_vision': 'False',
         'log_name': 'Noromaid',
@@ -330,7 +332,6 @@ COGS_CONFIG = {
         'nickname': 'Haiku',
         'trigger_words': "['claude3haiku', 'haiku', 'claude 3 haiku']",
         'model': 'anthropic/claude-3-5-haiku:beta',
-        'provider': 'openrouter',
         'prompt_file': 'claude',
         'supports_vision': 'True',
         'log_name': 'Claude-3-Haiku',
@@ -341,8 +342,7 @@ COGS_CONFIG = {
         'name': 'Llama-3.2-90B-Vision',
         'nickname': 'Llama Vision',
         'trigger_words': "['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision']",
-        'model': 'llama-3.2-90b-vision-preview',
-        'provider': 'groq',
+        'model': 'meta-llama/llama-3.2-90b-vision-instruct:free',
         'prompt_file': 'llama32_90b',
         'supports_vision': 'True',
         'log_name': 'Llama-3.2-90B-Vision',
@@ -353,36 +353,11 @@ COGS_CONFIG = {
         'name': 'Llama-3.2-11b',
         'nickname': 'Llama',
         'trigger_words': "['llama32', 'llama 32', 'llama']",
-        'model': 'llama-3.2-11b-vision-preview',
-        'provider': 'groq',
+        'model': 'meta-llama/llama-3.2-11b-vision-instruct:free',
         'prompt_file': 'llama',
         'supports_vision': 'True',
         'log_name': 'Llama-3.2-11b',
         'qualified_name': 'Llama-3.2-11b'
-    },
-    'gemma': {
-        'class_name': 'GemmaCog',
-        'name': 'Gemma',
-        'nickname': 'Gemma',
-        'trigger_words': "['gemma']",
-        'model': 'gemma2-9b-it',
-        'provider': 'groq',
-        'prompt_file': 'gemma',
-        'supports_vision': 'False',
-        'log_name': 'Gemma',
-        'qualified_name': 'Gemma'
-    },
-    'mixtral': {
-        'class_name': 'MixtralCog',
-        'name': 'Mixtral',
-        'nickname': 'Mixtral',
-        'trigger_words': "['mixtral']",
-        'model': 'mixtral-8x7b-32768',
-        'provider': 'groq',
-        'prompt_file': 'mixtral',
-        'supports_vision': 'False',
-        'log_name': 'Mixtral',
-        'qualified_name': 'Mixtral'
     }
 }
 
@@ -399,7 +374,7 @@ def update_cog(cog_name, config):
             template = TEXT_RESPONSE_TEMPLATE
 
         cog_content += template.format(
-            provider=config['provider'],
+            provider="openrouter",
             log_name=config['log_name'],
             name=config['name']
         )

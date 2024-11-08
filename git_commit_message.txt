@@ -1,5 +1,8 @@
-fix(api): Use documented openpipe:provider/ format consistently
+feat: Add user tracking and standardize OpenRouter models
 
-- Simplify _get_prefixed_model to always use openpipe:provider/ format
-- Remove provider-specific prefix variations
-- Fix model prefixing to match OpenPipe API documentation
+- Add user_id and guild_id tracking to API logs
+- Update all models to use OpenRouter provider
+- Update model names to match current OpenRouter offerings
+- Add meta-llama vision models with correct paths
+- Remove non-OpenRouter models and providers
+- Add user and guild ID tracking to all API calls

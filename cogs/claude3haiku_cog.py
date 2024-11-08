@@ -106,13 +106,19 @@ class Claude3HaikuCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Claude-3-Haiku] Using temperature: {temperature}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter"
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id
             )
 
             return response_stream

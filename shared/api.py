@@ -153,7 +153,7 @@ class API:
             return f"openpipe:{provider}/{model}"
         return model
 
-    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None):
+    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None):
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
@@ -199,7 +199,9 @@ class API:
                 },
                 resp_payload=completion_obj,
                 status_code=200,
-                tags={"source": "openpipe"}
+                tags={"source": "openpipe"},
+                user_id=user_id,
+                guild_id=guild_id
             )
         except Exception as e:
             error_message = str(e)
@@ -212,7 +214,7 @@ class API:
         max_tries=5,
         max_time=60
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None, user_id: str = None, guild_id: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
             # Get prefixed model name
             openpipe_model = self._get_prefixed_model(model, provider)
@@ -224,7 +226,7 @@ class API:
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
             if stream:
-                return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider)
+                return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id)
             else:
                 # Validate and normalize message roles
                 validated_messages = await self._validate_message_roles(messages)
@@ -259,7 +261,9 @@ class API:
                     },
                     resp_payload=result,
                     status_code=200,
-                    tags={"source": "openpipe"}
+                    tags={"source": "openpipe"},
+                    user_id=user_id,
+                    guild_id=guild_id
                 )
 
                 return result
@@ -270,7 +274,7 @@ class API:
             raise Exception(f"OpenPipe API error: {error_message}")
 
     # Alias for OpenRouter models to use OpenPipe
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
         return await self.call_openpipe(
             messages=messages, 
@@ -278,10 +282,12 @@ class API:
             temperature=temperature, 
             stream=stream, 
             max_tokens=max_tokens, 
-            provider='openrouter'
+            provider='openrouter',
+            user_id=user_id,
+            guild_id=guild_id
         )
 
-    async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None):
+    async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None, user_id: str = None, guild_id: str = None):
         """Report interaction metrics"""
         try:
             if self.db_conn is None or self.db_cursor is None:
@@ -294,8 +300,17 @@ class API:
             tags_str = json.dumps(tags)
 
             # Prepare SQL statement
-            sql = "INSERT INTO logs (requested_at, received_at, request, response, status_code, tags) VALUES (?, ?, ?, ?, ?, ?)"
-            values = (requested_at, received_at, json.dumps(req_payload), json.dumps(resp_payload), status_code, tags_str)
+            sql = """
+                INSERT INTO logs (
+                    requested_at, received_at, request, response, 
+                    status_code, tags, user_id, guild_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """
+            values = (
+                requested_at, received_at, json.dumps(req_payload),
+                json.dumps(resp_payload), status_code, tags_str,
+                user_id, guild_id
+            )
 
             # Execute SQL statement
             self.db_cursor.execute(sql, values)
