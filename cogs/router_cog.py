@@ -89,14 +89,22 @@ Return ONLY the model ID exactly as shown above (case-sensitive), no explanation
             selected_model = selected_model.replace('"', '').replace("'", '')
             logging.info(f"[Router] Selected model: {selected_model}")
 
+            # Construct the full cog name by appending 'Cog'
+            selected_cog_name = f"{selected_model}Cog"
+
             # Get the corresponding cog
-            selected_cog = self.bot.get_cog(selected_model)
+            selected_cog = None
+            for cog_name, cog in self.bot.cogs.items():
+                if cog_name == selected_cog_name:
+                    selected_cog = cog
+                    break
+
             if selected_cog:
                 # Use the selected cog's generate_response
                 return await selected_cog.generate_response(message)
             else:
                 # Fallback to Ministral if selected cog not found
-                fallback_cog = self.bot.get_cog('Ministral')
+                fallback_cog = self.bot.get_cog('MinistralCog')
                 if fallback_cog:
                     logging.warning(f"[Router] Selected model {selected_model} not found, falling back to Ministral")
                     return await fallback_cog.generate_response(message)
