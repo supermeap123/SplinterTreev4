@@ -45,6 +45,12 @@ class ContextCog(commands.Cog):
                 )
                 ''')
                 
+                # Create index on channel_id and timestamp for faster queries
+                cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_channel_timestamp 
+                ON messages(channel_id, timestamp DESC)
+                ''')
+                
                 # Create context_windows table if not exists
                 cursor.execute('''
                 CREATE TABLE IF NOT EXISTS context_windows (
@@ -64,38 +70,101 @@ class ContextCog(commands.Cog):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # Get context window size for this channel
-                window_size = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
+                # Always get 50 messages for API context
+                window_size = 50
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Get messages ordered by timestamp, excluding duplicates and specified message
+                # Get messages with improved duplicate detection and ordering
                 cursor.execute('''
-                WITH RankedMessages AS (
+                WITH RECURSIVE
+                MessageChain AS (
+                    -- Get initial set of messages
                     SELECT 
-                        id, user_id, content, is_assistant, persona_name, emotion, timestamp,
-                        LAG(content) OVER (PARTITION BY is_assistant ORDER BY timestamp) as prev_content
+                        id,
+                        user_id,
+                        content,
+                        is_assistant,
+                        persona_name,
+                        emotion,
+                        timestamp,
+                        content as last_content,
+                        1 as depth
                     FROM messages
-                    WHERE channel_id = ? AND (? IS NULL OR id != ?)
+                    WHERE channel_id = ? 
+                    AND (? IS NULL OR id != ?)
                     ORDER BY timestamp DESC
-                    LIMIT ?
+                    LIMIT 1
+                    
+                    UNION ALL
+                    
+                    -- Recursively get messages, avoiding repetitive content
+                    SELECT 
+                        m.id,
+                        m.user_id,
+                        m.content,
+                        m.is_assistant,
+                        m.persona_name,
+                        m.emotion,
+                        m.timestamp,
+                        CASE 
+                            WHEN m.content != mc.last_content THEN m.content 
+                            ELSE mc.last_content
+                        END as last_content,
+                        mc.depth + 1
+                    FROM messages m
+                    JOIN MessageChain mc ON m.timestamp < mc.timestamp
+                    WHERE m.channel_id = ?
+                    AND (? IS NULL OR m.id != ?)
+                    AND mc.depth < ?
+                    AND (
+                        -- Include if content is different from last 3 messages
+                        m.content NOT IN (
+                            SELECT content 
+                            FROM messages 
+                            WHERE channel_id = ? 
+                            AND timestamp > m.timestamp 
+                            ORDER BY timestamp DESC 
+                            LIMIT 3
+                        )
+                    )
                 )
-                SELECT id, user_id, content, is_assistant, persona_name, emotion, timestamp
-                FROM RankedMessages
-                WHERE content != prev_content OR prev_content IS NULL
+                SELECT DISTINCT
+                    id,
+                    user_id,
+                    content,
+                    is_assistant,
+                    persona_name,
+                    emotion,
+                    timestamp
+                FROM MessageChain
+                WHERE content != last_content OR depth = 1
                 ORDER BY timestamp ASC
-                ''', (channel_id, exclude_message_id, exclude_message_id, window_size))
+                ''', (
+                    channel_id, exclude_message_id, exclude_message_id,
+                    channel_id, exclude_message_id, exclude_message_id,
+                    window_size, channel_id
+                ))
                 
                 messages = []
                 seen_contents = set()  # Track seen message contents
                 
                 for row in cursor.fetchall():
                     content = row[2]
-                    # Skip if we've seen this content before
+                    # Skip if we've seen this exact content before
                     if content in seen_contents:
                         continue
-                    seen_contents.add(content)
                     
+                    # Skip if content is too similar to recent messages
+                    skip = False
+                    for prev_content in list(seen_contents)[-3:]:
+                        if self._similarity_score(content, prev_content) > 0.9:
+                            skip = True
+                            break
+                    if skip:
+                        continue
+                    
+                    seen_contents.add(content)
                     messages.append({
                         'id': row[0],
                         'user_id': row[1],
@@ -111,6 +180,22 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to get context messages: {str(e)}")
             return []
+
+    def _similarity_score(self, str1: str, str2: str) -> float:
+        """Calculate similarity between two strings"""
+        # Simple length-based comparison for performance
+        if abs(len(str1) - len(str2)) / max(len(str1), len(str2)) > 0.3:
+            return 0.0
+        
+        # Convert to sets of words for comparison
+        set1 = set(str1.lower().split())
+        set2 = set(str2.lower().split())
+        
+        # Calculate Jaccard similarity
+        intersection = len(set1.intersection(set2))
+        union = len(set1.union(set2))
+        
+        return intersection / union if union > 0 else 0.0
 
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""

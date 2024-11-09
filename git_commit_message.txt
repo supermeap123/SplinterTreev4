@@ -1,8 +1,14 @@
-Add dynamic glitch profile updates
+Enhance context message retrieval system
 
-- Add server profile updates with each response
-- Implement glitch text generator with zalgo marks
-- Update bot nickname with current model and void theme
-- Add profile update handling in base_cog
-- Ensure nickname stays within Discord's 32-char limit
-- Add error handling for profile updates
+- Always fetch 50 messages for API context
+- Add recursive SQL query for better message chain retrieval
+- Implement content similarity detection to avoid near-duplicates
+- Add database index for faster queries
+- Improve message ordering and duplicate filtering
+- Add content similarity scoring for better context quality
+
+Performance improvements:
+- Optimize SQL with recursive CTE
+- Add channel_id + timestamp index
+- Implement smarter duplicate detection
+- Add content similarity checks
