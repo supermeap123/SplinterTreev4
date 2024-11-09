@@ -195,5 +195,5 @@ When setting custom system prompts, you can use these variables:
         else:
             await ctx.send("Uptime information is not available.")
 
-    async def setup(bot):
-        await bot.add_cog(HelpCog(bot))
+async def setup(bot):
+    await bot.add_cog(HelpCog(bot))
