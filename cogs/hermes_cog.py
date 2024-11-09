@@ -13,7 +13,7 @@ class HermesCog(BaseCog):
             trigger_words=['hermes'],
             model="nousresearch/hermes-3-llama-3.1-405b",
             provider="openrouter",
-            prompt_file="hermes",
+            prompt_file="hermes_prompts",
             supports_vision=False
         )
         logging.debug(f"[Hermes] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class HermesCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = HermesCog(bot)
         await bot.add_cog(cog)

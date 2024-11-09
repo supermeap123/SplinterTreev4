@@ -13,7 +13,7 @@ class GeminiCog(BaseCog):
             trigger_words=['gemini'],
             model="google/gemini-flash-1.5",
             provider="openrouter",
-            prompt_file="gemini",
+            prompt_file="gemini_prompts",
             supports_vision=True
         )
         logging.debug(f"[Gemini] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class GeminiCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = GeminiCog(bot)
         await bot.add_cog(cog)

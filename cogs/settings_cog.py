@@ -24,9 +24,9 @@ class SettingsCog(BaseCog):
         """Override handle_message to do nothing since SettingsCog doesn't handle messages directly."""
         pass
 
-    @commands.command(name="st_set_system_prompt")
+    @commands.command(name="set_system_prompt", aliases=["st_set_system_prompt"])
     @commands.has_permissions(manage_messages=True)
-    async def st_set_system_prompt(self, ctx, agent: str, *, prompt: str):
+    async def set_system_prompt(self, ctx, agent: str, *, prompt: str):
         """Set a custom system prompt for an AI agent in this channel"""
         try:
             # Load existing prompts
@@ -46,9 +46,13 @@ class SettingsCog(BaseCog):
 
             # Set the prompt
             if guild_id:
-                dynamic_prompts[guild_id][channel_id] = prompt
+                if channel_id not in dynamic_prompts[guild_id]:
+                    dynamic_prompts[guild_id][channel_id] = {}
+                dynamic_prompts[guild_id][channel_id][agent] = prompt
             else:
-                dynamic_prompts[channel_id] = prompt
+                if channel_id not in dynamic_prompts:
+                    dynamic_prompts[channel_id] = {}
+                dynamic_prompts[channel_id][agent] = prompt
 
             # Save updated prompts
             with open(self.dynamic_prompts_file, "w") as f:
@@ -60,9 +64,9 @@ class SettingsCog(BaseCog):
             logging.error(f"Error setting system prompt: {str(e)}")
             await ctx.reply("❌ Failed to set system prompt. Please try again.")
 
-    @commands.command(name="st_reset_system_prompt")
+    @commands.command(name="reset_system_prompt", aliases=["st_reset_system_prompt"])
     @commands.has_permissions(manage_messages=True)
-    async def st_reset_system_prompt(self, ctx, agent: str):
+    async def reset_system_prompt(self, ctx, agent: str):
         """Reset the system prompt for an AI agent to its default in this channel"""
         try:
             if not os.path.exists(self.dynamic_prompts_file):
@@ -78,11 +82,17 @@ class SettingsCog(BaseCog):
             # Remove prompt if it exists
             if guild_id and guild_id in dynamic_prompts:
                 if channel_id in dynamic_prompts[guild_id]:
-                    del dynamic_prompts[guild_id][channel_id]
-                    if not dynamic_prompts[guild_id]:  # Remove guild if empty
-                        del dynamic_prompts[guild_id]
+                    if agent in dynamic_prompts[guild_id][channel_id]:
+                        del dynamic_prompts[guild_id][channel_id][agent]
+                    if not dynamic_prompts[guild_id][channel_id]:
+                        del dynamic_prompts[guild_id][channel_id]
+                if not dynamic_prompts[guild_id]:
+                    del dynamic_prompts[guild_id]
             elif channel_id in dynamic_prompts:
-                del dynamic_prompts[channel_id]
+                if agent in dynamic_prompts[channel_id]:
+                    del dynamic_prompts[channel_id][agent]
+                if not dynamic_prompts[channel_id]:
+                    del dynamic_prompts[channel_id]
 
             # Save updated prompts
             with open(self.dynamic_prompts_file, "w") as f:
@@ -94,5 +104,5 @@ class SettingsCog(BaseCog):
             logging.error(f"Error resetting system prompt: {str(e)}")
             await ctx.reply("❌ Failed to reset system prompt. Please try again.")
 
-def setup(bot):
-    bot.add_cog(SettingsCog(bot))
+async def setup(bot):
+    await bot.add_cog(SettingsCog(bot))

@@ -13,7 +13,7 @@ class MixtralCog(BaseCog):
             trigger_words=['mixtral'],
             model="mixtral-8x7b-32768",
             provider="groq",
-            prompt_file="mixtral",
+            prompt_file="mixtral_prompts",
             supports_vision=False
         )
         logging.debug(f"[Mixtral] Initialized with raw_prompt: {self.raw_prompt}")
@@ -44,9 +44,13 @@ class MixtralCog(BaseCog):
             formatted_prompt = self.format_prompt(message)
             messages = [{"role": "system", "content": formatted_prompt}]
 
-            # Get last 50 messages from database
+            # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=50)
+            history_messages = await self.context_cog.get_context_messages(
+                channel_id, 
+                limit=50,
+                exclude_message_id=str(message.id)
+            )
             
             # Format history messages with proper roles
             for msg in history_messages:
@@ -76,13 +80,20 @@ class MixtralCog(BaseCog):
             temperature = self.get_temperature()
             logging.debug(f"[Mixtral] Using temperature: {temperature}")
 
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
             # Call API and return the stream directly
             response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="groq"
+                provider="groq",
+                user_id=user_id,
+                guild_id=guild_id,
+                prompt_file=self.prompt_file
             )
 
             return response_stream
@@ -92,7 +103,6 @@ class MixtralCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = MixtralCog(bot)
         await bot.add_cog(cog)

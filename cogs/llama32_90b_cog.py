@@ -13,7 +13,7 @@ class Llama3290bVisionCog(BaseCog):
             trigger_words=['llamavision', 'describe image', 'what is this image', 'llama', 'llama3', 'llama 3', 'llama 3.2', 'llama3.2', '90b', 'llama 90b', 'vision'],
             model="meta-llama/llama-3.2-90b-vision-instruct",
             provider="openrouter",
-            prompt_file="llama32_90b",
+            prompt_file="llama32_90b_prompts",
             supports_vision=True
         )
         logging.debug(f"[Llama-3.2-90B-Vision] Initialized with raw_prompt: {self.raw_prompt}")
@@ -98,7 +98,7 @@ class Llama3290bVisionCog(BaseCog):
             # Add the text content
             content.append({
                 "type": "text",
-                "text": message.content
+                "text": "Please describe this image in detail." if has_images else message.content
             })
 
             # Add the message with multimodal content
@@ -138,7 +138,6 @@ class Llama3290bVisionCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = Llama3290bVisionCog(bot)
         await bot.add_cog(cog)

@@ -13,7 +13,7 @@ class SonarCog(BaseCog):
             trigger_words=['sonar'],
             model="perplexity/llama-3.1-sonar-huge-128k-online",
             provider="openrouter",
-            prompt_file="sonar",
+            prompt_file="sonar_prompts",
             supports_vision=False
         )
         logging.debug(f"[Sonar] Initialized with raw_prompt: {self.raw_prompt}")
@@ -137,9 +137,7 @@ class SonarCog(BaseCog):
             logging.error(f"Error processing message for Sonar: {e}")
             return None
 
-
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = SonarCog(bot)
         await bot.add_cog(cog)

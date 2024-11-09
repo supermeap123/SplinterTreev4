@@ -13,7 +13,7 @@ class Llama32_11bCog(BaseCog):
             trigger_words=['11b'],
             model="meta-llama/llama-3.2-11b-vision-instruct",
             provider="openrouter",
-            prompt_file="llama32_11b",
+            prompt_file="llama32_11b_prompts",
             supports_vision=False
         )
         logging.debug(f"[Llama-3.2-11b] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class Llama32_11bCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = Llama32_11bCog(bot)
         await bot.add_cog(cog)

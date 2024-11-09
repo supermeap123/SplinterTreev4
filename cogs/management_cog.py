@@ -5,9 +5,18 @@ import shlex
 from datetime import datetime
 from .base_cog import BaseCog
 
-class ManagementCog(commands.Cog):
+class ManagementCog(BaseCog):
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(
+            bot=bot,
+            name="Management",
+            nickname="Management",
+            trigger_words=[],  # No trigger words needed for management
+            model="meta-llama/llama-3.1-405b-instruct",
+            provider="openrouter",
+            prompt_file=None,
+            supports_vision=False
+        )
         self.start_time = datetime.utcnow()
 
     @commands.command(name="uptime")
@@ -79,6 +88,7 @@ class ManagementCog(commands.Cog):
                 trigger_words=new_trigger_words,
                 model=original_cog.model,
                 provider=original_cog.provider,
+                prompt_file=original_cog.prompt_file,
                 supports_vision=original_cog.supports_vision
             )
 
@@ -94,4 +104,10 @@ class ManagementCog(commands.Cog):
             await ctx.send(f"❌ Failed to clone agent: {str(e)}")
 
 async def setup(bot):
-    await bot.add_cog(ManagementCog(bot))
+    try:
+        cog = ManagementCog(bot)
+        await bot.add_cog(cog)
+        logging.info(f"[Management] Registered cog with qualified_name: {cog.qualified_name}")
+    except Exception as e:
+        logging.error(f"[Management] Failed to register cog: {e}", exc_info=True)
+        raise

@@ -13,7 +13,7 @@ class Claude3HaikuCog(BaseCog):
             trigger_words=['claude3haiku', 'haiku', 'claude 3 haiku'],
             model="anthropic/claude-3-5-haiku:beta",
             provider="openrouter",
-            prompt_file="claude",
+            prompt_file="claude_prompts",
             supports_vision=True
         )
         logging.debug(f"[Claude-3-Haiku] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class Claude3HaikuCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = Claude3HaikuCog(bot)
         await bot.add_cog(cog)

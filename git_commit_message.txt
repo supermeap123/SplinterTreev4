@@ -1,4 +1,10 @@
-Updated README.md and help commands to reflect current state of bot code.
+Standardize bot cogs to consistent structure
 
-- Updated README.md with new models and features.
-- Updated `cogs/help_cog.py` with latest commands and model information.
+- Updated 15 cog files in cogs/ directory
+- Ensured consistent initialization parameters
+- Standardized logging and error handling
+- Maintained each cog's unique model, provider, and trigger words
+- Updated prompt file names to use _prompts suffix
+- Verified uniform setup function pattern
+
+Improves code readability, maintainability, and future modifications

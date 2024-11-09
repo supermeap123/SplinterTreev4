@@ -13,7 +13,7 @@ class SorcererCog(BaseCog):
             trigger_words=['sorcerer', 'sorcererlm'],
             model="raifle/sorcererlm-8x22b",
             provider="openrouter",
-            prompt_file="sorcerer",
+            prompt_file="sorcerer_prompts",
             supports_vision=False
         )
         logging.debug(f"[Sorcerer] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class SorcererCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = SorcererCog(bot)
         await bot.add_cog(cog)

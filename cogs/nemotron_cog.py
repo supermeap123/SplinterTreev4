@@ -13,7 +13,7 @@ class NemotronCog(BaseCog):
             trigger_words=['nemotron'],
             model="nvidia/llama-3.1-nemotron-70b-instruct",
             provider="openrouter",
-            prompt_file="nemotron",
+            prompt_file="nemotron_prompts",
             supports_vision=False
         )
         logging.debug(f"[Nemotron] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class NemotronCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = NemotronCog(bot)
         await bot.add_cog(cog)

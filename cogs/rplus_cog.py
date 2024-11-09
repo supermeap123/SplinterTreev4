@@ -13,7 +13,7 @@ class RPlusCog(BaseCog):
             trigger_words=['rplus', 'r plus'],
             model="cohere/command-r-plus",
             provider="openrouter",
-            prompt_file="rplus",
+            prompt_file="rplus_prompts",
             supports_vision=False
         )
         logging.debug(f"[R-Plus] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class RPlusCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = RPlusCog(bot)
         await bot.add_cog(cog)

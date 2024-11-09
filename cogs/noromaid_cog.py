@@ -13,7 +13,7 @@ class NoromaidCog(BaseCog):
             trigger_words=['noromaid'],
             model="neversleep/noromaid-20b",
             provider="openrouter",
-            prompt_file="noromaid",
+            prompt_file="noromaid_prompts",
             supports_vision=False
         )
         logging.debug(f"[Noromaid] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class NoromaidCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = NoromaidCog(bot)
         await bot.add_cog(cog)

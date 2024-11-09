@@ -13,7 +13,7 @@ class OpenChatCog(BaseCog):
             trigger_words=['openchat'],
             model="openchat/openchat-7b:free",
             provider="openrouter",
-            prompt_file="openchat",
+            prompt_file="openchat_prompts",
             supports_vision=False
         )
         logging.debug(f"[OpenChat] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class OpenChatCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = OpenChatCog(bot)
         await bot.add_cog(cog)

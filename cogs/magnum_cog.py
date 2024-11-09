@@ -13,7 +13,7 @@ class MagnumCog(BaseCog):
             trigger_words=['magnum'],
             model="anthracite-org/magnum-v4-72b",
             provider="openrouter",
-            prompt_file="magnum",
+            prompt_file="magnum_prompts",
             supports_vision=False
         )
         logging.debug(f"[Magnum] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class MagnumCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = MagnumCog(bot)
         await bot.add_cog(cog)

@@ -13,7 +13,7 @@ class MinistralCog(BaseCog):
             trigger_words=['ministral'],
             model="mistralai/ministral-8b",
             provider="openrouter",
-            prompt_file="ministral",
+            prompt_file="ministral_prompts",
             supports_vision=False
         )
         logging.debug(f"[Ministral] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class MinistralCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = MinistralCog(bot)
         await bot.add_cog(cog)

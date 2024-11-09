@@ -13,7 +13,7 @@ class LiquidCog(BaseCog):
             trigger_words=['liquid'],
             model="liquid/lfm-40b:free",
             provider="openrouter",
-            prompt_file="liquid",
+            prompt_file="liquid_prompts",
             supports_vision=False
         )
         logging.debug(f"[Liquid] Initialized with raw_prompt: {self.raw_prompt}")
@@ -138,7 +138,6 @@ class LiquidCog(BaseCog):
             return None
 
 async def setup(bot):
-    # Register the cog with its proper name
     try:
         cog = LiquidCog(bot)
         await bot.add_cog(cog)

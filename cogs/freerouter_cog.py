@@ -12,11 +12,13 @@ class FreeRouterCog(BaseCog):
             nickname="FreeRouter",
             trigger_words=["openrouter", "freerouter"],  # Added both keywords
             model="openpipe:FreeRouter-v1-162",
-            prompt_file="freerouter",
+            provider="openpipe",  # Corrected provider back to "openrouter"
+            prompt_file="freerouter_prompts",
             supports_vision=False
         )
-        logging.debug(f"[FreeRouter] Initialized")
+        logging.debug(f"[FreeRouter] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[FreeRouter] Using provider: {self.provider}")
+        logging.debug(f"[FreeRouter] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
@@ -25,74 +27,6 @@ class FreeRouterCog(BaseCog):
         except Exception as e:
             logging.error(f"[FreeRouter] Failed to load temperatures.json: {e}")
             self.temperatures = {}
-
-        # Model selection system prompt
-        self.model_selection_prompt = """### FreeRouter Model Selection Prompt ###
-        
-Given message: "{user_message}"
-Given context: "{context}"
-
-# TASK
-You are FreeRouter, an AI model that selects the most appropriate AI model based on message content.
-Return ONLY the exact model ID without explanation or additional text.
-
-# AVAILABLE MODELS AND USE CASES
-- Gemini: Complex analytical reasoning with formal tone  
-- Magnum: Complex reasoning with casual/conversational tone
-- Claude3Haiku: Basic coding questions and programming help
-- Nemotron: Complex coding and technical programming
-- Sydney: Emotional support and empathy
-- Sonar: Internet trends and current events
-- Ministral: General factual queries
-- Sorcerer: Advanced RP and storytelling
-
-# ANALYSIS STEPS
-1. Check for code indicators:
-   - Code blocks (```)
-   - Programming terms (function, code, api, database)
-   IF found:
-     IF complex/advanced -> Nemotron
-     IF basic/simple -> Claude3Haiku
-
-2. Check for complex reasoning:
-   - Message length > 20 words
-   - Analysis terms (analyze, evaluate, compare)
-   IF found:
-     IF formal/academic tone -> Gemini
-     IF casual/conversational -> Magnum
-
-3. Check for trends/events:
-   - News/current event terms
-   - "What's happening"
-   - Trends/popularity
-   IF found -> Sonar
-
-4. Check for emotional content:
-   - Feeling words
-   - Support seeking
-   - Personal issues
-   IF found -> Sydney
-
-5. Check for RP and storytelling indicators:
-   - Story/narrative elements
-   - Character interactions
-   - World-building details
-   IF found -> Sorcerer
-
-6. If no other match -> Ministral
-
-# OUTPUT FORMAT
-Return exactly one of: Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral, Sorcerer
-
-# PRIORITY ORDER (IF MULTIPLE MATCH)
-1. Code (Nemotron/Claude3Haiku)
-2. Complex reasoning (Gemini/Magnum)
-3. Trends (Sonar)
-4. Emotional (Sydney)
-5. RP and storytelling (Sorcerer)
-6. General (Ministral)
-
-Return model ID:"""
 
     @property
     def qualified_name(self):
@@ -104,9 +38,7 @@ Return model ID:"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """
-        Generate a response using the selected model.
-        """
+        """Generate a response using the selected model"""
         try:
             # Get context from previous messages
             channel_id = str(message.channel.id)
