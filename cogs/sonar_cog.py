@@ -137,6 +137,7 @@ class SonarCog(BaseCog):
             logging.error(f"Error processing message for Sonar: {e}")
             return None
 
+
 async def setup(bot):
     # Register the cog with its proper name
     try:

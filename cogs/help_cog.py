@@ -122,6 +122,23 @@ class HelpCog(commands.Cog):
     • {{TZ}} - Local timezone
     • {{SERVER_NAME}} - Current Discord server name
     • {{CHANNEL_NAME}} - Current channel name
+
+
+    **OpenRouter Models:**
+    • **Magnum**: A series of models designed to replicate the prose quality of the Claude 3 models, specifically Sonnet(https://openrouter.ai/anthropic/claude-3.5-sonnet) and Opus(https://openrouter.ai/anthropic/claude-3-opus). The model is fine-tuned on top of Qwen2.5 72B. Trigger word: "magnum". Note: Sometimes Magnum thinks it's from Anthropic but it's really from anthracite-org.
+    • **Gemini Pro**: Google's advanced model. Trigger word: "gemini"
+    • **Mistral**: Ministral 8B is an 8B parameter model featuring a unique interleaved sliding-window attention pattern for faster, memory-efficient inference. Designed for edge use cases, it supports up to 128k context length and excels in knowledge and reasoning tasks. It outperforms peers in the sub-10B category, making it perfect for low-latency, privacy-first applications. Trigger word: "mistral"
+    • **Llama-2**: The Llama 90B Vision model is a top-tier, 90-billion-parameter multimodal model designed for the most challenging visual reasoning and language tasks. It offers unparalleled accuracy in image captioning, visual question answering, and advanced image-text comprehension. Pre-trained on vast multimodal datasets and fine-tuned with human feedback, the Llama 90B Vision is engineered to handle the most demanding image-based AI tasks. This model is perfect for industries requiring cutting-edge multimodal AI capabilities, particularly those dealing with complex, real-time visual and textual analysis. Usage of this model is subject to Meta's Acceptable Use Policy. Trigger word: "llama2"
+    • **NoroMaid-20B**: A collab between IkariDev and Undi. This merge is suitable for RP, ERP, and general knowledge. Trigger word: "noromaid"
+    • **MythoMax-L2-13B**: One of the highest performing and most popular fine-tunes of Llama 2 13B, with rich descriptions and roleplay. Trigger word: "mythomax"
+    • **Grok**: Terrible bot from xai. It thinks it's from Hitchhikers Guide to the Galaxy. Trigger word: "grok"
+
+    **OpenPipe Models:**
+    • **Hermes**: Hermes 3 is a generalist language model with many improvements over Hermes 2, including advanced agentic capabilities, much better roleplaying, reasoning, multi-turn conversation, long context coherence, and improvements across the board. Hermes 3 405B is a frontier-level, full-parameter finetune of the Llama-3.1 405B foundation model, focused on aligning LLMs to the user, with powerful steering capabilities and control given to the end user. The Hermes 3 series builds and expands on the Hermes 2 set of capabilities, including more powerful and reliable function calling and structured output capabilities, generalist assistant capabilities, and improved code generation skills. Hermes 3 is competitive, if not superior, to Llama-3.1 Instruct models at general capabilities, with varying strengths and weaknesses attributable between the two. Trigger word: "hermes"
+    • **Sonar**: Llama 3.1 Sonar is Perplexity's latest model family. It surpasses their earlier Sonar models in cost-efficiency, speed, and performance. The model is built upon the Llama 3.1 405B and has internet access. Trigger word: "sonar"
+    • **Liquid**: Liquid's 40.3B Mixture of Experts (MoE) model. Liquid Foundation Models (LFMs) are large neural networks built with computational units rooted in dynamic systems. LFMs are general-purpose AI models that can be used to model any kind of sequential data, including video, audio, text, time series, and signals. Trigger word: "liquid"
+    • **O1-Mini**: The latest and strongest model family from OpenAI, o1 is designed to spend more time thinking before responding. The o1 models are optimized for math, science, programming, and other STEM-related tasks. They consistently exhibit PhD-level accuracy on benchmarks in physics, chemistry, and biology. Note: This model is currently experimental and not suitable for production use-cases, and may be heavily rate-limited. Trigger word: "o1mini"
+    • **MOA**: The latest and strongest model family from OpenPipe, moa is designed to spend more time thinking before responding. Trigger word: "moa"
     """
 
             for msg in [help_message[i:i + 2000] for i in range(0, len(help_message), 2000)]:
