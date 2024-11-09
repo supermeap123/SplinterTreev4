@@ -139,7 +139,7 @@ async def setup_cogs():
     # Then load all model cogs
     cogs_dir = os.path.join(BOT_DIR, 'cogs')
     for filename in os.listdir(cogs_dir):
-        if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']]:
+        if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']] + ['sorcerer_cog.py']:
             try:
                 module_name = filename[:-3]  # Remove .py
                 logging.debug(f"Attempting to load cog: {module_name}")
@@ -157,6 +157,8 @@ async def setup_cogs():
                     bot.loaded_cogs.append(cog_instance)
                     logging.info(f"Loaded cog: {cog_instance.name}")
                 
+            except commands.errors.ExtensionAlreadyLoaded:
+                logging.info(f"Extension 'cogs.{module_name}' is already loaded, skipping.")
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
                 logging.error(traceback.format_exc())
@@ -181,6 +183,7 @@ async def setup_cogs():
     logging.info(f"Total loaded cogs with handle_message: {len(bot.loaded_cogs)}")
     for cog in bot.loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
+    logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
 
 @tasks.loop(seconds=30)
 async def update_status():
