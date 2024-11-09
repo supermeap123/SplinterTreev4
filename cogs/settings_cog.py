@@ -94,5 +94,5 @@ class SettingsCog(BaseCog):
             logging.error(f"Error resetting system prompt: {str(e)}")
             await ctx.reply("❌ Failed to reset system prompt. Please try again.")
 
-async def setup(bot):
-    await bot.add_cog(SettingsCog(bot))
+def setup(bot):
+    bot.add_cog(SettingsCog(bot))
