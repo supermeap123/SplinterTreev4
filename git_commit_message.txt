@@ -1,7 +1,8 @@
-Update router prompt with void theme
+Add dynamic glitch profile updates
 
-- Replace router prompt with void-themed neural pathway director
-- Improve model selection structure with clearer entity designations
-- Add void detection patterns for better routing accuracy
-- Maintain core routing functionality with enhanced atmospheric elements
-- Update priority system with void-themed hierarchy
+- Add server profile updates with each response
+- Implement glitch text generator with zalgo marks
+- Update bot nickname with current model and void theme
+- Add profile update handling in base_cog
+- Ensure nickname stays within Discord's 32-char limit
+- Add error handling for profile updates

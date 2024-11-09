@@ -13,11 +13,27 @@ import asyncio
 import tempfile
 from typing import Optional, Dict, AsyncGenerator
 from urllib.parse import urlparse
+import random
 
 # Shared cache for image descriptions across all cogs
 image_description_cache: Dict[str, str] = {}
 # Shared set to track handled messages
 handled_messages = set()
+
+# Glitch characters for profile updates
+GLITCH_CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?`~§¶•ªº¹²³€£¥¢₹₽✓™®©¿¡"
+ZALGO_CHARS = [
+    '\u0300', '\u0301', '\u0302', '\u0303', '\u0304', '\u0305', '\u0306', '\u0307',
+    '\u0308', '\u0309', '\u030A', '\u030B', '\u030C', '\u030D', '\u030E', '\u030F',
+    '\u0310', '\u0311', '\u0312', '\u0313', '\u0314', '\u0315', '\u031A', '\u031B',
+    '\u033D', '\u033E', '\u033F', '\u0340', '\u0341', '\u0342', '\u0343', '\u0344',
+    '\u0345', '\u0346', '\u0347', '\u0348', '\u0349', '\u034A', '\u034B', '\u034C',
+    '\u034D', '\u034E', '\u034F', '\u0350', '\u0351', '\u0352', '\u0353', '\u0354',
+    '\u0355', '\u0356', '\u0357', '\u0358', '\u0359', '\u035A', '\u035B', '\u035C',
+    '\u035D', '\u035E', '\u035F', '\u0360', '\u0361', '\u0362', '\u0363', '\u0364',
+    '\u0365', '\u0366', '\u0367', '\u0368', '\u0369', '\u036A', '\u036B', '\u036C',
+    '\u036D', '\u036E', '\u036F'
+]
 
 class RerollView(discord.ui.View):
     def __init__(self, cog, message, original_response):
@@ -89,6 +105,36 @@ class BaseCog(commands.Cog):
             logging.warning(f"Failed to load prompt for {self.name}, using default: {str(e)}")
             self.raw_prompt = self.default_prompt
 
+    def generate_glitch_text(self, text: str) -> str:
+        """Generate glitch text for profile updates"""
+        result = ""
+        for char in text:
+            # Add original character
+            result += char
+            # Add random number of zalgo marks
+            num_marks = random.randint(0, 3)
+            result += ''.join(random.choice(ZALGO_CHARS) for _ in range(num_marks))
+            # Sometimes add a glitch character
+            if random.random() < 0.2:
+                result += random.choice(GLITCH_CHARS)
+        return result
+
+    async def update_bot_profile(self, guild: discord.Guild, model_name: str):
+        """Update bot's server profile with glitch text"""
+        try:
+            # Generate glitch text for the nickname
+            glitch_nick = self.generate_glitch_text(f"{model_name} ⟨v̷o̷i̷d̷⟩")
+            
+            # Ensure nickname doesn't exceed Discord's 32-character limit
+            if len(glitch_nick) > 32:
+                glitch_nick = glitch_nick[:32]
+            
+            # Update the bot's nickname in the guild
+            await guild.me.edit(nick=glitch_nick)
+            logging.debug(f"[{self.name}] Updated profile in {guild.name} to {glitch_nick}")
+        except Exception as e:
+            logging.error(f"[{self.name}] Failed to update profile: {str(e)}")
+
     async def start_typing(self, channel):
         """Start a typing indicator in the channel"""
         try:
@@ -149,6 +195,10 @@ class BaseCog(commands.Cog):
                 sent_messages = []
                 last_update = time.time()
                 current_chunk = f"[{self.name}] "
+                
+                # Update bot's profile if in a guild
+                if message.guild:
+                    await self.update_bot_profile(message.guild, self.name)
                 
                 # Consume the async generator
                 try:
