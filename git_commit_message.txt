@@ -1,6 +1,7 @@
-Update router model prompt with paranoid theme
+Update router prompt with void theme
 
-- Replace standard router prompt with paranoid pattern detection system
-- Maintain same model selection functionality with thematic overlay
-- Update model descriptions with paranoid context
-- Keep core routing logic intact while enhancing atmosphere
+- Replace router prompt with void-themed neural pathway director
+- Improve model selection structure with clearer entity designations
+- Add void detection patterns for better routing accuracy
+- Maintain core routing functionality with enhanced atmospheric elements
+- Update priority system with void-themed hierarchy
