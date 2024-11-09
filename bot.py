@@ -145,26 +145,23 @@ async def setup_cogs():
                 logging.debug(f"Attempting to load cog: {module_name}")
                 
                 # Load the cog extension
-                cog_instance = await bot.load_extension(f'cogs.{module_name}')
+                await bot.load_extension(f'cogs.{module_name}')
                 
                 # Get the cog from bot.cogs using the module name
+                cog_instance = None
                 for cog in bot.cogs.values():
-                    if isinstance(cog, commands.Cog) and hasattr(cog, 'name'):
-                        bot.loaded_cogs.append(cog)
-                        logging.info(f"Loaded cog: {cog.name}")
+                    if isinstance(cog, commands.Cog) and hasattr(cog, 'name') and cog.__class__.__name__.lower() == f"{module_name.lower()}cog":
+                        cog_instance = cog
                         break
+                if cog_instance and hasattr(cog_instance, 'handle_message'):
+                    bot.loaded_cogs.append(cog_instance)
+                    logging.info(f"Loaded cog: {cog_instance.name}")
                 
             except Exception as e:
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
                 logging.error(traceback.format_exc())
 
-    # Load sorcerer cog
-    try:
-        await bot.load_extension('cogs.sorcerer_cog')
-        logging.info("Loaded sorcerer cog")
-    except Exception as e:
-        logging.error(f"Failed to load sorcerer cog: {str(e)}")
-        logging.error(traceback.format_exc())
+    # Removed explicit loading of 'sorcerer_cog' to prevent duplicate loading
 
     # Finally load help cog after all other cogs are loaded
     try:
@@ -181,7 +178,7 @@ async def setup_cogs():
         logging.error(f"Failed to load help cog: {str(e)}")
         logging.error(traceback.format_exc())
 
-    logging.info(f"Total loaded cogs: {len(bot.loaded_cogs)}")
+    logging.info(f"Total loaded cogs with handle_message: {len(bot.loaded_cogs)}")
     for cog in bot.loaded_cogs:
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
 
@@ -287,7 +284,7 @@ async def on_message(message):
                 if model_name:
                     # Get corresponding cog
                     cog = get_cog_by_name(model_name)
-                    if cog:
+                    if cog and hasattr(cog, 'handle_message'):
                         logging.debug(f"Using {model_name} cog to handle reply")
                         await cog.handle_message(message, full_content)
                         return
@@ -303,12 +300,14 @@ async def on_message(message):
     if (is_pinged or has_keyword) or (not content_with_usernames and attachment_contents):
         # Check if Claude2 cog is available
         claude2_cog = get_cog_by_name('Claude-2')
-        if claude2_cog:
+        if claude2_cog and hasattr(claude2_cog, 'handle_message'):
             await claude2_cog.handle_message(message, full_content)
         else:
-            # If Claude2 is not available, use a random cog
-            cog = random.choice(bot.loaded_cogs)
-            await cog.handle_message(message, full_content)
+            # If Claude2 is not available, use a random cog that has handle_message
+            available_cogs = [cog for cog in bot.loaded_cogs if hasattr(cog, 'handle_message')]
+            if available_cogs:
+                cog = random.choice(available_cogs)
+                await cog.handle_message(message, full_content)
 
     # Clean up old processed messages (keep last 1000)
     if len(bot.processed_messages) > 1000:
