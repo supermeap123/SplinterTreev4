@@ -186,14 +186,12 @@ When setting custom system prompts, you can use these variables:
             logging.error(f"[Help] Error sending agent list: {str(e)}", exc_info=True)
             await ctx.send("An error occurred while fetching the agent list. Please try again later.")
 
-    @commands.command(name="uptime", aliases=["st_uptime"])
-    async def uptime_command(self, ctx):
-        """Display how long the bot has been running"""
-        management_cog = self.bot.get_cog('ManagementCog')
-        if management_cog:
-            await management_cog.uptime(ctx)
-        else:
-            await ctx.send("Uptime information is not available.")
-
-def setup(bot):
-    bot.add_cog(HelpCog(bot))
+async def setup(bot):
+    try:
+        cog = HelpCog(bot)
+        await bot.add_cog(cog)
+        logging.info(f"[Help] Registered cog with qualified_name: HelpCog")
+        return cog
+    except Exception as e:
+        logging.error(f"[Help] Failed to register cog: {e}", exc_info=True)
+        raise

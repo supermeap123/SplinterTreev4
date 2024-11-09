@@ -1,10 +1,9 @@
-Standardize bot cogs to consistent structure
+Fix cog loading issues
 
-- Updated 15 cog files in cogs/ directory
-- Ensured consistent initialization parameters
-- Standardized logging and error handling
-- Maintained each cog's unique model, provider, and trigger words
-- Updated prompt file names to use _prompts suffix
-- Verified uniform setup function pattern
+- Remove duplicate uptime command from help_cog.py
+- Fix async/await usage in settings_cog.py and help_cog.py
+- Standardize setup function pattern across cogs
 
-Improves code readability, maintainability, and future modifications
+Resolves:
+- TypeError: object NoneType can't be used in 'await' expression
+- CommandRegistrationError: The command uptime is already an existing command

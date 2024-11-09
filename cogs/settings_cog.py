@@ -105,4 +105,11 @@ class SettingsCog(BaseCog):
             await ctx.reply("❌ Failed to reset system prompt. Please try again.")
 
 async def setup(bot):
-    await bot.add_cog(SettingsCog(bot))
+    try:
+        cog = SettingsCog(bot)
+        await bot.add_cog(cog)
+        logging.info(f"[Settings] Registered cog with qualified_name: {cog.qualified_name}")
+        return cog
+    except Exception as e:
+        logging.error(f"[Settings] Failed to register cog: {e}", exc_info=True)
+        raise
