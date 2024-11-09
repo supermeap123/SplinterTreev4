@@ -53,6 +53,7 @@ class SplinterTreeBot(commands.Bot):
             'user': None,
             'time': None
         }
+        self.cogs_loaded = False  # Flag to prevent multiple cog setups
 
 # Initialize bot with a default command prefix
 bot = SplinterTreeBot(command_prefix='!', intents=intents, help_command=None)
@@ -121,6 +122,10 @@ async def load_context_settings():
 
 async def setup_cogs():
     """Load all cogs"""
+    if bot.cogs_loaded:
+        logging.info("Cogs have already been loaded. Skipping setup.")
+        return
+
     bot.loaded_cogs = []  # Reset loaded cogs list
 
     # Load context settings
@@ -185,6 +190,8 @@ async def setup_cogs():
         logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
     logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
 
+    bot.cogs_loaded = True  # Set the flag to indicate cogs have been loaded
+
 @tasks.loop(seconds=30)
 async def update_status():
     """Update bot status with current uptime"""
@@ -218,7 +225,7 @@ async def process_attachment(attachment):
     if attachment.filename.endswith(('.txt', '.md')):
         content = await attachment.read()
         return content.decode('utf-8')
-    elif attachment.content_type.startswith('image/'):
+    elif attachment.content_type and attachment.content_type.startswith('image/'):
         return f"[Image: {attachment.filename}]"
     else:
         return f"[Attachment: {attachment.filename}]"
@@ -314,7 +321,7 @@ async def on_message(message):
 
     # Clean up old processed messages (keep last 1000)
     if len(bot.processed_messages) > 1000:
-        bot.processed_messages.clear()
+        bot.processed_messages = set(list(bot.processed_messages)[-1000:])
 
 @bot.event
 async def on_command_error(ctx, error):
