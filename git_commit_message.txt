@@ -1,9 +1,6 @@
-Fix cog loading issues
+Update router model prompt with paranoid theme
 
-- Remove duplicate uptime command from help_cog.py
-- Fix async/await usage in settings_cog.py and help_cog.py
-- Standardize setup function pattern across cogs
-
-Resolves:
-- TypeError: object NoneType can't be used in 'await' expression
-- CommandRegistrationError: The command uptime is already an existing command
+- Replace standard router prompt with paranoid pattern detection system
+- Maintain same model selection functionality with thematic overlay
+- Update model descriptions with paranoid context
+- Keep core routing logic intact while enhancing atmosphere
