@@ -137,6 +137,10 @@ Return model ID:"""
             selected_model = selected_model.replace('"', '').replace("'", '')
             logging.info(f"[Router] Selected model: {selected_model}")
 
+            # Update nickname based on selected model
+            self.nickname = selected_model
+            logging.debug(f"[Router] Updated nickname to: {self.nickname}")
+
             # Construct the full cog name by appending 'Cog'
             selected_cog_name = f"{selected_model}Cog"
             logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
