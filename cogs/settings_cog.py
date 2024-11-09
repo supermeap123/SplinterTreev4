@@ -3,12 +3,26 @@ from discord.ext import commands
 import json
 import logging
 import os
+from .base_cog import BaseCog
 
-class SettingsCog(commands.Cog):
+class SettingsCog(BaseCog):
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(
+            bot=bot,
+            name="Settings",
+            nickname="Settings",
+            trigger_words=[],  # No trigger words since it handles commands only
+            model="",          # No model associated
+            provider="",       # No provider
+            prompt_file=None,  # No prompt file
+            supports_vision=False
+        )
         self.dynamic_prompts_file = "dynamic_prompts.json"
         self.name = "Settings"
+
+    async def handle_message(self, message, full_content=None):
+        """Override handle_message to do nothing since SettingsCog doesn't handle messages directly."""
+        pass
 
     @commands.command(name="st_set_system_prompt")
     @commands.has_permissions(manage_messages=True)

@@ -1,6 +1,5 @@
-Update Router Model Selection Prompt
+Fix handle_message errors and prevent duplicate cog loading
 
-- Modified model selection prompt for 3B parameter LLM
-- Swapped Gemini and Magnum roles in model selection logic
-- Updated prompt formatting and comments
-- Adjusted complex reasoning tone detection
+- Updated bot.py to ensure only cogs with handle_message are called
+- Added flag to prevent cogs from being loaded multiple times
+- Removed explicit loading of 'sorcerer_cog' to avoid duplicate loading
