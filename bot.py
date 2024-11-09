@@ -158,6 +158,14 @@ async def setup_cogs():
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
                 logging.error(traceback.format_exc())
 
+    # Load sorcerer cog
+    try:
+        await bot.load_extension('cogs.sorcerer_cog')
+        logging.info("Loaded sorcerer cog")
+    except Exception as e:
+        logging.error(f"Failed to load sorcerer cog: {str(e)}")
+        logging.error(traceback.format_exc())
+
     # Finally load help cog after all other cogs are loaded
     try:
         await bot.load_extension('cogs.help_cog')

@@ -419,6 +419,17 @@ COGS_CONFIG = {
         'supports_vision': 'False',
         'log_name': 'Llama-3.2-11b',
         'qualified_name': 'Llama-3.2-11b'
+    },
+    'sorcerer': {
+        'class_name': 'SorcererCog',
+        'name': 'Sorcerer',
+        'nickname': 'Sorcerer',
+        'trigger_words': "['sorcerer', 'sorcererlm']",
+        'model': 'raifle/sorcererlm-8x22b',
+        'prompt_file': 'sorcerer',
+        'supports_vision': 'False',
+        'log_name': 'Sorcerer',
+        'qualified_name': 'Sorcerer'
     }
 }
 

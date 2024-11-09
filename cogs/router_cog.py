@@ -45,6 +45,7 @@ Nemotron: Complex coding and technical programming
 Sydney: Emotional support and empathy
 Sonar: Internet trends and current events
 Ministral: General factual queries
+Sorcerer: Advanced RP and storytelling
 
 # ANALYSIS STEPS
 1. Check for code indicators:
@@ -73,17 +74,24 @@ Ministral: General factual queries
    - Personal issues
    IF found -> Sydney
 
-5. If no other match -> Ministral
+5. Check for RP and storytelling indicators:
+   - Story/narrative elements
+   - Character interactions
+   - World-building details
+   IF found -> Sorcerer
+
+6. If no other match -> Ministral
 
 # OUTPUT FORMAT
-Return exactly one of: Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral
+Return exactly one of: Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral, Sorcerer
 
 # PRIORITY ORDER (IF MULTIPLE MATCH)
 1. Code (Nemotron/Claude3Haiku)
 2. Complex reasoning (Gemini/Magnum)
 3. Trends (Sonar)
 4. Emotional (Sydney)
-5. General (Ministral)
+5. RP and storytelling (Sorcerer)
+6. General (Ministral)
 
 Return model ID:"""
 
