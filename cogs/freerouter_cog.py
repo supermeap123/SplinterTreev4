@@ -12,7 +12,6 @@ class FreeRouterCog(BaseCog):
             nickname="FreeRouter",
             trigger_words=["openrouter", "freerouter"],  # Added both keywords
             model="openpipe:FreeRouter-v1-162",
-            provider="openpipe",
             prompt_file="freerouter",
             supports_vision=False
         )
