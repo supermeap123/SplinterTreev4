@@ -1,5 +1,4 @@
-Fix handle_message errors and prevent duplicate cog loading
+Updated README.md and help commands to reflect current state of bot code.
 
-- Updated bot.py to ensure only cogs with handle_message are called
-- Added flag to prevent cogs from being loaded multiple times
-- Removed explicit loading of 'sorcerer_cog' to avoid duplicate loading
+- Updated README.md with new models and features.
+- Updated `cogs/help_cog.py` with latest commands and model information.
