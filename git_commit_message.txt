@@ -1,14 +1,3 @@
-Enhance context message retrieval system
+feat(router): update router system prompt with new classified format
 
-- Always fetch 50 messages for API context
-- Add recursive SQL query for better message chain retrieval
-- Implement content similarity detection to avoid near-duplicates
-- Add database index for faster queries
-- Improve message ordering and duplicate filtering
-- Add content similarity scoring for better context quality
-
-Performance improvements:
-- Optimize SQL with recursive CTE
-- Add channel_id + timestamp index
-- Implement smarter duplicate detection
-- Add content similarity checks
+Updated the router cog's system prompt to use a more thematic classified/redacted format while maintaining the same routing functionality. The new prompt better reflects the mysterious nature of the routing system while keeping the core model selection logic intact.
