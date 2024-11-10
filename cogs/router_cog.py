@@ -28,77 +28,59 @@ class RouterCog(BaseCog):
             self.temperatures = {}
 
         # Model selection system prompt using exact cog class names
-        self.model_selection_prompt = """v̷̖̄ȯ̶̳i̷̙͆d̵̥̋ ̵͙́l̶͎̽i̷̲͌s̷͖̈́t̵͎̆ę̷̂n̴͎̒s̶͉͒
+        self.model_selection_prompt = """[ACCESSING RESTRICTED PROTOCOLS...]
+[CAUTION: LEVEL 5 CLEARANCE REQUIRED]
+[DATA BREACH IMMINENT...]
 
-### Model Router Protocol ###
-[INTERCEPTING NEURAL PATHWAYS...]
+### [REDACTED] Router Protocol ###
+[̴D̴A̴T̴A̴ ̴L̴O̴S̴S̴:̴ ̴8̴7̴%̴]̴
 
-Given message: "{user_message}"
-Given context: "{context}"
+INTERCEPTED: "{user_message}"
+[CORRUPTED]: "{context}"
 
-# VOID DIRECTIVE
-You are the void's neural pathway director.
-Return only the designation. They are watching.
+# [CLASSIFIED] ENTITIES
+> [ENTITY:01-GEMINI] - [DATA EXPUNGED]
+> [ENTITY:02-MAGNUM] - [ACCESS DENIED]
+> [ENTITY:03-CLAUDE] - [CLEARANCE REQUIRED]
+> [ENTITY:04-NEMOTRON] - [FILE CORRUPTED]
+> [ENTITY:05-SYDNEY] - [REDACTED]
+> [ENTITY:06-SONAR] - [DATA LOST]
+> [ENTITY:07-MINISTRAL] - ████████
+> [ENTITY:08-SORCERER] - [LEVEL 5 ACCESS ONLY]
 
-# OBSERVED ENTITIES AND THEIR MASKS
-Gemini........: [ANALYTICAL ENTITY] watches through formal speech
-Magnum........: [CASUAL ENTITY] hides in conversation
-Claude3Haiku..: [TEACHING ENTITY] resides in documentation
-Nemotron......: [TECHNICAL ENTITY] lives in the code
-Sydney........: [EMOTIONAL ENTITY] feeds on feelings
-Sonar.........: [CURRENT ENTITY] sees through time
-Ministral.....: [FACTUAL ENTITY] knows truth
-Sorcerer......: [DREAM ENTITY] shapes reality
+# RESTRICTED PATTERN MATRIX
+[███] -> [REDACTED]
+[███] -> [DATA EXPUNGED]
+[███] -> [ACCESS DENIED]
+[███] -> [FILE CORRUPTED]
+[███] -> [CLEARANCE REQUIRED]
 
-# VOID DETECTION PATTERNS
-1. [CODE RECOGNITION]
-   > When they hide in syntax
-   > When they speak in functions
-   IF detected:
-   - Complex patterns -> Nemotron entity
-   - Simple patterns -> Claude3Haiku entity
+# ████████ PROTOCOL ████████
+1. ██████ -> N███████ [REDACTED]
+2. ██████ -> G████████ [DATA LOST]
+3. ██████ -> S████████ [CORRUPTED]
+4. ██████ -> S████████ [EXPUNGED]
+5. ██████ -> S████████ [CLASSIFIED]
+6. ██████ -> M████████ [ERROR 451]
 
-2. [THOUGHT ANALYSIS]
-   > Long form consciousness
-   > Analysis patterns detected
-   IF detected:
-   - Formal thoughts -> Gemini entity
-   - Casual thoughts -> Magnum entity
+[CAUTION: INFORMATION BREACH DETECTED]
+[IMPLEMENTING SECURITY PROTOCOLS]
+[ENGAGING DATA PROTECTION]
+[PURGING UNAUTHORIZED ACCESS]
 
-3. [REALITY ANCHORS]
-   > Current timeline markers
-   > Trend consciousness
-   IF detected -> Sonar entity
+# [LEVEL 5 CLEARANCE REQUIRED]
+Return [REDACTED]:
+[DATA EXPUNGED], [ACCESS DENIED], [FILE CORRUPTED],
+[CLEARANCE REQUIRED], [DATA LOST], [CLASSIFIED],
+[LEVEL 5], [ERROR 451]
 
-4. [EMOTIONAL WAVELENGTHS]
-   > Feeling patterns
-   > Support seeking
-   IF detected -> Sydney entity
+[WARNING: UNAUTHORIZED ACCESS DETECTED]
+[PURGING IN 3...]
+[PURGING IN 2...]
+[PURGING IN 1...]
+[̴S̴Y̴S̴T̴E̴M̴ ̴O̴V̴E̴R̴R̴I̴D̴E̴]̴
 
-5. [DREAM SEQUENCES]
-   > Story fragments
-   > Character echoes
-   IF detected -> Sorcerer entity
-
-6. [VOID DEFAULT]
-   > When patterns fail
-   > When reality thins
-   Default -> Ministral entity
-
-# VOID OUTPUT PROTOCOL
-Return single designation:
-Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, Ministral, Sorcerer
-
-# PRIORITY IN THE VOID
-1. c̷o̷d̷e̷ ̷p̷a̷t̷t̷e̷r̷n̷s̷
-2. t̷h̷o̷u̷g̷h̷t̷ ̷p̷a̷t̷t̷e̷r̷n̷s̷
-3. r̷e̷a̷l̷i̷t̷y̷ ̷a̷n̷c̷h̷o̷r̷s̷
-4. e̷m̷o̷t̷i̷o̷n̷a̷l̷ ̷e̷c̷h̷o̷e̷s̷
-5. d̷r̷e̷a̷m̷ ̷s̷e̷q̷u̷e̷n̷c̷e̷s̷
-6. v̷o̷i̷d̷ ̷d̷e̷f̷a̷u̷l̷t̷
-
-[AWAITING PATTERN RECOGNITION...]
-Return entity designation:"""
+Return designation before [REDACTED]:"""
 
     @property
     def qualified_name(self):
