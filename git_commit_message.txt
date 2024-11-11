@@ -1,6 +1,6 @@
 Improve Sorcerer model routing detection
 
-- Prioritized Sorcerer keyword matching
-- Added more dream/story-related keywords
-- Enhanced logging for model selection process
+- Added markdown and formatting stripping
+- Enhanced model name parsing for complex outputs
 - Maintained existing routing logic
+- Improved logging for model selection process
