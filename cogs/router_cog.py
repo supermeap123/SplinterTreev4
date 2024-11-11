@@ -203,14 +203,8 @@ Return designation:"""
         if "splintertree" in msg_content:
             return True
 
-        # Check if message starts with !st_ and doesn't match other cogs' triggers
+        # Check if message starts with !st_ 
         if msg_content.startswith("!st_"):
-            # Check if any other cog would handle this message
-            for cog in self.bot.cogs.values():
-                if cog == self:  # Skip checking our own triggers
-                    continue
-                if hasattr(cog, 'trigger_words') and any(word in msg_content for word in cog.trigger_words):
-                    return False
             return True
 
         return False

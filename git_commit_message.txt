@@ -1,6 +1,6 @@
-feat: Update router system prompt and DM handling
+fix: Router now allows keywords for other cogs
 
-- Replaced router system prompt with more sophisticated routing logic
-- Enhanced pattern recognition for model selection
-- Maintained DM support from previous commit
-- Improved logging and error handling in model selection process
+- Removed suppression of other cogs' trigger words
+- Router will now handle !st_ messages without blocking other cogs
+- Maintains DM and mention-based routing logic
+- Preserves intelligent model selection system
