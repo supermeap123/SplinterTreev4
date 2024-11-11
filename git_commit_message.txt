@@ -1,7 +1,6 @@
-Enhance router model selection parsing
+Improve Sorcerer model routing detection
 
-- Added comprehensive model validation method
-- Implemented robust parsing of model selection responses
-- Created multiple fallback strategies for model selection
-- Improved logging and error handling for model routing
-- Ensured consistent and reliable model selection process
+- Prioritized Sorcerer keyword matching
+- Added more dream/story-related keywords
+- Enhanced logging for model selection process
+- Maintained existing routing logic
