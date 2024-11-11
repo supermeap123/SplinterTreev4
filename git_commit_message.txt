@@ -1,3 +1,5 @@
-feat(router): update router system prompt with new classified format
+feat: Add DM support to router
 
-Updated the router cog's system prompt to use a more thematic classified/redacted format while maintaining the same routing functionality. The new prompt better reflects the mysterious nature of the routing system while keeping the core model selection logic intact.
+- Added check for DM channels in router's should_handle_message method
+- Router will now respond to all direct messages from users
+- Maintains existing functionality for server messages

@@ -173,6 +173,10 @@ Return designation before [REDACTED]:"""
 
         msg_content = message.content.lower()
 
+        # Check if message is a DM
+        if isinstance(message.channel, discord.DMChannel):
+            return True
+
         # Check if bot is mentioned
         if self.bot.user.id == 1270760587022041088 and self.bot.user in message.mentions:
             return True

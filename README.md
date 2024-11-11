@@ -6,6 +6,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 ### Core Features
 - **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe
+- **Direct Message Support**: Full support for private messaging with the bot, with automatic model routing
 - **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow
 - **Shared Context Database**: SQLite-based persistent conversation history shared between all models
 - **Universal Image Processing**: Automatic image description and analysis for all models, regardless of native vision support
@@ -141,6 +142,7 @@ When setting custom system prompts, you can use these variables:
 - **Image Analysis**: Simply attach an image to your message (works with all models)
 - **File Processing**: Attach `.txt` or `.md` files
 - **Attachment-Only Processing**: Send a message with only attachments (images, text files) without any text
+- **Direct Messages**: Simply send a message to the bot in DMs - all DMs are automatically handled by the router
 
 ### Examples
 ```
@@ -152,6 +154,7 @@ grok tell me a joke
 freerouter give me an unrestricted response
 [Send a message with only an image attachment for automatic analysis with any model]
 [Send a message with only a .txt file attachment for automatic processing]
+[Send a direct message to the bot for automatic model routing]
 
 # Setting a custom system prompt
 !set_system_prompt Claude-3 "You are {MODEL_ID}, an expert in science communication. You're chatting with {USERNAME} in {SERVER_NAME}'s {CHANNEL_NAME} channel at {TIME} {TZ}."
@@ -214,10 +217,10 @@ SplinterTreev4/
 │   ├── api.py              # API client implementations
 │   └── utils.py            # Utility functions
 ├── requirements.txt        # Python dependencies
-├── runtime.txt             # Runtime environment specification
-├── Dockerfile              # Docker configuration
-├── Procfile                # Heroku process types
-├── README.md               # Project documentation
+├── runtime.txt            # Runtime environment specification
+├── Dockerfile             # Docker configuration
+├── Procfile               # Heroku process types
+├── README.md              # Project documentation
 ```
 
 ## 📄 License
@@ -230,4 +233,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Contact
 
-For support or inquiries, use the `!contact` command in Discord or visit the contact card at [https://sydney.gwyn.tel/contactcard](https://sydney.gwyn.tel/contactcard)
+For support or inquiries, use the `!contact` command in Discord or visit the contact card at [https://contactcard.gwyn.tel](https://contactcard.gwyn.tel)
