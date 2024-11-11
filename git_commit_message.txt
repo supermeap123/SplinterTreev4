@@ -1,6 +1,7 @@
-fix: Router now allows keywords for other cogs
+Enhance router model selection parsing
 
-- Removed suppression of other cogs' trigger words
-- Router will now handle !st_ messages without blocking other cogs
-- Maintains DM and mention-based routing logic
-- Preserves intelligent model selection system
+- Added comprehensive model validation method
+- Implemented robust parsing of model selection responses
+- Created multiple fallback strategies for model selection
+- Improved logging and error handling for model routing
+- Ensured consistent and reliable model selection process
