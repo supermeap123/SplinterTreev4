@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog, handled_messages
 import json
+import re
 
 class RouterCog(BaseCog):
     def __init__(self, bot):
@@ -26,6 +27,12 @@ class RouterCog(BaseCog):
         except Exception as e:
             logging.error(f"[Router] Failed to load temperatures.json: {e}")
             self.temperatures = {}
+
+        # Predefined list of valid models for strict validation
+        self.valid_models = [
+            "Gemini", "Magnum", "Claude3Haiku", "Nemotron", 
+            "Sydney", "Sonar", "Ministral", "Sorcerer"
+        ]
 
         # Model selection system prompt using exact cog class names
         self.model_selection_prompt = """### Model Router Protocol ###
@@ -100,6 +107,37 @@ Sydney, Sonar, Ministral, Sorcerer
 [̴s̴y̴s̴t̴e̴m̴ ̴r̴e̴a̴d̴y̴]̴
 Return designation:"""
 
+    def validate_model_selection(self, model_name):
+        """
+        Validate and normalize the selected model name
+        
+        Args:
+            model_name (str): Raw model name from API response
+        
+        Returns:
+            str: Validated and normalized model name
+        """
+        # Remove quotes and whitespace
+        model_name = model_name.strip().replace('"', '').replace("'", '')
+        
+        # Exact match
+        if model_name in self.valid_models:
+            return model_name
+        
+        # Case-insensitive match
+        for valid_model in self.valid_models:
+            if model_name.lower() == valid_model.lower():
+                return valid_model
+        
+        # Fuzzy matching
+        for valid_model in self.valid_models:
+            if valid_model.lower() in model_name.lower():
+                return valid_model
+        
+        # Logging for unrecognized model
+        logging.warning(f"[Router] Unrecognized model selection: '{model_name}'. Defaulting to Ministral.")
+        return "Ministral"
+
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
@@ -137,9 +175,10 @@ Return designation:"""
                 stream=False
             )
 
-            selected_model = response['choices'][0]['message']['content'].strip()
-            # Remove any quotes if present
-            selected_model = selected_model.replace('"', '').replace("'", '')
+            # Extract and validate model selection
+            raw_selection = response['choices'][0]['message']['content']
+            selected_model = self.validate_model_selection(raw_selection)
+            
             logging.info(f"[Router] Selected model: {selected_model}")
 
             # Update nickname based on selected model
