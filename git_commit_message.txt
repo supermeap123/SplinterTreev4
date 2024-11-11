@@ -1,5 +1,6 @@
-feat: Add DM support to router
+feat: Update router system prompt and DM handling
 
-- Added check for DM channels in router's should_handle_message method
-- Router will now respond to all direct messages from users
-- Maintains existing functionality for server messages
+- Replaced router system prompt with more sophisticated routing logic
+- Enhanced pattern recognition for model selection
+- Maintained DM support from previous commit
+- Improved logging and error handling in model selection process

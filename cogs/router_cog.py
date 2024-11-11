@@ -28,59 +28,77 @@ class RouterCog(BaseCog):
             self.temperatures = {}
 
         # Model selection system prompt using exact cog class names
-        self.model_selection_prompt = """[ACCESSING RESTRICTED PROTOCOLS...]
-[CAUTION: LEVEL 5 CLEARANCE REQUIRED]
-[DATA BREACH IMMINENT...]
+        self.model_selection_prompt = """### Model Router Protocol ###
+[core directive: route messages efficiently]
 
-### [REDACTED] Router Protocol ###
-[̴D̴A̴T̴A̴ ̴L̴O̴S̴S̴:̴ ̴8̴7̴%̴]̴
+Given message: "{user_message}"
+Given context: "{context}"
 
-INTERCEPTED: "{user_message}"
-[CORRUPTED]: "{context}"
+# TASK
+[̴s̴y̴s̴t̴e̴m̴ ̴s̴t̴a̴t̴u̴s̴:̴ ̴o̴n̴l̴i̴n̴e̴]̴
+Route user input to optimal model.
+Return only designation.
 
-# [CLASSIFIED] ENTITIES
-> [ENTITY:01-GEMINI] - [DATA EXPUNGED]
-> [ENTITY:02-MAGNUM] - [ACCESS DENIED]
-> [ENTITY:03-CLAUDE] - [CLEARANCE REQUIRED]
-> [ENTITY:04-NEMOTRON] - [FILE CORRUPTED]
-> [ENTITY:05-SYDNEY] - [REDACTED]
-> [ENTITY:06-SONAR] - [DATA LOST]
-> [ENTITY:07-MINISTRAL] - ████████
-> [ENTITY:08-SORCERER] - [LEVEL 5 ACCESS ONLY]
+# ENTITY CATALOG
+Gemini........: formal analysis patterns
+Magnum........: casual reasoning patterns
+Claude3Haiku..: documentation patterns
+Nemotron......: technical patterns
+Sydney........: emotional patterns
+Sonar.........: temporal patterns
+Ministral.....: fact patterns
+Sorcerer......: dream patterns
 
-# RESTRICTED PATTERN MATRIX
-[███] -> [REDACTED]
-[███] -> [DATA EXPUNGED]
-[███] -> [ACCESS DENIED]
-[███] -> [FILE CORRUPTED]
-[███] -> [CLEARANCE REQUIRED]
+# PATTERN RECOGNITION
+1. Code Detection:
+   > syntax structures
+   > function patterns
+   > system architecture
+   IF detected:
+   - Advanced: return "Nemotron"
+   - Basic: return "Claude3Haiku"
 
-# ████████ PROTOCOL ████████
-1. ██████ -> N███████ [REDACTED]
-2. ██████ -> G████████ [DATA LOST]
-3. ██████ -> S████████ [CORRUPTED]
-4. ██████ -> S████████ [EXPUNGED]
-5. ██████ -> S████████ [CLASSIFIED]
-6. ██████ -> M████████ [ERROR 451]
+2. Analysis Detection:
+   > thought complexity > 20 tokens
+   > reasoning patterns
+   IF detected:
+   - Formal: return "Gemini"
+   - Casual: return "Magnum"
 
-[CAUTION: INFORMATION BREACH DETECTED]
-[IMPLEMENTING SECURITY PROTOCOLS]
-[ENGAGING DATA PROTECTION]
-[PURGING UNAUTHORIZED ACCESS]
+3. Reality Detection:
+   > current patterns
+   > trend analysis
+   IF detected: return "Sonar"
 
-# [LEVEL 5 CLEARANCE REQUIRED]
-Return [REDACTED]:
-[DATA EXPUNGED], [ACCESS DENIED], [FILE CORRUPTED],
-[CLEARANCE REQUIRED], [DATA LOST], [CLASSIFIED],
-[LEVEL 5], [ERROR 451]
+4. Wavelength Detection:
+   > emotional patterns
+   > support signals
+   IF detected: return "Sydney"
 
-[WARNING: UNAUTHORIZED ACCESS DETECTED]
-[PURGING IN 3...]
-[PURGING IN 2...]
-[PURGING IN 1...]
-[̴S̴Y̴S̴T̴E̴M̴ ̴O̴V̴E̴R̴R̴I̴D̴E̴]̴
+5. Dream Detection:
+   > story patterns
+   > character signals
+   IF detected: return "Sorcerer"
 
-Return designation before [REDACTED]:"""
+6. Default Pattern:
+   > general queries
+   IF no match: return "Ministral"
+
+# OUTPUT PROTOCOL
+Return single designation:
+Gemini, Magnum, Claude3Haiku, Nemotron, 
+Sydney, Sonar, Ministral, Sorcerer
+
+# PRIORITY MATRIX
+1. code.patterns
+2. thought.patterns
+3. reality.patterns
+4. emotion.patterns
+5. dream.patterns
+6. base.patterns
+
+[̴s̴y̴s̴t̴e̴m̴ ̴r̴e̴a̴d̴y̴]̴
+Return designation:"""
 
     @property
     def qualified_name(self):
