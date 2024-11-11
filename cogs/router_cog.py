@@ -120,21 +120,34 @@ Return designation:"""
         # Remove quotes and whitespace
         model_name = model_name.strip().replace('"', '').replace("'", '')
         
-        # Exact match
+        # Extensive logging for debugging
+        logging.debug(f"[Router] Raw model selection: '{model_name}'")
+        
+        # Specific handling for Sorcerer-like patterns
+        sorcerer_keywords = ['dream', 'story', 'character', 'imagination', 'narrative']
+        for keyword in sorcerer_keywords:
+            if keyword in model_name.lower():
+                logging.debug(f"[Router] Sorcerer keyword match: {keyword}")
+                return "Sorcerer"
+        
+        # Exact match first
         if model_name in self.valid_models:
+            logging.debug(f"[Router] Exact match found: {model_name}")
             return model_name
         
         # Case-insensitive match
         for valid_model in self.valid_models:
             if model_name.lower() == valid_model.lower():
+                logging.debug(f"[Router] Case-insensitive match found: {valid_model}")
                 return valid_model
         
-        # Fuzzy matching
+        # Partial match with fuzzy logic
         for valid_model in self.valid_models:
             if valid_model.lower() in model_name.lower():
+                logging.debug(f"[Router] Partial match found: {valid_model}")
                 return valid_model
         
-        # Logging for unrecognized model
+        # Default fallback with detailed logging
         logging.warning(f"[Router] Unrecognized model selection: '{model_name}'. Defaulting to Ministral.")
         return "Ministral"
 
