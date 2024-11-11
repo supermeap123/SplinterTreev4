@@ -117,8 +117,9 @@ Return designation:"""
         Returns:
             str: Validated and normalized model name
         """
-        # Remove quotes and whitespace
-        model_name = model_name.strip().replace('"', '').replace("'", '')
+        # Remove markdown, quotes, extra whitespace, and normalize
+        model_name = re.sub(r'[*`_]', '', model_name).strip()
+        model_name = model_name.replace('"', '').replace("'", '')
         
         # Extensive logging for debugging
         logging.debug(f"[Router] Raw model selection: '{model_name}'")
