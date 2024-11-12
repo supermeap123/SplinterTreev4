@@ -1,5 +1,4 @@
-Updated Router Cog Model and Provider
+Deleted FreeRouter Cog
 
-- Replaced model from "mistralai/ministral-3b" to "openpipe:FreeRouter-v2-235"
-- Changed provider from "openrouter" to "openpipe"
-- Updated API call from call_openrouter to call_openpipe
+- Removed freerouter_cog.py as requested
+- No longer needed after updating router_cog.py
