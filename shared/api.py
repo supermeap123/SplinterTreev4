@@ -333,21 +333,6 @@ class API:
             prompt_file=prompt_file
         )
 
-    # Alias for Groq models to use OpenPipe
-    async def call_groq(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
-        """Redirect Groq calls to OpenPipe with 'groq' provider"""
-        return await self.call_openpipe(
-            messages=messages, 
-            model=model, 
-            temperature=temperature, 
-            stream=stream, 
-            max_tokens=max_tokens, 
-            provider='groq',
-            user_id=user_id,
-            guild_id=guild_id,
-            prompt_file=prompt_file
-        )
-
     async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None, user_id: str = None, guild_id: str = None):
         """Report interaction metrics"""
         try:

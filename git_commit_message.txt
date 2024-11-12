@@ -1,5 +1,5 @@
-Added Groq Provider Support in OpenPipe API Handling
+Updated OpenPipe Model Name Handling for Groq Provider
 
-- Modified _get_prefixed_model to handle 'groq' provider
-- Added call_groq method to redirect Groq model calls through OpenPipe
+- Modified _get_prefixed_model to handle Groq provider directly
 - Ensures Groq models are prefixed with 'openpipe:groq/'
+- Removed separate call_groq method in favor of direct handling in call_openpipe
