@@ -1,5 +1,5 @@
-Updated Router Cog Fallback Logic
+Updated OpenPipe Model Name Handling
 
-- Preserved original model selection logic
-- Added fallback mechanism with 50/50 chance between FreeRouter and Ministral
-- Ensures model selection remains primary routing method
+- Modified _get_prefixed_model to handle 'openpipe:' and 'openrouter:' prefixes correctly
+- Ensures OpenRouter models retain their prefix
+- Removes only 'openpipe:' prefix for OpenPipe models

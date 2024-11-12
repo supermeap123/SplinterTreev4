@@ -154,18 +154,16 @@ class API:
 
     def _get_prefixed_model(self, model: str, provider: str = None) -> str:
         """Get the appropriate model name with prefix based on provider"""
-        if provider:
-            return f"openpipe:{provider}/{model}"
+        # Remove 'openpipe:' prefix
+        model = model.replace('openpipe:', '')
+        
+        # If provider is specified, add the prefix
+        if provider == 'openpipe':
+            return model
+        elif provider == 'openrouter':
+            return f"openrouter:{model}"
+        
         return model
-
-    async def _enforce_rate_limit(self):
-        """Enforce rate limiting between requests"""
-        async with self.rate_limit_lock:
-            current_time = time.time()
-            time_since_last = current_time - self.last_request_time
-            if time_since_last < self.min_request_interval:
-                await asyncio.sleep(self.min_request_interval - time_since_last)
-            self.last_request_time = time.time()
 
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None, prompt_file=None):
         """Stream responses from OpenPipe API"""
