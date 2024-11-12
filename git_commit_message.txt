@@ -1,5 +1,4 @@
-Updated OpenPipe Model Name Handling
+Deleted FreeRouter Cog
 
-- Modified _get_prefixed_model to handle 'openpipe:' and 'openrouter:' prefixes correctly
-- Ensures OpenRouter models retain their prefix
-- Removes only 'openpipe:' prefix for OpenPipe models
+- Removed freerouter_cog.py as requested
+- No longer needed after updating router_cog.py
