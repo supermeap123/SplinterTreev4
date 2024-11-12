@@ -12,8 +12,8 @@ class RouterCog(BaseCog):
             name="Router",
             nickname="Router",
             trigger_words=[],  # Empty since this handles messages without explicit keywords
-            model="mistralai/ministral-3b",
-            provider="openrouter",
+            model="openpipe:FreeRouter-v2-235",
+            provider="openpipe",
             prompt_file="router",
             supports_vision=False
         )
@@ -182,7 +182,7 @@ Return designation:"""
             ]
 
             # Call API to get model selection
-            response = await self.api_client.call_openrouter(
+            response = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=0.1,  # Low temperature for consistent model selection

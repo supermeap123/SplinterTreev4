@@ -1,6 +1,5 @@
-Update FreeRouter cog for OpenPipe provider
+Updated Router Cog Model and Provider
 
-- Changed API call from call_openrouter to call_openpipe
-- Maintained existing model selection logic
-- Preserved error handling and logging
-- Ensured compatibility with OpenPipe provider
+- Replaced model from "mistralai/ministral-3b" to "openpipe:FreeRouter-v2-235"
+- Changed provider from "openrouter" to "openpipe"
+- Updated API call from call_openrouter to call_openpipe
