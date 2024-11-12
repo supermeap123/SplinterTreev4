@@ -1,4 +1,5 @@
-Deleted FreeRouter Cog
+Added FreeRouter Cog and Updated Router Routing
 
-- Removed freerouter_cog.py as requested
-- No longer needed after updating router_cog.py
+- Created new freerouter_cog.py based on sydney_cog.py structure
+- Modified router_cog.py to have 50/50 chance of routing to FreeRouter or Ministral 8b
+- Simplified routing logic to use direct cog generation
