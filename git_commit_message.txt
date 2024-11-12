@@ -1,4 +1,5 @@
-Deleted FreeRouter Cog
+Fixed API Rate Limiting and Model Name Handling
 
-- Removed freerouter_cog.py as requested
-- No longer needed after updating router_cog.py
+- Added _enforce_rate_limit method to API class
+- Improved model name prefix handling
+- Corrected model name generation for OpenPipe and OpenRouter providers
