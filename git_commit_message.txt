@@ -1,5 +1,5 @@
-Added FreeRouter Cog and Updated Router Routing
+Updated Router Cog Fallback Logic
 
-- Created new freerouter_cog.py based on sydney_cog.py structure
-- Modified router_cog.py to have 50/50 chance of routing to FreeRouter or Ministral 8b
-- Simplified routing logic to use direct cog generation
+- Preserved original model selection logic
+- Added fallback mechanism with 50/50 chance between FreeRouter and Ministral
+- Ensures model selection remains primary routing method

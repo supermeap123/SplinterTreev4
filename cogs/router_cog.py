@@ -165,24 +165,76 @@ Return designation:"""
     async def generate_response(self, message):
         """Generate a response using the router model"""
         try:
-            # 50/50 chance of using FreeRouter or Ministral 8b
-            if random.random() < 0.5:
-                freerouter_cog = self.bot.get_cog('FreeRouterCog')
-                if freerouter_cog:
-                    logging.info("[Router] Routing to FreeRouter")
-                    return await freerouter_cog.generate_response(message)
-            
-            # Fallback to Ministral 8b
-            ministral_cog = self.bot.get_cog('MinistralCog')
-            if ministral_cog:
-                logging.info("[Router] Routing to Ministral")
-                return await ministral_cog.generate_response(message)
+            # Get context from previous messages
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
+            context = "\n".join([msg['content'] for msg in history_messages])
 
-            # If neither cog is available, raise an error
-            logging.error("[Router] Neither FreeRouter nor Ministral cogs found")
-            async def error_generator():
-                yield "❌ Error: Could not find appropriate model for response"
-            return error_generator()
+            # Format the prompt with message and context
+            formatted_prompt = self.model_selection_prompt.format(
+                user_message=message.content,
+                context=context if context else "No previous context"
+            )
+
+            # Get model selection
+            messages = [
+                {"role": "system", "content": formatted_prompt},
+                {"role": "user", "content": message.content}
+            ]
+
+            # Call API to get model selection
+            response = await self.api_client.call_openpipe(
+                messages=messages,
+                model=self.model,
+                temperature=0.1,  # Low temperature for consistent model selection
+                stream=False
+            )
+
+            # Extract and validate model selection
+            raw_selection = response['choices'][0]['message']['content']
+            selected_model = self.validate_model_selection(raw_selection)
+            
+            logging.info(f"[Router] Selected model: {selected_model}")
+
+            # Update nickname based on selected model
+            self.nickname = selected_model
+            logging.debug(f"[Router] Updated nickname to: {self.nickname}")
+
+            # Construct the full cog name by appending 'Cog'
+            selected_cog_name = f"{selected_model}Cog"
+            logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
+
+            # Get the corresponding cog
+            selected_cog = None
+            for cog_name, cog in self.bot.cogs.items():
+                logging.debug(f"[Router] Checking cog: {cog_name}")
+                if cog_name == selected_cog_name:
+                    selected_cog = cog
+                    break
+
+            if selected_cog:
+                # Use the selected cog's generate_response
+                return await selected_cog.generate_response(message)
+            else:
+                # Fallback logic with 50/50 chance between FreeRouter and Ministral
+                fallback_cogs = []
+                freerouter_cog = self.bot.get_cog('FreeRouterCog')
+                ministral_cog = self.bot.get_cog('MinistralCog')
+                
+                if freerouter_cog:
+                    fallback_cogs.append(freerouter_cog)
+                if ministral_cog:
+                    fallback_cogs.append(ministral_cog)
+                
+                if fallback_cogs:
+                    chosen_cog = random.choice(fallback_cogs)
+                    logging.warning(f"[Router] Selected model {selected_model} not found, falling back to {chosen_cog.qualified_name}")
+                    return await chosen_cog.generate_response(message)
+                else:
+                    logging.error(f"[Router] No fallback models found for {selected_model}")
+                    async def error_generator():
+                        yield "❌ Error: Could not find appropriate model for response"
+                    return error_generator()
 
         except Exception as e:
             logging.error(f"[Router] Error processing message: {e}")
