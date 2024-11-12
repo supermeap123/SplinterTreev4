@@ -75,11 +75,9 @@ class ContextCog(commands.Cog):
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Get messages with improved duplicate detection and ordering
+                # Simplified query to get unique messages with better performance
                 cursor.execute('''
-                WITH RECURSIVE
-                MessageChain AS (
-                    -- Get initial set of messages
+                WITH RankedMessages AS (
                     SELECT 
                         id,
                         user_id,
@@ -88,48 +86,12 @@ class ContextCog(commands.Cog):
                         persona_name,
                         emotion,
                         timestamp,
-                        content as last_content,
-                        1 as depth
+                        ROW_NUMBER() OVER (PARTITION BY content ORDER BY timestamp DESC) as rn
                     FROM messages
                     WHERE channel_id = ? 
                     AND (? IS NULL OR id != ?)
-                    ORDER BY timestamp DESC
-                    LIMIT 1
-                    
-                    UNION ALL
-                    
-                    -- Recursively get messages, avoiding repetitive content
-                    SELECT 
-                        m.id,
-                        m.user_id,
-                        m.content,
-                        m.is_assistant,
-                        m.persona_name,
-                        m.emotion,
-                        m.timestamp,
-                        CASE 
-                            WHEN m.content != mc.last_content THEN m.content 
-                            ELSE mc.last_content
-                        END as last_content,
-                        mc.depth + 1
-                    FROM messages m
-                    JOIN MessageChain mc ON m.timestamp < mc.timestamp
-                    WHERE m.channel_id = ?
-                    AND (? IS NULL OR m.id != ?)
-                    AND mc.depth < ?
-                    AND (
-                        -- Include if content is different from last 3 messages
-                        m.content NOT IN (
-                            SELECT content 
-                            FROM messages 
-                            WHERE channel_id = ? 
-                            AND timestamp > m.timestamp 
-                            ORDER BY timestamp DESC 
-                            LIMIT 3
-                        )
-                    )
                 )
-                SELECT DISTINCT
+                SELECT 
                     id,
                     user_id,
                     content,
@@ -137,13 +99,15 @@ class ContextCog(commands.Cog):
                     persona_name,
                     emotion,
                     timestamp
-                FROM MessageChain
-                WHERE content != last_content OR depth = 1
-                ORDER BY timestamp ASC
+                FROM RankedMessages
+                WHERE rn = 1
+                ORDER BY timestamp DESC
+                LIMIT ?
                 ''', (
-                    channel_id, exclude_message_id, exclude_message_id,
-                    channel_id, exclude_message_id, exclude_message_id,
-                    window_size, channel_id
+                    channel_id, 
+                    exclude_message_id, 
+                    exclude_message_id, 
+                    window_size
                 ))
                 
                 messages = []
@@ -175,6 +139,8 @@ class ContextCog(commands.Cog):
                         'timestamp': row[6]
                     })
                 
+                # Reverse to maintain chronological order
+                messages.reverse()
                 return messages
                 
         except Exception as e:
