@@ -1,6 +1,6 @@
-Improve Sorcerer model routing detection
+Update FreeRouter cog for OpenPipe provider
 
-- Added markdown and formatting stripping
-- Enhanced model name parsing for complex outputs
-- Maintained existing routing logic
-- Improved logging for model selection process
+- Changed API call from call_openrouter to call_openpipe
+- Maintained existing model selection logic
+- Preserved error handling and logging
+- Ensured compatibility with OpenPipe provider
