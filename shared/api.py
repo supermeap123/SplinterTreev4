@@ -154,18 +154,14 @@ class API:
 
     def _get_prefixed_model(self, model: str, provider: str = None) -> str:
         """Get the appropriate model name with prefix based on provider"""
-        # Remove any existing prefixes
-        model = model.replace('openpipe:', '').replace('openrouter:', '').replace('groq:', '')
-        
-        # If provider is specified, add the prefix
-        if provider == 'openpipe':
-            return model
-        elif provider == 'openrouter':
-            return f"openpipe:openrouter/{model}"
+        # Always prefix based on provider
+        if provider == 'openrouter':
+            return f"openpipe:openrouter/{model.replace('openrouter:', '')}"
         elif provider == 'groq':
-            return f"openpipe:groq/{model}"
+            return f"openpipe:groq/{model.replace('groq:', '')}"
         
-        return model
+        # Default case: return model as-is or with openpipe prefix
+        return model if not model.startswith('openpipe:') else model
 
     async def _enforce_rate_limit(self):
         """Enforce rate limiting between requests"""

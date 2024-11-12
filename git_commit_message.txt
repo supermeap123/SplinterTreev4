@@ -1,5 +1,6 @@
-Updated OpenPipe Model Name Handling for Groq Provider
+Enhanced OpenPipe Model Name Prefixing Logic
 
-- Modified _get_prefixed_model to handle Groq provider directly
-- Ensures Groq models are prefixed with 'openpipe:groq/'
-- Removed separate call_groq method in favor of direct handling in call_openpipe
+- Improved _get_prefixed_model to always prefix models for specific providers
+- Ensures OpenRouter and Groq models are correctly prefixed
+- Handles model names with or without existing prefixes
+- Maintains openpipe: prefix for existing openpipe models
