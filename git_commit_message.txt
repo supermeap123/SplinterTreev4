@@ -1,6 +1,5 @@
-Enhanced OpenPipe Model Name Prefixing Logic
+Updated Gemma Cog Configuration
 
-- Improved _get_prefixed_model to always prefix models for specific providers
-- Ensures OpenRouter and Groq models are correctly prefixed
-- Handles model names with or without existing prefixes
-- Maintains openpipe: prefix for existing openpipe models
+- Changed provider from 'groq' to 'openrouter'
+- Updated model to 'google/gemma-2-9b-it'
+- Maintained existing cog structure and API call method
