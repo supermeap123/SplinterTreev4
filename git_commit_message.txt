@@ -1,5 +1,7 @@
-Updated Gemma Cog Configuration
+Add HTTP Referrer and X-Title headers
 
-- Changed provider from 'groq' to 'openrouter'
-- Updated model to 'google/gemma-2-9b-it'
-- Maintained existing cog structure and API call method
+- Updated shared/api.py to include custom headers:
+  * Added 'Referer' header pointing to GitHub repo
+  * Added 'X-Title' header with value 'GwynTel'
+- Modified both streaming and non-streaming OpenPipe API request methods
+- Added headers to aiohttp ClientSession and OpenAI client initialization

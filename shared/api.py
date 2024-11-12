@@ -14,13 +14,22 @@ from openai import AsyncOpenAI
 
 class API:
     def __init__(self):
-        # Initialize aiohttp session
-        self.session = aiohttp.ClientSession()
+        # Initialize aiohttp session with custom headers
+        self.session = aiohttp.ClientSession(
+            headers={
+                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'GwynTel'
+            }
+        )
         
-        # Initialize OpenPipe client
+        # Initialize OpenPipe client with custom headers
         self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
-            base_url=OPENPIPE_API_URL  # Base URL already includes /api/v1
+            base_url=OPENPIPE_API_URL,  # Base URL already includes /api/v1
+            default_headers={
+                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'GwynTel'
+            }
         )
 
         # Rate limiting
@@ -186,13 +195,20 @@ class API:
             # Validate and normalize message roles
             validated_messages = await self._validate_message_roles(messages)
             
+            # Add custom headers to the request
+            extra_headers = {
+                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'GwynTel'
+            }
+            
             stream = await self.openpipe_client.chat.completions.create(
                 model=openpipe_model,
                 messages=validated_messages,
                 temperature=temperature if temperature is not None else 0.7,
                 max_tokens=max_tokens if max_tokens is not None else 1000,
                 stream=True,
-                store=True
+                store=True,
+                extra_headers=extra_headers
             )
             requested_at = int(time.time() * 1000)
             
@@ -258,6 +274,12 @@ class API:
                 logging.debug(f"[API] Message role: {msg.get('role')}")
                 logging.debug(f"[API] Message content: {msg.get('content')}")
 
+            # Add custom headers to the request
+            extra_headers = {
+                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'GwynTel'
+            }
+
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file)
             else:
@@ -270,7 +292,8 @@ class API:
                     messages=validated_messages,
                     temperature=temperature if temperature is not None else 0.7,
                     max_tokens=max_tokens if max_tokens is not None else 1000,
-                    store=True
+                    store=True,
+                    extra_headers=extra_headers
                 )
                 received_at = int(time.time() * 1000)
 
@@ -313,7 +336,6 @@ class API:
             error_message = str(e)
             logging.error(f"[API] OpenPipe error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
-
     # Alias for OpenRouter models to use OpenPipe
     async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
@@ -366,5 +388,4 @@ class API:
         await self.session.close()
         if self.db_conn:
             self.db_conn.close()
-
 api = API()
