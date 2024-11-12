@@ -1,6 +1,5 @@
-Update FreeRouter cog for OpenPipe provider
+Added Groq Provider Support in OpenPipe API Handling
 
-- Changed API call from call_openrouter to call_openpipe
-- Maintained existing model selection logic
-- Preserved error handling and logging
-- Ensured compatibility with OpenPipe provider
+- Modified _get_prefixed_model to handle 'groq' provider
+- Added call_groq method to redirect Groq model calls through OpenPipe
+- Ensures Groq models are prefixed with 'openpipe:groq/'

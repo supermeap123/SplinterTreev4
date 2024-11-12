@@ -155,13 +155,15 @@ class API:
     def _get_prefixed_model(self, model: str, provider: str = None) -> str:
         """Get the appropriate model name with prefix based on provider"""
         # Remove any existing prefixes
-        model = model.replace('openpipe:', '').replace('openrouter:', '')
+        model = model.replace('openpipe:', '').replace('openrouter:', '').replace('groq:', '')
         
         # If provider is specified, add the prefix
         if provider == 'openpipe':
             return model
         elif provider == 'openrouter':
-            return f"openrouter:{model}"
+            return f"openpipe:openrouter/{model}"
+        elif provider == 'groq':
+            return f"openpipe:groq/{model}"
         
         return model
 
@@ -326,6 +328,21 @@ class API:
             stream=stream, 
             max_tokens=max_tokens, 
             provider='openrouter',
+            user_id=user_id,
+            guild_id=guild_id,
+            prompt_file=prompt_file
+        )
+
+    # Alias for Groq models to use OpenPipe
+    async def call_groq(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
+        """Redirect Groq calls to OpenPipe with 'groq' provider"""
+        return await self.call_openpipe(
+            messages=messages, 
+            model=model, 
+            temperature=temperature, 
+            stream=stream, 
+            max_tokens=max_tokens, 
+            provider='groq',
             user_id=user_id,
             guild_id=guild_id,
             prompt_file=prompt_file
