@@ -1,5 +1,6 @@
-Fixed API Rate Limiting and Model Name Handling
+Update FreeRouter cog for OpenPipe provider
 
-- Added _enforce_rate_limit method to API class
-- Improved model name prefix handling
-- Corrected model name generation for OpenPipe and OpenRouter providers
+- Changed API call from call_openrouter to call_openpipe
+- Maintained existing model selection logic
+- Preserved error handling and logging
+- Ensured compatibility with OpenPipe provider
