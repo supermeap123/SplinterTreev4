@@ -1,1 +1,1 @@
-worker: python bot.py
+web: docker run --rm -p $PORT:$PORT -e DISCORD_TOKEN -e OPENPIPE_API_KEY -e OPENPIPE_API_URL -e OPENROUTER_API_KEY -e DEBUG -e LOG_LEVEL splintertree
