@@ -47,9 +47,9 @@ class ManagementCog(BaseCog):
         except Exception as e:
             logging.error(f"[Management] Failed to save activated channels: {e}")
 
-    @commands.command(name='activate')
+    @commands.command(name='st_activate')
     @commands.has_permissions(manage_messages=True)
-    async def activate_channel(self, ctx):
+    async def st_activate_channel(self, ctx):
         """Activate the bot in the current channel"""
         try:
             # Load current activated channels
@@ -83,9 +83,9 @@ class ManagementCog(BaseCog):
             logging.error(f"[Management] Error activating channel: {e}")
             await ctx.send("❌ Failed to activate bot in this channel.")
 
-    @commands.command(name='deactivate')
+    @commands.command(name='st_deactivate')
     @commands.has_permissions(manage_messages=True)
-    async def deactivate_channel(self, ctx):
+    async def st_deactivate_channel(self, ctx):
         """Deactivate the bot in the current channel"""
         try:
             # Load current activated channels
@@ -120,9 +120,9 @@ class ManagementCog(BaseCog):
             logging.error(f"[Management] Error deactivating channel: {e}")
             await ctx.send("❌ Failed to deactivate bot in this channel.")
 
-    @commands.command(name='listactive')
+    @commands.command(name='st_listactive')
     @commands.has_permissions(manage_messages=True)
-    async def list_active_channels(self, ctx):
+    async def st_list_active_channels(self, ctx):
         """List all activated channels in the current guild"""
         try:
             # Load current activated channels
