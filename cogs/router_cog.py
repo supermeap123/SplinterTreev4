@@ -31,7 +31,7 @@ class RouterCog(BaseCog):
             "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
             "FreeRouter", "Gemma", "Hermes", "Liquid",
             "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
-            "Openchat", "Rplus", "Inferor"
+            "Openchat", "Rplus", "Inferor", "Goliath"
         ]
         self.model_selection_prompt = """### ROUTER PROTOCOL v3.0 ###
 
@@ -54,9 +54,10 @@ Given: "{user_message}", "{context}"
    - Vision → Llama32_*
    - Education → Gemma
    - Roleplay → Noromaid
+   - Storytelling → Inferor
+   - NSFW/Edge → Goliath
    - Emotional → Sydney
    - Current events → Sonar
-   - Storytelling → Inferor
 
 4. DEFAULT
    IF general query:
@@ -73,7 +74,7 @@ Given: "{user_message}", "{context}"
 Return one:
 Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
 Ministral, Mixtral, Hermes, Noromaid, Llama32_11b, 
-Llama32_90b, Gemma, Inferor
+Llama32_90b, Gemma, Inferor, Goliath
 
 Return model:"""
 

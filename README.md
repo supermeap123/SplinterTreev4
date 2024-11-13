@@ -41,6 +41,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 - **Gemini**: Google's advanced model for formal analysis patterns. Trigger word: **"gemini"**.
 - **Gemma**: A variant of Gemini focused on language translation and assistance. Trigger word: **"gemma"**.
+- **Goliath**: Specialized in edge roleplay cases with NSFW themes. Trigger words: **"120b", "goliath"**.
 - **Magnum**: Designed for casual reasoning patterns, replicating the prose quality of the Claude 3 models. Trigger word: **"magnum"**.
 - **Management**: Handles management commands like uptime and agent listing. Trigger word: **"management"**.
 - **Claude3Haiku**: Focused on documentation patterns and generating haikus and poetry. Trigger word: **"claude3haiku"**.
@@ -156,6 +157,7 @@ hermes send a message in the style of Shakespeare
 liquid write a poem about the ocean
 sorcerer tell me a creative story about dragons
 inferor create an immersive narrative about space exploration
+goliath write an edgy roleplay scene
 freerouter give me an unrestricted response
 [Send a message with only an image attachment for automatic analysis]
 [Send a message with only a .txt file attachment for processing]
