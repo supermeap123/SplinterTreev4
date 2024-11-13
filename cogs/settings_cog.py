@@ -5,21 +5,12 @@ import logging
 import os
 from .base_cog import BaseCog
 
-class SettingsCog(BaseCog):
+class SettingsCog(commands.Cog):  # Changed to inherit directly from commands.Cog
     def __init__(self, bot):
-        super().__init__(
-            bot=bot,
-            name="Settings",
-            nickname="Settings",
-            trigger_words=[],  # No trigger words since it handles commands only
-            model="",          # No model associated
-            provider="",       # No provider
-            prompt_file=None,  # No prompt file
-            supports_vision=False
-        )
+        self.bot = bot
+        self.name = "Settings"
         self.dynamic_prompts_file = "dynamic_prompts.json"
         self.activated_channels_file = "activated_channels.json"
-        self.name = "Settings"
         
         # Load activated channels on initialization
         self.activated_channels = self.load_activated_channels()
@@ -46,10 +37,6 @@ class SettingsCog(BaseCog):
             logging.info(f"[Settings] Saved activated channels: {self.activated_channels}")
         except Exception as e:
             logging.error(f"[Settings] Error saving activated channels: {e}")
-
-    async def handle_message(self, message, full_content=None):
-        """Override handle_message to do nothing since SettingsCog doesn't handle messages directly."""
-        pass
 
     @commands.command(name="activate", aliases=["st_activate"])
     @commands.has_permissions(manage_messages=True)
@@ -132,7 +119,85 @@ class SettingsCog(BaseCog):
             logging.error(f"[Settings] Error listing activated channels: {e}")
             await ctx.reply("❌ Failed to list activated channels. Please try again.")
 
-    # Existing methods (set_system_prompt, reset_system_prompt) remain unchanged
+    @commands.command(name="set_system_prompt", aliases=["st_set_system_prompt"])
+    @commands.has_permissions(manage_messages=True)
+    async def set_system_prompt(self, ctx, agent: str, *, prompt: str):
+        """Set a custom system prompt for an AI agent in this channel"""
+        try:
+            # Load existing prompts
+            if os.path.exists(self.dynamic_prompts_file):
+                with open(self.dynamic_prompts_file, "r") as f:
+                    dynamic_prompts = json.load(f)
+            else:
+                dynamic_prompts = {}
+
+            # Get guild and channel IDs
+            guild_id = str(ctx.guild.id) if ctx.guild else None
+            channel_id = str(ctx.channel.id)
+
+            # Initialize guild dict if needed
+            if guild_id and guild_id not in dynamic_prompts:
+                dynamic_prompts[guild_id] = {}
+
+            # Set the prompt
+            if guild_id:
+                if channel_id not in dynamic_prompts[guild_id]:
+                    dynamic_prompts[guild_id][channel_id] = {}
+                dynamic_prompts[guild_id][channel_id][agent] = prompt
+            else:
+                if channel_id not in dynamic_prompts:
+                    dynamic_prompts[channel_id] = {}
+                dynamic_prompts[channel_id][agent] = prompt
+
+            # Save updated prompts
+            with open(self.dynamic_prompts_file, "w") as f:
+                json.dump(dynamic_prompts, f, indent=4)
+
+            await ctx.reply(f"✅ System prompt updated for {agent} in this channel.")
+
+        except Exception as e:
+            logging.error(f"Error setting system prompt: {str(e)}")
+            await ctx.reply("❌ Failed to set system prompt. Please try again.")
+
+    @commands.command(name="reset_system_prompt", aliases=["st_reset_system_prompt"])
+    @commands.has_permissions(manage_messages=True)
+    async def reset_system_prompt(self, ctx, agent: str):
+        """Reset the system prompt for an AI agent to its default in this channel"""
+        try:
+            if not os.path.exists(self.dynamic_prompts_file):
+                await ctx.reply("No custom prompts found.")
+                return
+
+            with open(self.dynamic_prompts_file, "r") as f:
+                dynamic_prompts = json.load(f)
+
+            guild_id = str(ctx.guild.id) if ctx.guild else None
+            channel_id = str(ctx.channel.id)
+
+            # Remove prompt if it exists
+            if guild_id and guild_id in dynamic_prompts:
+                if channel_id in dynamic_prompts[guild_id]:
+                    if agent in dynamic_prompts[guild_id][channel_id]:
+                        del dynamic_prompts[guild_id][channel_id][agent]
+                    if not dynamic_prompts[guild_id][channel_id]:
+                        del dynamic_prompts[guild_id][channel_id]
+                if not dynamic_prompts[guild_id]:
+                    del dynamic_prompts[guild_id]
+            elif channel_id in dynamic_prompts:
+                if agent in dynamic_prompts[channel_id]:
+                    del dynamic_prompts[channel_id][agent]
+                if not dynamic_prompts[channel_id]:
+                    del dynamic_prompts[channel_id]
+
+            # Save updated prompts
+            with open(self.dynamic_prompts_file, "w") as f:
+                json.dump(dynamic_prompts, f, indent=4)
+
+            await ctx.reply(f"✅ System prompt reset to default for {agent} in this channel.")
+
+        except Exception as e:
+            logging.error(f"Error resetting system prompt: {str(e)}")
+            await ctx.reply("❌ Failed to reset system prompt. Please try again.")
 
 async def setup(bot):
     try:
