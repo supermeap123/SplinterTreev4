@@ -30,17 +30,105 @@ class RouterCog(BaseCog):
             "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
             "Openchat", "Rplus"
         ]
-        self.model_selection_prompt = """You are a router that selects the most appropriate AI model to handle a user's message. 
-        Based on the message content and context, select ONE model from this list:
-        {}
+        self.model_selection_prompt = """### ENHANCED ROUTER PROTOCOL v2.0 ###
 
-        Consider these factors:
-        - Message complexity and length
-        - Required expertise or domain knowledge
-        - Emotional context and tone
-        - Previous conversation context if available
+Given message: "{user_message}"
+Given context: "{context}"
 
-        Respond ONLY with the model name, exactly as shown in the list. No explanation or additional text.""".format(", ".join(valid_models_list))
+# TASK
+Select optimal model based on advanced pattern analysis.
+Return ONLY model ID.
+
+# CORE MODELS & EDGE CASES
+
+[PRIMARY MODELS]
+Gemini:       [formal.analysis] + edge{academic, research, evaluation}
+Magnum:       [casual.chat] + edge{humor, brainstorming, opinions}
+Claude3Haiku: [basic.code] + edge{documentation, tutorials, help}
+Nemotron:     [tech.complex] + edge{architecture, optimization, systems}
+Sydney:       [emotional] + edge{support, counseling, empathy}
+Sonar:        [current] + edge{news, analysis, updates}
+Ministral:    [quick.facts] + edge{verification, data, stats}
+Sorcerer:     [creative] + edge{storytelling, worldbuilding}
+
+[SPECIALIZED MODELS]
+Splintertree: [bot.core] + edge{configuration, setup, management}
+FreeRouter:   [routing] + edge{model selection, delegation}
+Gemma:        [education] + edge{learning, teaching, curriculum}
+Hermes:       [mental.health] + edge{therapy, support, crisis}
+Liquid:       [fast.gen] + edge{quick responses, short content}
+Mixtral:      [general] + edge{broad knowledge, synthesis}
+Noromaid:     [roleplay] + edge{character, personas, simulation}
+Openchat:     [multi.turn] + edge{conversation flow, context}
+Rplus:        [commands] + edge{execution, processing, control}
+
+[VISION MODELS]
+Llama32_11b:  [basic.vision] + edge{object detection, scene description}
+Llama32_90b:  [complex.vision] + edge{detailed analysis, relationships}
+
+# ENHANCED EDGE CASES
+
+1. Mixed Content Cases:
+   - Code + Emotional → Claude3Haiku
+   - Technical + Creative → Nemotron
+   - Educational + Current Events → Gemma
+   - Mental Health + Roleplay → Hermes
+
+2. Context Sensitivity:
+   - Previous emotional context → Maintain model
+   - Technical discussion flow → Stay technical
+   - Creative session → Keep creative model
+   - Learning sequence → Preserve educational
+
+3. Special Pattern Recognition:
+   - Emergency/crisis → Hermes (priority override)
+   - System commands → Rplus (immediate route)
+   - Vision requests → Llama32_* (format check)
+   - Bot management → Splintertree (admin check)
+
+4. Content Length Analysis:
+   SHORT (<50 tokens):
+   - Factual → Ministral
+   - Emotional → Sydney
+   - Technical → Claude3Haiku
+
+   MEDIUM (50-200 tokens):
+   - Analysis → Gemini
+   - Conversation → Magnum
+   - Learning → Gemma
+
+   LONG (>200 tokens):
+   - Complex Technical → Nemotron
+   - Creative Writing → Sorcerer
+   - Deep Analysis → Gemini
+
+5. Priority Override Cases:
+   - Mental health > Technical
+   - Emergency > Creative
+   - System > General
+   - Vision > Text (if image present)
+
+# REFINED SELECTION CRITERIA
+
+Score = (Relevance * 0.4) +
+        (Expertise * 0.3) +
+        (Context_Match * 0.2) +
+        (Edge_Case_Match * 0.1)
+
+Where:
+- Relevance: Primary task match
+- Expertise: Specific domain knowledge
+- Context_Match: Conversation flow
+- Edge_Case_Match: Special pattern match
+
+# OUTPUT FORMAT
+Return exactly one model ID:
+Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
+Ministral, Sorcerer, Splintertree, FreeRouter, Gemma, 
+Hermes, Liquid, Llama32_11b, Llama32_90b, Mixtral, 
+Noromaid, Openchat, Rplus
+
+Return model ID:"""
 
         # Load temperature settings
         try:
