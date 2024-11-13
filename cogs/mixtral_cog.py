@@ -11,8 +11,8 @@ class MixtralCog(BaseCog):
             name="Mixtral",
             nickname="Mixtral",
             trigger_words=['mixtral'],
-            model="mixtral-8x7b-32768",
-            provider="groq",
+            model="mistralai/mixtral-8x7b-instruct",
+            provider="openrouter",
             prompt_file="mixtral_prompts",
             supports_vision=False
         )
@@ -38,7 +38,7 @@ class MixtralCog(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 
     async def generate_response(self, message):
-        """Generate a response using groq"""
+        """Generate a response using openrouter"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -90,7 +90,7 @@ class MixtralCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="groq",
+                provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
                 prompt_file=self.prompt_file
