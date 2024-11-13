@@ -66,56 +66,65 @@ class WebhookCog(commands.Cog):
 
         return success
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Listen for messages with !hook prefix"""
-        if message.author.bot:
-            return
-
-        # Check if message starts with !hook
-        if not message.content.startswith('!hook '):
-            return
-
-        # Remove !hook prefix
-        content = message.content[6:].strip()
+    @commands.command(name='hook')
+    async def hook_command(self, ctx, *, content: str = None):
+        """Send a message through configured webhooks"""
         if not content:
-            await message.channel.send("❌ Please provide a message after !hook")
+            await ctx.reply("❌ Please provide a message after !hook")
             return
 
-        # Process the message through the appropriate LLM cog
+        # Find an appropriate LLM cog to handle the message
         response = None
-        for cog in self.bot.cogs.values():
-            if hasattr(cog, 'trigger_words'):
-                msg_content = content.lower()
-                if any(word in msg_content for word in cog.trigger_words):
-                    # Create a copy of the message with modified content
-                    modified_message = discord.Message.__new__(discord.Message)
-                    modified_message.__dict__.update(message.__dict__)
-                    modified_message.content = content
-
-                    # Generate response using the cog
-                    response_stream = await cog.generate_response(modified_message)
+        used_cog = None
+        
+        # Try router cog first if available
+        router_cog = self.bot.get_cog('RouterCog')
+        if router_cog and hasattr(router_cog, 'route_message'):
+            try:
+                cog = await router_cog.route_message(ctx.message)
+                if cog and hasattr(cog, 'generate_response'):
+                    response_stream = await cog.generate_response(ctx.message)
                     if response_stream:
                         response = ""
                         async for chunk in response_stream:
                             if chunk:
                                 response += chunk
-                        break
+                        used_cog = cog
+            except Exception as e:
+                logging.error(f"[WebhookCog] Error using router: {str(e)}")
+
+        # If router didn't work, try direct cog matching
+        if not response:
+            for cog in self.bot.cogs.values():
+                if hasattr(cog, 'trigger_words') and hasattr(cog, 'generate_response'):
+                    msg_content = content.lower()
+                    if any(word in msg_content for word in cog.trigger_words):
+                        try:
+                            response_stream = await cog.generate_response(ctx.message)
+                            if response_stream:
+                                response = ""
+                                async for chunk in response_stream:
+                                    if chunk:
+                                        response += chunk
+                                used_cog = cog
+                                break
+                        except Exception as e:
+                            logging.error(f"[WebhookCog] Error with cog {cog.__class__.__name__}: {str(e)}")
 
         if response:
-            # Format response with model name
-            formatted_response = f"[{cog.name}] {response}"
+            # Format response with model name if available
+            formatted_response = f"[{used_cog.name}] {response}" if hasattr(used_cog, 'name') else response
 
             # Send to webhooks
             success = await self.broadcast_to_webhooks(formatted_response)
             
             if success:
-                await message.add_reaction('✅')
+                await ctx.message.add_reaction('✅')
             else:
-                await message.add_reaction('❌')
-                await message.channel.send("❌ Failed to send message to webhooks")
+                await ctx.message.add_reaction('❌')
+                await ctx.reply("❌ Failed to send message to webhooks")
         else:
-            await message.channel.send("❌ No LLM cog responded to the message")
+            await ctx.reply("❌ No LLM cog responded to the message")
 
 async def setup(bot):
     """Add the webhook cog to the bot"""

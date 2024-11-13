@@ -105,6 +105,7 @@ class HelpCog(commands.Cog):
 • **Improved Error Handling and Logging** - Enhanced error reporting for better troubleshooting
 • **OpenPipe Request Reporting** - Automatic logging for analysis and model improvement
 • **Message ID Tracking** - Prevents duplicate messages by tracking processed message IDs
+• **Webhook Integration** - Send LLM responses to Discord webhooks using !hook command
 
 **💡 Tips:**
 1. Models will respond when you mention their trigger words
@@ -117,6 +118,7 @@ class HelpCog(commands.Cog):
 8. Use system prompt variables for dynamic and personalized prompts
 9. Use `!router_activate` in a channel to make the Router respond to all messages
 10. DMs with the bot are automatically handled by the Router
+11. Use `!hook` to send responses through configured Discord webhooks
 
 **Available Commands:**
 • `!help` - Show this help message
@@ -135,6 +137,7 @@ class HelpCog(commands.Cog):
 • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
 • `!router_activate` - Make Router respond to all messages in the current channel (Admin only)
 • `!router_deactivate` - Stop Router from responding to all messages in the current channel (Admin only)
+• `!hook <message>` - Send an LLM response through configured Discord webhooks
 
 **System Prompt Variables:**
 When setting custom system prompts, you can use these variables:

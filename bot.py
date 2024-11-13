@@ -174,7 +174,7 @@ async def setup_cogs():
     await load_context_settings()
 
     # First load core cogs
-    core_cogs = ['settings_cog', 'context_cog', 'management_cog']
+    core_cogs = ['settings_cog', 'context_cog', 'management_cog', 'webhook_cog']  # Added webhook_cog
     for cog in core_cogs:
         try:
             await bot.load_extension(f'cogs.{cog}')
@@ -231,6 +231,7 @@ async def setup_cogs():
     logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
 
     bot.cogs_loaded = True  # Set the flag to indicate cogs have been loaded
+
 @tasks.loop(seconds=30)
 async def update_status():
     """Update bot status"""
@@ -362,4 +363,3 @@ if __name__ == "__main__":
     logging.debug("Starting bot...")
     load_processed_messages()  # Load processed messages on startup
     bot.run(TOKEN)
-
