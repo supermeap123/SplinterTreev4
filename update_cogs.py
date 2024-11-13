@@ -53,7 +53,7 @@ VISION_RESPONSE_TEMPLATE = '''
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
+            messages = [{{"role": "system", "content": formatted_prompt}}]
 
             # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
@@ -73,10 +73,10 @@ VISION_RESPONSE_TEMPLATE = '''
                     role = "system"
                     content = content[9:].strip()  # Remove [SUMMARY] prefix
                 
-                messages.append({
+                messages.append({{
                     "role": role,
                     "content": content
-                })
+                }})
 
             # Process current message and any images
             content = []
@@ -86,37 +86,37 @@ VISION_RESPONSE_TEMPLATE = '''
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": attachment.url }
-                    })
+                        "image_url": {{ "url": attachment.url }}
+                    }})
 
             # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": embed.image.url }
-                    })
+                        "image_url": {{ "url": embed.image.url }}
+                    }})
                 if embed.thumbnail and embed.thumbnail.url:
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": embed.thumbnail.url }
-                    })
+                        "image_url": {{ "url": embed.thumbnail.url }}
+                    }})
 
             # Add the text content
-            content.append({
+            content.append({{
                 "type": "text",
                 "text": message.content
-            })
+            }})
 
             # Add the message with multimodal content
-            messages.append({
+            messages.append({{
                 "role": "user",
                 "content": content
-            })
+            }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
@@ -155,7 +155,7 @@ TEXT_RESPONSE_TEMPLATE = '''
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
+            messages = [{{"role": "system", "content": formatted_prompt}}]
 
             # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
@@ -175,10 +175,10 @@ TEXT_RESPONSE_TEMPLATE = '''
                     role = "system"
                     content = content[9:].strip()  # Remove [SUMMARY] prefix
                 
-                messages.append({
+                messages.append({{
                     "role": role,
                     "content": content
-                })
+                }})
 
             # Process current message and any images
             content = []
@@ -188,37 +188,37 @@ TEXT_RESPONSE_TEMPLATE = '''
             for attachment in message.attachments:
                 if attachment.content_type and attachment.content_type.startswith("image/"):
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": attachment.url }
-                    })
+                        "image_url": {{ "url": attachment.url }}
+                    }})
 
             # Check for image URLs in embeds
             for embed in message.embeds:
                 if embed.image and embed.image.url:
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": embed.image.url }
-                    })
+                        "image_url": {{ "url": embed.image.url }}
+                    }})
                 if embed.thumbnail and embed.thumbnail.url:
                     has_images = True
-                    content.append({
+                    content.append({{
                         "type": "image_url",
-                        "image_url": { "url": embed.thumbnail.url }
-                    })
+                        "image_url": {{ "url": embed.thumbnail.url }}
+                    }})
 
             # Add the text content
-            content.append({
+            content.append({{
                 "type": "text",
                 "text": "Please describe this image in detail." if has_images else message.content
-            })
+            }})
 
             # Add the message with multimodal content
-            messages.append({
+            messages.append({{
                 "role": "user",
                 "content": content
-            })
+            }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
