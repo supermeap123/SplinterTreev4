@@ -13,6 +13,7 @@ class WebhookCog(commands.Cog):
         self.bot = bot
         self.webhooks = load_webhooks()
         self.session = aiohttp.ClientSession()
+        self.context_cog = bot.get_cog('ContextCog')
         if DEBUG_LOGGING:
             logging.info(f"[WebhookCog] Initialized with {len(self.webhooks)} webhooks")
 
@@ -66,6 +67,74 @@ class WebhookCog(commands.Cog):
 
         return success
 
+    async def process_with_cog(self, message, cog):
+        """Process a message with a specific cog"""
+        try:
+            # Get context messages
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(
+                channel_id,
+                limit=50,
+                exclude_message_id=str(message.id)
+            )
+
+            # Format messages with proper roles
+            messages = []
+            if hasattr(cog, 'raw_prompt'):
+                formatted_prompt = cog.format_prompt(message)
+                messages.append({"role": "system", "content": formatted_prompt})
+
+            # Add history messages
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()
+
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
+
+            # Add the current message
+            messages.append({
+                "role": "user",
+                "content": message.content
+            })
+
+            # Get temperature for this agent
+            temperature = getattr(cog, 'get_temperature', lambda: 0.7)()
+
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
+            # Call API and get response stream
+            response_stream = await cog.api_client.call_openpipe(
+                messages=messages,
+                model=cog.model,
+                temperature=temperature,
+                stream=True,
+                provider=getattr(cog, 'provider', 'openpipe'),
+                user_id=user_id,
+                guild_id=guild_id,
+                prompt_file=getattr(cog, 'prompt_file', None)
+            )
+
+            if response_stream:
+                response = ""
+                async for chunk in response_stream:
+                    if chunk:
+                        response += chunk
+                return response
+
+        except Exception as e:
+            logging.error(f"[WebhookCog] Error processing with cog {cog.__class__.__name__}: {str(e)}")
+        return None
+
     @commands.command(name='hook')
     async def hook_command(self, ctx, *, content: str = None):
         """Send a message through configured webhooks"""
@@ -76,28 +145,22 @@ class WebhookCog(commands.Cog):
         if DEBUG_LOGGING:
             logging.info(f"[WebhookCog] Processing hook command: {content}")
 
+        # Create a copy of the message with the content
+        message = discord.Message.__new__(discord.Message)
+        message.__dict__.update(ctx.message.__dict__)
+        message.content = content
+
         # Find an appropriate LLM cog to handle the message
         response = None
         used_cog = None
         
         # Try router cog first if available
         router_cog = self.bot.get_cog('RouterCog')
-        if router_cog and hasattr(router_cog, 'route_message'):
+        if router_cog:
             try:
-                # Create a copy of the message with modified content
-                modified_message = discord.Message.__new__(discord.Message)
-                modified_message.__dict__.update(ctx.message.__dict__)
-                modified_message.content = content
-
-                cog = await router_cog.route_message(modified_message)
-                if cog and hasattr(cog, 'generate_response'):
-                    response_stream = await cog.generate_response(modified_message)
-                    if response_stream:
-                        response = ""
-                        async for chunk in response_stream:
-                            if chunk:
-                                response += chunk
-                        used_cog = cog
+                response = await self.process_with_cog(message, router_cog)
+                if response:
+                    used_cog = router_cog
             except Exception as e:
                 logging.error(f"[WebhookCog] Error using router: {str(e)}")
 
@@ -108,17 +171,8 @@ class WebhookCog(commands.Cog):
                     msg_content = content.lower()
                     if any(word in msg_content for word in cog.trigger_words):
                         try:
-                            # Create a copy of the message with modified content
-                            modified_message = discord.Message.__new__(discord.Message)
-                            modified_message.__dict__.update(ctx.message.__dict__)
-                            modified_message.content = content
-
-                            response_stream = await cog.generate_response(modified_message)
-                            if response_stream:
-                                response = ""
-                                async for chunk in response_stream:
-                                    if chunk:
-                                        response += chunk
+                            response = await self.process_with_cog(message, cog)
+                            if response:
                                 used_cog = cog
                                 break
                         except Exception as e:
