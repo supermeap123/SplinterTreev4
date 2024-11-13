@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class MinistralCog(BaseCog):
+class PixtralCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Ministral",
-            nickname="Ministral",
-            trigger_words=['ministral'],
-            model="mistralai/ministral-8b",
+            name="Pixtral",
+            nickname="Pixtral",
+            trigger_words=['pixtral'],
+            model="mistralai/pixtral-12b",
             provider="openrouter",
-            prompt_file="ministral_prompts",
+            prompt_file="pixtral_prompts",
             supports_vision=False
         )
-        logging.debug(f"[Ministral] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Ministral] Using provider: {self.provider}")
-        logging.debug(f"[Ministral] Vision support: {self.supports_vision}")
+        logging.debug(f"[Pixtral] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Pixtral] Using provider: {self.provider}")
+        logging.debug(f"[Pixtral] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Ministral] Failed to load temperatures.json: {e}")
+            logging.error(f"[Pixtral] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Ministral"
+        return "Pixtral"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -73,12 +73,12 @@ class MinistralCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Ministral] Sending {len(messages)} messages to API")
-            logging.debug(f"[Ministral] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Pixtral] Sending {len(messages)} messages to API")
+            logging.debug(f"[Pixtral] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Ministral] Using temperature: {temperature}")
+            logging.debug(f"[Pixtral] Using temperature: {temperature}")
 
             # Get user_id and guild_id
             user_id = str(message.author.id)
@@ -93,20 +93,20 @@ class MinistralCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file="ministral_prompts"
+                prompt_file="pixtral_prompts"
             )
 
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Ministral: {e}")
+            logging.error(f"Error processing message for Pixtral: {e}")
             return None
 async def setup(bot):
     try:
-        cog = MinistralCog(bot)
+        cog = PixtralCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Ministral] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Pixtral] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Ministral] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Pixtral] Failed to register cog: {e}", exc_info=True)
         raise

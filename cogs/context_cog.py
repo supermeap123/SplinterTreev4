@@ -30,34 +30,10 @@ class ContextCog(commands.Cog):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # Create messages table if not exists
-                cursor.execute('''
-                CREATE TABLE IF NOT EXISTS messages (
-                    id TEXT PRIMARY KEY,
-                    channel_id TEXT,
-                    guild_id TEXT,
-                    user_id TEXT,
-                    content TEXT,
-                    is_assistant BOOLEAN,
-                    persona_name TEXT,
-                    emotion TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-                ''')
-                
-                # Create index on channel_id and timestamp for faster queries
-                cursor.execute('''
-                CREATE INDEX IF NOT EXISTS idx_channel_timestamp 
-                ON messages(channel_id, timestamp DESC)
-                ''')
-                
-                # Create context_windows table if not exists
-                cursor.execute('''
-                CREATE TABLE IF NOT EXISTS context_windows (
-                    channel_id TEXT PRIMARY KEY,
-                    window_size INTEGER
-                )
-                ''')
+                # Read and execute schema.sql
+                with open('databases/schema.sql', 'r') as f:
+                    schema = f.read()
+                    cursor.executescript(schema)
                 
                 conn.commit()
                 logging.info("Database setup completed successfully")
@@ -78,7 +54,7 @@ class ContextCog(commands.Cog):
                 # Query to get messages from all users and cogs in chronological order
                 query = '''
                 SELECT 
-                    m.id,
+                    m.discord_message_id,
                     m.user_id,
                     m.content,
                     m.is_assistant,
@@ -87,7 +63,7 @@ class ContextCog(commands.Cog):
                     m.timestamp
                 FROM messages m
                 WHERE m.channel_id = ?
-                AND (? IS NULL OR m.id != ?)
+                AND (? IS NULL OR m.discord_message_id != ?)
                 AND m.content IS NOT NULL
                 AND m.content != ''
                 ORDER BY m.timestamp DESC
@@ -126,7 +102,7 @@ class ContextCog(commands.Cog):
                     
                     seen_contents.add(content)
                     messages.append({
-                        'id': row[0],
+                        'id': row[0],  # discord_message_id
                         'user_id': row[1],
                         'content': content,
                         'is_assistant': bool(row[3]),
@@ -172,12 +148,26 @@ class ContextCog(commands.Cog):
                 logging.debug(f"Skipping duplicate message content in channel {channel_id}")
                 return
 
+            # Get username for the message
+            if is_assistant:
+                # For bot messages, content already has [ModelName] prefix
+                prefixed_content = content
+            else:
+                # For user messages, get the username
+                try:
+                    user = await self.bot.fetch_user(int(user_id))
+                    username = user.display_name
+                    prefixed_content = f"{username}: {content}"
+                except:
+                    # If we can't get the username, just use the content as-is
+                    prefixed_content = content
+
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
                 # Check if this message already exists
                 cursor.execute('''
-                SELECT content FROM messages WHERE id = ?
+                SELECT content FROM messages WHERE discord_message_id = ?
                 ''', (str(message_id),))
                 
                 existing = cursor.fetchone()
@@ -186,15 +176,15 @@ class ContextCog(commands.Cog):
                     return
                 
                 cursor.execute('''
-                INSERT OR REPLACE INTO messages 
-                (id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion, timestamp)
+                INSERT INTO messages 
+                (discord_message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     str(message_id), 
                     str(channel_id), 
                     str(guild_id) if guild_id else None, 
                     str(user_id), 
-                    content, 
+                    prefixed_content,  # Store the prefixed content
                     is_assistant, 
                     persona_name, 
                     emotion, 
@@ -207,7 +197,7 @@ class ContextCog(commands.Cog):
             if channel_id not in self.last_messages:
                 self.last_messages[channel_id] = {}
             self.last_messages[channel_id]['assistant' if is_assistant else 'user'] = {
-                'content': content,
+                'content': prefixed_content,
                 'timestamp': datetime.now()
             }
 
@@ -229,7 +219,20 @@ class ContextCog(commands.Cog):
             channel_id = str(ctx.channel.id)
             CONTEXT_WINDOWS[channel_id] = size
 
-            # Optionally, save to a persistent configuration file
+            # Update database
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                    INSERT OR REPLACE INTO context_windows 
+                    (channel_id, window_size, last_modified) 
+                    VALUES (?, ?, ?)
+                    ''', (channel_id, size, datetime.now().isoformat()))
+                    conn.commit()
+            except Exception as e:
+                logging.warning(f"Could not update context_windows table: {str(e)}")
+
+            # Update config.py
             try:
                 with open('config.py', 'r') as f:
                     config_content = f.read()
@@ -273,6 +276,17 @@ class ContextCog(commands.Cog):
             # Remove channel-specific context setting
             if channel_id in CONTEXT_WINDOWS:
                 del CONTEXT_WINDOWS[channel_id]
+
+            # Update database
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                    DELETE FROM context_windows WHERE channel_id = ?
+                    ''', (channel_id,))
+                    conn.commit()
+            except Exception as e:
+                logging.warning(f"Could not update context_windows table: {str(e)}")
 
             # Update config.py
             try:
@@ -344,14 +358,14 @@ class ContextCog(commands.Cog):
             if message.content.startswith('!'):
                 return
 
-            # Add message to context
+            # Add message to context with username prefix
             guild_id = str(message.guild.id) if message.guild else None
             await self.add_message_to_context(
                 message.id,
                 str(message.channel.id),
                 guild_id,
                 str(message.author.id),
-                message.content,
+                message.content,  # Original content - username prefix added in add_message_to_context
                 False,  # is_assistant
                 None,   # persona_name
                 None    # emotion

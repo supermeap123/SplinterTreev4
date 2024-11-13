@@ -46,8 +46,8 @@ class {class_name}(BaseCog):
         return self.temperatures.get(self.name.lower(), 0.7)
 '''
 
-# Template for generate_response with vision support
-VISION_RESPONSE_TEMPLATE = '''
+# Template for generate_response (same for all models now)
+RESPONSE_TEMPLATE = '''
     async def generate_response(self, message):
         """Generate a response using openrouter"""
         try:
@@ -78,151 +78,14 @@ VISION_RESPONSE_TEMPLATE = '''
                     "content": content
                 }})
 
-            # Process current message and any images
-            content = []
-            has_images = False
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": attachment.url }}
-                    }})
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": embed.image.url }}
-                    }})
-                if embed.thumbnail and embed.thumbnail.url:
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": embed.thumbnail.url }}
-                    }})
-
-            # Add the text content
-            content.append({{
-                "type": "text",
-                "text": message.content
-            }})
-
-            # Add the message with multimodal content
+            # Add the current message
             messages.append({{
                 "role": "user",
-                "content": content
+                "content": message.content
             }})
 
             logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
             logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
-            logging.debug(f"[{log_name}] Has images: {{has_images}}")
-
-            # Get temperature for this agent
-            temperature = self.get_temperature()
-            logging.debug(f"[{log_name}] Using temperature: {{temperature}}")
-
-            # Get user_id and guild_id
-            user_id = str(message.author.id)
-            guild_id = str(message.guild.id) if message.guild else None
-
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=True,
-                provider="{provider}",
-                user_id=user_id,
-                guild_id=guild_id,
-                prompt_file="{prompt_file}"
-            )
-
-            return response_stream
-
-        except Exception as e:
-            logging.error(f"Error processing message for {name}: {{e}}")
-            return None'''
-
-# Template for generate_response without vision support but with image description
-TEXT_RESPONSE_TEMPLATE = '''
-    async def generate_response(self, message):
-        """Generate a response using openrouter"""
-        try:
-            # Format system prompt
-            formatted_prompt = self.format_prompt(message)
-            messages = [{{"role": "system", "content": formatted_prompt}}]
-
-            # Get last 50 messages from database, excluding current message
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(
-                channel_id, 
-                limit=50,
-                exclude_message_id=str(message.id)
-            )
-            
-            # Format history messages with proper roles
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
-                
-                # Handle system summaries
-                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
-                    role = "system"
-                    content = content[9:].strip()  # Remove [SUMMARY] prefix
-                
-                messages.append({{
-                    "role": role,
-                    "content": content
-                }})
-
-            # Process current message and any images
-            content = []
-            has_images = False
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": attachment.url }}
-                    }})
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": embed.image.url }}
-                    }})
-                if embed.thumbnail and embed.thumbnail.url:
-                    has_images = True
-                    content.append({{
-                        "type": "image_url",
-                        "image_url": {{ "url": embed.thumbnail.url }}
-                    }})
-
-            # Add the text content
-            content.append({{
-                "type": "text",
-                "text": "Please describe this image in detail." if has_images else message.content
-            }})
-
-            # Add the message with multimodal content
-            messages.append({{
-                "role": "user",
-                "content": content
-            }})
-
-            logging.debug(f"[{log_name}] Sending {{len(messages)}} messages to API")
-            logging.debug(f"[{log_name}] Formatted prompt: {{formatted_prompt}}")
-            logging.debug(f"[{log_name}] Has images: {{has_images}}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -288,17 +151,29 @@ COGS_CONFIG = {
         'log_name': 'Gemma',
         'qualified_name': 'Gemma'
     },
-    'mixtral': {
-        'class_name': 'MixtralCog',
-        'name': 'Mixtral',
-        'nickname': 'Mixtral',
-        'trigger_words': "['mixtral']",
-        'model': 'mixtral-8x7b-32768',
-        'provider': 'groq',
-        'prompt_file': 'mixtral_prompts',
+    'dolphin': {
+        'class_name': 'DolphinCog',
+        'name': 'Dolphin',
+        'nickname': 'Dolphin',
+        'trigger_words': "['dolphin']",
+        'model': 'cognitivecomputations/dolphin-mixtral-8x22b',
+        'provider': 'openrouter',
+        'prompt_file': 'dolphin_prompts',
         'supports_vision': 'False',
-        'log_name': 'Mixtral',
-        'qualified_name': 'Mixtral'
+        'log_name': 'Dolphin',
+        'qualified_name': 'Dolphin'
+    },
+    'pixtral': {
+        'class_name': 'PixtralCog',
+        'name': 'Pixtral',
+        'nickname': 'Pixtral',
+        'trigger_words': "['pixtral']",
+        'model': 'mistralai/pixtral-12b',
+        'provider': 'openrouter',
+        'prompt_file': 'pixtral_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Pixtral',
+        'qualified_name': 'Pixtral'
     },
     'management': {
         'class_name': 'ManagementCog',
@@ -320,7 +195,7 @@ COGS_CONFIG = {
         'model': 'anthropic/claude-3-5-haiku:beta',
         'provider': 'openrouter',
         'prompt_file': 'claude_prompts',
-        'supports_vision': 'True',
+        'supports_vision': 'False',
         'log_name': 'Claude-3-Haiku',
         'qualified_name': 'Claude-3-Haiku'
     },
@@ -368,7 +243,7 @@ COGS_CONFIG = {
         'model': 'meta-llama/llama-3.2-90b-vision-instruct',
         'provider': 'openrouter',
         'prompt_file': 'llama32_90b_prompts',
-        'supports_vision': 'True',
+        'supports_vision': 'False',
         'log_name': 'Llama-3.2-90B-Vision',
         'qualified_name': 'Llama-3.2-90B-Vision'
     },
@@ -448,7 +323,7 @@ COGS_CONFIG = {
         'class_name': 'RPlusCog',
         'name': 'R-Plus',
         'nickname': 'RPlus',
-        'trigger_words': "['rplus', 'r plus']",
+        'trigger_words': "['rplus', 'r plus', 'eos']",
         'model': 'cohere/command-r-plus',
         'provider': 'openrouter',
         'prompt_file': 'rplus_prompts',
@@ -476,13 +351,8 @@ def update_cog(cog_name, config):
         # Start with the base template
         cog_content = BASE_TEMPLATE.format(**config)
 
-        # Add the appropriate response template based on vision support
-        if config['supports_vision'] == 'True':
-            template = VISION_RESPONSE_TEMPLATE
-        else:
-            template = TEXT_RESPONSE_TEMPLATE
-
-        cog_content += template.format(
+        # Add the response template
+        cog_content += RESPONSE_TEMPLATE.format(
             provider=config['provider'],
             log_name=config['log_name'],
             name=config['name'],

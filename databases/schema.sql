@@ -21,15 +21,6 @@ CREATE TABLE IF NOT EXISTS context_windows (
     last_modified DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Image alt text storage
-CREATE TABLE IF NOT EXISTS image_alt_text (
-    message_id TEXT PRIMARY KEY,
-    channel_id TEXT NOT NULL,
-    alt_text TEXT NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-    attachment_url TEXT NOT NULL
-);
-
 -- Chat summaries storage
 CREATE TABLE IF NOT EXISTS chat_summaries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +51,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_persona ON messages(persona_name);
 CREATE INDEX IF NOT EXISTS idx_messages_discord_id ON messages(discord_message_id);  -- Added index for Discord message ID
-CREATE INDEX IF NOT EXISTS idx_alt_text_channel ON image_alt_text(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_channel ON chat_summaries(channel_id);
 CREATE INDEX IF NOT EXISTS idx_summaries_timestamp ON chat_summaries(end_timestamp);
 CREATE INDEX IF NOT EXISTS idx_logs_requested_at ON logs(requested_at);

@@ -15,11 +15,6 @@ from typing import Optional, Dict, AsyncGenerator
 from urllib.parse import urlparse
 import random
 
-# Shared cache for image descriptions across all cogs
-image_description_cache: Dict[str, str] = {}
-# Shared set to track handled messages
-handled_messages = set()
-
 # Glitch characters for profile updates
 GLITCH_CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?`~§¶•ªº¹²³€£¥¢₹₽✓™®©¿¡"
 ZALGO_CHARS = [
@@ -82,6 +77,7 @@ class BaseCog(commands.Cog):
         self.supports_vision = supports_vision
         self._image_processing_lock = asyncio.Lock()
         self.context_cog = bot.get_cog('ContextCog')
+        self.handled_messages = set()  # Instance variable for handled messages
         
         # Get API client from bot instance
         self.api_client = getattr(bot, 'api_client', None)
@@ -174,7 +170,7 @@ class BaseCog(commands.Cog):
                         str(message.channel.id),
                         guild_id,
                         str(message.author.id),
-                        modified_content,
+                        modified_content,  # Username prefix handled by context_cog
                         False,  # is_assistant
                         None,   # persona_name
                         None    # emotion
@@ -285,7 +281,7 @@ class BaseCog(commands.Cog):
                                 str(message.channel.id),
                                 guild_id,
                                 str(self.bot.user.id),
-                                response,
+                                response,  # Response content without prefix
                                 True,  # is_assistant
                                 self.name,  # persona_name
                                 emotion  # emotion
@@ -371,14 +367,10 @@ class BaseCog(commands.Cog):
         if message.author.bot:
             return
 
-        # Skip if this is the RouterCog
-        if self.__class__.__name__ == 'RouterCog':
-            return
-
         # Check if message contains any trigger words
         msg_content = message.content.lower()
         if any(word in msg_content for word in self.trigger_words):
-            # Only handle if not already processed by another cog
-            if message.id not in handled_messages:
-                handled_messages.add(message.id)
+            # Only handle if not already processed by this cog
+            if message.id not in self.handled_messages:
+                self.handled_messages.add(message.id)
                 await self.handle_message(message)

@@ -11,8 +11,8 @@ class MixtralCog(BaseCog):
             name="Mixtral",
             nickname="Mixtral",
             trigger_words=['mixtral'],
-            model="mixtral-8x7b-32768",
-            provider="groq",
+            model="mistralai/pixtral-12b",
+            provider="openrouter",
             prompt_file="mixtral_prompts",
             supports_vision=False
         )
@@ -67,49 +67,14 @@ class MixtralCog(BaseCog):
                     "content": content
                 })
 
-            # Process current message and any images
-            content = []
-            has_images = False
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": attachment.url }
-                    })
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.image.url }
-                    })
-                if embed.thumbnail and embed.thumbnail.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.thumbnail.url }
-                    })
-
-            # Add the text content
-            content.append({
-                "type": "text",
-                "text": "Please describe this image in detail." if has_images else message.content
-            })
-
-            # Add the message with multimodal content
+            # Add the current message
             messages.append({
                 "role": "user",
-                "content": content
+                "content": message.content
             })
 
             logging.debug(f"[Mixtral] Sending {len(messages)} messages to API")
             logging.debug(f"[Mixtral] Formatted prompt: {formatted_prompt}")
-            logging.debug(f"[Mixtral] Has images: {has_images}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -125,7 +90,7 @@ class MixtralCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="groq",
+                provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
                 prompt_file="mixtral_prompts"

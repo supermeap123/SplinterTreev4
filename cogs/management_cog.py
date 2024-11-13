@@ -3,7 +3,6 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 import json
-import os
 
 class ManagementCog(BaseCog):
     def __init__(self, bot):
@@ -68,49 +67,14 @@ class ManagementCog(BaseCog):
                     "content": content
                 })
 
-            # Process current message and any images
-            content = []
-            has_images = False
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": attachment.url }
-                    })
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.image.url }
-                    })
-                if embed.thumbnail and embed.thumbnail.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.thumbnail.url }
-                    })
-
-            # Add the text content
-            content.append({
-                "type": "text",
-                "text": "Please describe this image in detail." if has_images else message.content
-            })
-
-            # Add the message with multimodal content
+            # Add the current message
             messages.append({
                 "role": "user",
-                "content": content
+                "content": message.content
             })
 
             logging.debug(f"[Management] Sending {len(messages)} messages to API")
             logging.debug(f"[Management] Formatted prompt: {formatted_prompt}")
-            logging.debug(f"[Management] Has images: {has_images}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -137,7 +101,6 @@ class ManagementCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Management: {e}")
             return None
-
 async def setup(bot):
     try:
         cog = ManagementCog(bot)

@@ -172,8 +172,6 @@ async def setup_cogs():
                 logging.error(f"Failed to load cog {filename}: {str(e)}")
                 logging.error(traceback.format_exc())
 
-    # Removed explicit loading of 'sorcerer_cog' to prevent duplicate loading
-
     # Finally load help cog after all other cogs are loaded
     try:
         await bot.load_extension('cogs.help_cog')
@@ -250,24 +248,16 @@ def get_model_from_message(content):
 
 @bot.event
 async def on_message(message):
-    # Removed the check that was ignoring bot messages
-
-    # Check if message has already been processed - do this check first
-    if message.id in bot.processed_messages:
-        return
-
-    # Mark message as processed immediately to prevent duplicate handling
-    bot.processed_messages.add(message.id)
-    save_processed_messages()
+    # Process commands first
+    await bot.process_commands(message)
 
     # Update last interaction
     bot.last_interaction['user'] = message.author.display_name
     bot.last_interaction['time'] = datetime.now(pytz.timezone('US/Pacific'))
 
-    # Resolve user IDs to usernames
-    content_with_usernames = message.content
-    for mention in message.mentions:
-        content_with_usernames = content_with_usernames.replace(f'<@{mention.id}>', f'@{mention.name}')
+    # Skip if message is from this bot
+    if message.author == bot.user:
+        return
 
     # Process attachments
     attachment_contents = []
@@ -276,15 +266,12 @@ async def on_message(message):
         attachment_contents.append(attachment_content)
 
     # Combine message content and attachment contents
-    full_content = content_with_usernames
+    full_content = message.content
     if attachment_contents:
         full_content += "\n" + "\n".join(attachment_contents)
 
     # Debug logging for message content and attachments
     logging.debug(f"Received message in channel {message.channel.id}: {full_content}")
-
-    # Process commands first
-    await bot.process_commands(message)
 
     # Check if message is a reply to a bot message
     if message.reference and message.reference.message_id:
@@ -303,27 +290,13 @@ async def on_message(message):
         except Exception as e:
             logging.error(f"Error handling reply: {str(e)}")
 
-    # Check for bot mention or keywords
-    msg_content = full_content.lower()
-    is_pinged = bot.user in message.mentions
-    has_keyword = "splintertree" in msg_content
-
-    # Only handle mentions/keywords if no specific trigger was found
-    if (is_pinged or has_keyword) or (not content_with_usernames and attachment_contents):
-        # Check if Claude2 cog is available
-        claude2_cog = get_cog_by_name('Claude-2')
-        if claude2_cog and hasattr(claude2_cog, 'handle_message'):
-            await claude2_cog.handle_message(message, full_content)
-        else:
-            # If Claude2 is not available, use a random cog that has handle_message
-            available_cogs = [cog for cog in bot.loaded_cogs if hasattr(cog, 'handle_message')]
-            if available_cogs:
-                cog = random.choice(available_cogs)
-                await cog.handle_message(message, full_content)
-
-    # Clean up old processed messages (keep last 1000)
-    if len(bot.processed_messages) > 1000:
-        bot.processed_messages = set(list(bot.processed_messages)[-1000:])
+    # Pass the message to all cogs' on_message methods
+    for cog in bot.cogs.values():
+        if hasattr(cog, 'on_message'):
+            try:
+                await cog.on_message(message)
+            except Exception as e:
+                logging.error(f"Error in {cog.__class__.__name__}.on_message: {e}")
 
 @bot.event
 async def on_command_error(ctx, error):

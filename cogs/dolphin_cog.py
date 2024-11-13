@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class MinistralCog(BaseCog):
+class DolphinCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Ministral",
-            nickname="Ministral",
-            trigger_words=['ministral'],
-            model="mistralai/ministral-8b",
+            name="Dolphin",
+            nickname="Dolphin",
+            trigger_words=['dolphin'],
+            model="cognitivecomputations/dolphin-mixtral-8x22b",
             provider="openrouter",
-            prompt_file="ministral_prompts",
+            prompt_file="dolphin_prompts",
             supports_vision=False
         )
-        logging.debug(f"[Ministral] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Ministral] Using provider: {self.provider}")
-        logging.debug(f"[Ministral] Vision support: {self.supports_vision}")
+        logging.debug(f"[Dolphin] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Dolphin] Using provider: {self.provider}")
+        logging.debug(f"[Dolphin] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Ministral] Failed to load temperatures.json: {e}")
+            logging.error(f"[Dolphin] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Ministral"
+        return "Dolphin"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -73,12 +73,12 @@ class MinistralCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Ministral] Sending {len(messages)} messages to API")
-            logging.debug(f"[Ministral] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Dolphin] Sending {len(messages)} messages to API")
+            logging.debug(f"[Dolphin] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Ministral] Using temperature: {temperature}")
+            logging.debug(f"[Dolphin] Using temperature: {temperature}")
 
             # Get user_id and guild_id
             user_id = str(message.author.id)
@@ -93,20 +93,20 @@ class MinistralCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file="ministral_prompts"
+                prompt_file="dolphin_prompts"
             )
 
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Ministral: {e}")
+            logging.error(f"Error processing message for Dolphin: {e}")
             return None
 async def setup(bot):
     try:
-        cog = MinistralCog(bot)
+        cog = DolphinCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Ministral] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Dolphin] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Ministral] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Dolphin] Failed to register cog: {e}", exc_info=True)
         raise
