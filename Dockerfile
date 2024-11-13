@@ -19,8 +19,8 @@ RUN mkdir -p databases prompts
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Default to running both web and worker
-CMD ["sh", "-c", "python web.py & python bot.py"]
+# Default to running combined mode using run_combined.py
+CMD ["python", "run_combined.py"]
 
 # Alternative commands for running individual processes:
 # Web only: CMD ["python", "web.py"]
