@@ -1,11 +1,15 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request, redirect, url_for, flash
 import os
 import sqlite3
 import json
 from datetime import datetime, timedelta
 import pytz
+import discord
+from discord.ext import commands
+import asyncio
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')
 
 # HTML template with embedded CSS
 DASHBOARD_TEMPLATE = """
@@ -79,6 +83,30 @@ DASHBOARD_TEMPLATE = """
             font-size: 0.9em;
             margin-top: 20px;
         }
+        .status-form {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .status-form input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .status-form button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .status-form button:hover {
+            background: #2980b9;
+        }
         @media (max-width: 600px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -96,6 +124,14 @@ DASHBOARD_TEMPLATE = """
     <div class="container">
         <h1>🌳 SplinterTree Dashboard</h1>
         
+        <div class="status-form">
+            <h3>Set Bot Status</h3>
+            <form action="/set_status" method="POST">
+                <input type="text" name="status" placeholder="Enter new bot status..." required>
+                <button type="submit">Update Status</button>
+            </form>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Total Messages</h3>
@@ -217,6 +253,19 @@ def dashboard():
     return render_template_string(DASHBOARD_TEMPLATE, stats=stats, 
                                 recent_activity=stats['recent_activity'],
                                 current_time=stats['current_time'])
+
+@app.route('/set_status', methods=['POST'])
+def set_status():
+    """Set the bot's status"""
+    try:
+        status = request.form.get('status')
+        if status:
+            # Write status to a file that the bot can read
+            with open('bot_status.txt', 'w') as f:
+                f.write(status)
+    except Exception as e:
+        print(f"Error setting status: {e}")
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

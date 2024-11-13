@@ -54,10 +54,37 @@ class SplinterTreeBot(commands.Bot):
             'time': None
         }
         self.cogs_loaded = False  # Flag to prevent multiple cog setups
+        self.last_status_check = 0  # Track last status check time
 
     async def process_commands(self, message):
         ctx = await self.get_context(message)
         await self.invoke(ctx)
+
+    async def check_status_file(self):
+        """Check if there's a new status to set"""
+        try:
+            if not os.path.exists('bot_status.txt'):
+                return
+            
+            # Check file modification time
+            mod_time = os.path.getmtime('bot_status.txt')
+            if mod_time <= self.last_status_check:
+                return
+            
+            # Read and update status
+            with open('bot_status.txt', 'r') as f:
+                status = f.read().strip()
+            
+            if status:
+                await self.change_presence(activity=discord.Game(name=status))
+                self.last_status_check = mod_time
+                
+                # Clear the file
+                with open('bot_status.txt', 'w') as f:
+                    f.write('')
+                
+        except Exception as e:
+            logging.error(f"Error checking status file: {e}")
 
 # Initialize bot with a default command prefix
 bot = SplinterTreeBot(command_prefix='!', intents=intents, help_command=None)
@@ -198,7 +225,12 @@ async def setup_cogs():
 async def update_status():
     """Update bot status with current uptime"""
     try:
-        await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
+        # Check for status updates from web UI
+        await bot.check_status_file()
+        
+        # If no custom status, show uptime
+        if not os.path.exists('bot_status.txt') or os.path.getsize('bot_status.txt') == 0:
+            await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
     except Exception as e:
         logging.error(f"Error updating status: {str(e)}")
 
