@@ -77,7 +77,7 @@ class ContextCog(commands.Cog):
                 
                 # Query to get messages from all users and cogs in chronological order
                 query = '''
-                SELECT DISTINCT
+                SELECT 
                     m.id,
                     m.user_id,
                     m.content,
@@ -331,6 +331,33 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to clear context: {str(e)}")
             await ctx.reply("❌ Failed to clear conversation history")
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Listen for messages and add them to context"""
+        try:
+            # Skip bot messages
+            if message.author.bot and not message.content.lower().startswith('[summary]'):
+                return
+
+            # Skip command messages
+            if message.content.startswith('!'):
+                return
+
+            # Add message to context
+            guild_id = str(message.guild.id) if message.guild else None
+            await self.add_message_to_context(
+                message.id,
+                str(message.channel.id),
+                guild_id,
+                str(message.author.id),
+                message.content,
+                False,  # is_assistant
+                None,   # persona_name
+                None    # emotion
+            )
+        except Exception as e:
+            logging.error(f"Error in on_message: {e}")
 
 async def setup(bot):
     await bot.add_cog(ContextCog(bot))
