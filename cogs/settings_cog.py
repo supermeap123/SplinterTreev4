@@ -13,7 +13,7 @@ class SettingsCog(commands.Cog):  # Changed to inherit directly from commands.Co
         self.activated_channels_file = "activated_channels.json"
         
         # Load activated channels on initialization
-        self.activated_channels = self.load_sactivated_channels()
+        self.activated_channels = self.load_activated_channels()
 
     def load_activated_channels(self):
         """Load activated channels from JSON file"""
