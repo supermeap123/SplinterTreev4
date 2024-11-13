@@ -67,7 +67,21 @@ class RouterCog(BaseCog):
             logging.error(f"[Router] Error checking activated channel: {e}")
             return False
 
-    # Rest of the existing RouterCog code remains the same...
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Listen for messages in activated channels or with specific triggers"""
+        # Ignore messages from bots
+        if message.author.bot:
+            return
+
+        # Check if channel is activated or message contains trigger words
+        if (self.is_channel_activated(message) or 
+            any(word in message.content.lower() for word in self.trigger_words)):
+            
+            # Only handle if not already processed by another cog
+            if message.id not in handled_messages:
+                handled_messages.add(message.id)
+                await self.handle_message(message)
 
     def should_handle_message(self, message):
         """Check if the router should handle this message"""
@@ -112,8 +126,6 @@ class RouterCog(BaseCog):
             return True
 
         return False
-
-    # Rest of the existing RouterCog code remains the same...
 
 async def setup(bot):
     try:
