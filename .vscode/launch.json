@@ -1,0 +1,44 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Web Server",
+            "type": "python",
+            "request": "launch",
+            "program": "web.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
+        {
+            "name": "Discord Bot",
+            "type": "python",
+            "request": "launch",
+            "program": "bot.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
+        {
+            "name": "Web + Bot (Combined)",
+            "type": "python",
+            "request": "launch",
+            "program": "run_combined.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Web + Bot (Parallel)",
+            "configurations": ["Web Server", "Discord Bot"]
+        }
+    ]
+}
