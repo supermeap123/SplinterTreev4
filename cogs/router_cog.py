@@ -74,6 +74,117 @@ class RouterCog(BaseCog):
             logging.error(f"[Router] Error checking activated channel: {e}")
             return False
 
+    async def route_message(self, message):
+        """Route message to appropriate model and get response"""
+        try:
+            # Get context from previous messages
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
+            context = "\n".join([msg['content'] for msg in history_messages])
+
+            # Format the prompt with message and context
+            formatted_prompt = self.model_selection_prompt.format(
+                user_message=message.content,
+                context=context if context else "No previous context"
+            )
+
+            # Get model selection
+            messages = [
+                {"role": "system", "content": formatted_prompt},
+                {"role": "user", "content": message.content}
+            ]
+
+            # Call API to get model selection
+            response = await self.api_client.call_openpipe(
+                messages=messages,
+                model=self.model,
+                temperature=0.1,  # Low temperature for consistent model selection
+                stream=False
+            )
+
+            # Extract and validate model selection
+            raw_selection = response['choices'][0]['message']['content']
+            selected_model = self.validate_model_selection(raw_selection)
+            
+            logging.info(f"[Router] Selected model: {selected_model}")
+
+            # Handle 'Splintertree' selection
+            if selected_model == "Splintertree":
+                selected_cogs = []
+                ministral_cog = self.bot.get_cog('MinistralCog')
+                freerouter_cog = self.bot.get_cog('FreeRouterCog')
+
+                if ministral_cog:
+                    selected_cogs.append(ministral_cog)
+                if freerouter_cog:
+                    selected_cogs.append(freerouter_cog)
+
+                if selected_cogs:
+                    chosen_cog = random.choice(selected_cogs)
+                    logging.info(f"[Router] 'Splintertree' selected, using cog: {chosen_cog.qualified_name}")
+                    return await chosen_cog.generate_response(message)
+                else:
+                    logging.error(f"[Router] No 'Ministral' or 'FreeRouter' cog found")
+                    async def error_generator():
+                        yield "❌ Error: Could not find appropriate model for response"
+                    return error_generator()
+            else:
+                # Update nickname based on selected model
+                self.nickname = selected_model
+                logging.debug(f"[Router] Updated nickname to: {self.nickname}")
+
+                # Special cog name mappings to handle case-sensitive and special names
+                special_cog_mappings = {
+                    "Llama32_11b": "Llama32_11bCog",
+                    "Llama32_90b": "Llama32_90bCog",
+                    "Openchat": "OpenChatCog"
+                }
+
+                # Construct the full cog name
+                if selected_model in special_cog_mappings:
+                    selected_cog_name = special_cog_mappings[selected_model]
+                else:
+                    selected_cog_name = f"{selected_model}Cog"
+
+                logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
+
+                # Get the corresponding cog
+                selected_cog = self.bot.get_cog(selected_cog_name)
+
+                if selected_cog:
+                    # Use the selected cog's generate_response
+                    return await selected_cog.generate_response(message)
+                else:
+                    # Fallback logic with random selection
+                    fallback_cogs = []
+                    freerouter_cog = self.bot.get_cog('FreeRouterCog')
+                    ministral_cog = self.bot.get_cog('MinistralCog')
+                    
+                    if freerouter_cog:
+                        fallback_cogs.append(freerouter_cog)
+                    if ministral_cog:
+                        fallback_cogs.append(ministral_cog)
+                    
+                    if fallback_cogs:
+                        chosen_cog = random.choice(fallback_cogs)
+                        logging.warning(f"[Router] Selected model {selected_model} not found, falling back to {chosen_cog.qualified_name}")
+                        return await chosen_cog.generate_response(message)
+                    else:
+                        logging.error(f"[Router] No fallback models found for {selected_model}")
+                        async def error_generator():
+                            yield "❌ Error: Could not find appropriate model for response"
+                        return error_generator()
+
+        except Exception as e:
+            logging.error(f"[Router] Error routing message: {e}")
+            async def error_generator():
+                yield f"❌ Error: {str(e)}"
+            return error_generator()
+
+    async def _generate_response(self, message):
+        """Override _generate_response to route messages"""
+        return await self.route_message(message)
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Listen for messages in activated channels or with specific triggers"""
@@ -86,6 +197,11 @@ class RouterCog(BaseCog):
             # Skip if message has already been handled
             if message.id in handled_messages:
                 logging.debug(f"[Router] Message {message.id} already handled")
+                return
+
+            # Skip command messages
+            if message.content.startswith('!'):
+                logging.debug(f"[Router] Skipping command message {message.id}")
                 return
 
             # Check if channel is activated
@@ -113,6 +229,11 @@ class RouterCog(BaseCog):
             # Check if message has already been handled
             if message.id in handled_messages:
                 logging.debug(f"[Router] Message {message.id} already handled")
+                return False
+
+            # Skip command messages
+            if message.content.startswith('!'):
+                logging.debug(f"[Router] Skipping command message {message.id}")
                 return False
 
             # Check if channel is activated
@@ -148,11 +269,6 @@ class RouterCog(BaseCog):
             # Check if "splintertree" is mentioned
             if "splintertree" in msg_content:
                 logging.debug(f"[Router] Message {message.id} mentions splintertree")
-                return True
-
-            # Check if message starts with !st_ 
-            if msg_content.startswith("!st_"):
-                logging.debug(f"[Router] Message {message.id} starts with !st_")
                 return True
 
             logging.debug(f"[Router] Message {message.id} does not meet any handling criteria")
