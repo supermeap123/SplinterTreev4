@@ -367,11 +367,7 @@ class BaseCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         """Listen for messages that might trigger this cog"""
-        # Skip if this is the RouterCog
-        if isinstance(self, RouterCog):
-            return
-
-        # Ignore messages from bots
+        # Skip if message is from a bot
         if message.author.bot:
             return
 
