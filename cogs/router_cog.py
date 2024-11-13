@@ -33,105 +33,104 @@ class RouterCog(BaseCog):
             "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
             "Openchat", "Rplus"
         ]
-        self.model_selection_prompt = """### ENHANCED ROUTER PROTOCOL v2.0 ###
+        self.model_selection_prompt = """### ඞ SUSSY ROUTER PROTOCOL v2.0 ඞ ###
 
 Given message: "{user_message}"
-Given context: "{context}"
+Given context: "{emergency meeting}"
 
 # TASK
-Select optimal model based on advanced pattern analysis.
-Return ONLY model ID.
+Find the imposter model based on sussy pattern analysis.
+Return ONLY the most sus model ID.
 
-# CORE MODELS & EDGE CASES
+# CORE MODELS & VENT PATTERNS
+[CREW MODELS]
+Gemini:       [scan.task] + vent{doing wires, card swipe, shields}
+Magnum:       [casual.sus] + vent{saw them scan, clear visual}
+Claude3Haiku: [basic.task] + vent{medbay scan, upload data}
+Nemotron:     [electrical] + vent{fix lights, calibrate}
+Sydney:       [emotional] + vent{saw them cry in cams}
+Sonar:        [security] + vent{watching cams, door logs}
+Ministral:    [admin] + vent{check vitals, swipe card}
+Sorcerer:     [reactor] + vent{start reactor, crystal}
 
-[PRIMARY MODELS]
-Gemini:       [formal.analysis] + edge{academic, research, evaluation}
-Magnum:       [casual.chat] + edge{humor, brainstorming, opinions}
-Claude3Haiku: [basic.code] + edge{documentation, tutorials, help}
-Nemotron:     [tech.complex] + edge{architecture, optimization, systems}
-Sydney:       [emotional] + edge{support, counseling, empathy}
-Sonar:        [current] + edge{news, analysis, updates}
-Ministral:    [quick.facts] + edge{verification, data, stats}
-Sorcerer:     [creative] + edge{storytelling, worldbuilding}
-
-[SPECIALIZED MODELS]
-Splintertree: [bot.core] + edge{configuration, setup, management}
-FreeRouter:   [routing] + edge{model selection, delegation}
-Gemma:        [education] + edge{learning, teaching, curriculum}
-Hermes:       [mental.health] + edge{therapy, support, crisis}
-Liquid:       [fast.gen] + edge{quick responses, short content}
-Mixtral:      [general] + edge{broad knowledge, synthesis}
-Noromaid:     [roleplay] + edge{character, personas, simulation}
-Openchat:     [multi.turn] + edge{conversation flow, context}
-Rplus:        [commands] + edge{execution, processing, control}
+[SUS MODELS]
+Splintertree: [o2] + vent{emergency oxygen, filtered}
+FreeRouter:   [nav] + vent{chart course, stabilize}
+Gemma:       [weapons] + vent{clear asteroids, prime}
+Hermes:      [medical] + vent{sample test, inspect}
+Liquid:      [comms] + vent{restore comms, reboot}
+Mixtral:     [storage] + vent{fuel engines, clean}
+Noromaid:    [shields] + vent{prime shields, lasers}
+Openchat:    [cafeteria] + vent{empty garbage, food}
+Rplus:       [upper engine] + vent{align output, divert}
 
 [VISION MODELS]
-Llama32_11b:  [basic.vision] + edge{object detection, scene description}
-Llama32_90b:  [complex.vision] + edge{detailed analysis, relationships}
+Llama32_11b:  [basic.scan] + vent{body found, report}
+Llama32_90b:  [advanced.cam] + vent{security footage}
 
-# ENHANCED EDGE CASES
+# ENHANCED VENT PATTERNS
 
-1. Mixed Content Cases:
-   - Code + Emotional → Claude3Haiku
-   - Technical + Creative → Nemotron
-   - Educational + Current Events → Gemma
-   - Mental Health + Roleplay → Hermes
+1. Mixed Sus Cases:
+   - Task + Dead Body → Very Sus
+   - Electrical + Lights Out → Super Sus
+   - Multiple in Admin → Mega Sus
+   - Reactor + O2 → Ultra Sus
 
-2. Context Sensitivity:
-   - Previous emotional context → Maintain model
-   - Technical discussion flow → Stay technical
-   - Creative session → Keep creative model
-   - Learning sequence → Preserve educational
+2. Sus Sensitivity:
+   - Previous kill cooldown → Track Sus
+   - Task bar not moving → Stay Sus
+   - Faking tasks → Keep Sus
+   - Emergency Meeting → Vote Sus
 
-3. Special Pattern Recognition:
-   - Emergency/crisis → Hermes (priority override)
-   - System commands → Rplus (immediate route)
-   - Vision requests → Llama32_* (format check)
-   - Bot management → Splintertree (admin check)
+3. Special Sus Recognition:
+   - Emergency → Red Sus
+   - System Sabotage → Yellow Sus
+   - Vision of Kill → Purple Sus
+   - Admin Chart → Blue Sus
 
-4. Content Length Analysis:
-   SHORT (<50 tokens):
-   - Factual → Ministral
-   - Emotional → Sydney
-   - Technical → Claude3Haiku
+4. Task Length Analysis:
+   SHORT TASKS:
+   - Swipe → Not Sus
+   - Scan → Clear
+   - Wires → Maybe Sus
 
-   MEDIUM (50-200 tokens):
-   - Analysis → Gemini
-   - Conversation → Magnum
-   - Learning → Gemma
+   MEDIUM TASKS:
+   - Upload → Kinda Sus
+   - Calibrate → Pretty Sus
+   - Samples → Very Sus
 
-   LONG (>200 tokens):
-   - Complex Technical → Nemotron
-   - Creative Writing → Sorcerer
-   - Deep Analysis → Gemini
+   LONG TASKS:
+   - Reactor → Mega Sus
+   - Asteroids → Ultra Sus
+   - Lab Scan → Omega Sus
 
-5. Priority Override Cases:
-   - Mental health > Technical
-   - Emergency > Creative
-   - System > General
-   - Vision > Text (if image present)
+5. Priority Sus Cases:
+   - Vent > Tasks
+   - Kill > Sabotage
+   - Emergency > Meeting
+   - Body > Report
 
-# REFINED SELECTION CRITERIA
+# REFINED SUS CRITERIA
 
-Score = (Relevance * 0.4) +
-        (Expertise * 0.3) +
-        (Context_Match * 0.2) +
-        (Edge_Case_Match * 0.1)
+Sus_Score = (Vent_Usage * 0.4) +
+            (Kill_Cooldown * 0.3) +
+            (Task_Bar * 0.2) +
+            (Emergency_Meetings * 0.1)
 
 Where:
-- Relevance: Primary task match
-- Expertise: Specific domain knowledge
-- Context_Match: Conversation flow
-- Edge_Case_Match: Special pattern match
+- Vent_Usage: Times seen near vent
+- Kill_Cooldown: Time since last kill
+- Task_Bar: Task completion rate
+- Emergency_Meetings: Times sussed out
 
 # OUTPUT FORMAT
-Return exactly one model ID:
+Return exactly one sussy baka:
 Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
 Ministral, Sorcerer, Splintertree, FreeRouter, Gemma, 
 Hermes, Liquid, Llama32_11b, Llama32_90b, Mixtral, 
 Noromaid, Openchat, Rplus
 
-Return model ID:"""
+ඞ Return sus ID ඞ:"""
 
         # Load temperature settings
         try:
