@@ -45,6 +45,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **Management**: Handles management commands like uptime and agent listing. Trigger word: **"management"**.
 - **Claude3Haiku**: Focused on documentation patterns and generating haikus and poetry. Trigger word: **"claude3haiku"**.
 - **Hermes**: A generalist language model with advanced capabilities in communication and messaging patterns. Trigger word: **"hermes"**.
+- **Inferor**: Expert in immersive narratives and storytelling, merged using top roleplay models. Trigger word: **"inferor"**.
 - **Liquid**: Designed for creative writing and artistic expressions. Trigger word: **"liquid"**.
 - **Llama-3.2-11b**: An 11-billion-parameter model for lightweight reasoning tasks. Trigger word: **"11b"**.
 - **Llama-3.2-90B-Vision**: A 90-billion-parameter model for complex reasoning tasks with vision support. Trigger word: **"llamavision", "describe image", "what is this image", "llama", "llama3", "llama 3", "llama 3.2", "llama3.2", "90b", "llama 90b", "vision"**.
@@ -154,6 +155,7 @@ gemma translate this text to French
 hermes send a message in the style of Shakespeare
 liquid write a poem about the ocean
 sorcerer tell me a creative story about dragons
+inferor create an immersive narrative about space exploration
 freerouter give me an unrestricted response
 [Send a message with only an image attachment for automatic analysis]
 [Send a message with only a .txt file attachment for processing]
@@ -220,10 +222,10 @@ SplinterTreev4/
 │   ├── api.py              # API client implementations
 │   └── utils.py            # Utility functions
 ├── requirements.txt        # Python dependencies
-├── runtime.txt             # Runtime environment specification
-├── Dockerfile              # Docker configuration
-├── Procfile                # Heroku process types
-├── README.md               # Project documentation
+├── runtime.txt            # Runtime environment specification
+├── Dockerfile             # Docker configuration
+├── Procfile               # Heroku process types
+├── README.md              # Project documentation
 ```
 
 ## 📄 License
