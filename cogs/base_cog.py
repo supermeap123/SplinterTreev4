@@ -371,6 +371,10 @@ class BaseCog(commands.Cog):
         if message.author.bot:
             return
 
+        # Skip if this is the RouterCog
+        if self.__class__.__name__ == 'RouterCog':
+            return
+
         # Check if message contains any trigger words
         msg_content = message.content.lower()
         if any(word in msg_content for word in self.trigger_words):
