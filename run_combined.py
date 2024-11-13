@@ -1,9 +1,13 @@
 import subprocess
 import sys
 import os
+from dotenv import load_dotenv
 
 def run_processes():
     """Run both web server and discord bot processes."""
+    # Load environment variables from .env file
+    load_dotenv()
+    
     # Set unbuffered output
     os.environ['PYTHONUNBUFFERED'] = '1'
     
