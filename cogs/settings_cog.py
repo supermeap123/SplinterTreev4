@@ -29,10 +29,13 @@ class SettingsCog(BaseCog):
         try:
             if os.path.exists(self.activated_channels_file):
                 with open(self.activated_channels_file, 'r') as f:
-                    return json.load(f)
+                    channels = json.load(f)
+                    logging.info(f"[Settings] Loaded activated channels: {channels}")
+                    return channels
+            logging.info("[Settings] No activated channels file found, creating new one")
             return {}
         except Exception as e:
-            logging.error(f"Error loading activated channels: {e}")
+            logging.error(f"[Settings] Error loading activated channels: {e}")
             return {}
 
     def save_activated_channels(self):
@@ -40,8 +43,9 @@ class SettingsCog(BaseCog):
         try:
             with open(self.activated_channels_file, 'w') as f:
                 json.dump(self.activated_channels, f, indent=4)
+            logging.info(f"[Settings] Saved activated channels: {self.activated_channels}")
         except Exception as e:
-            logging.error(f"Error saving activated channels: {e}")
+            logging.error(f"[Settings] Error saving activated channels: {e}")
 
     async def handle_message(self, message, full_content=None):
         """Override handle_message to do nothing since SettingsCog doesn't handle messages directly."""
@@ -55,6 +59,8 @@ class SettingsCog(BaseCog):
             guild_id = str(ctx.guild.id) if ctx.guild else "dm"
             channel_id = str(ctx.channel.id)
 
+            logging.info(f"[Settings] Activating channel {channel_id} in guild {guild_id}")
+
             # Initialize guild dict if needed
             if guild_id not in self.activated_channels:
                 self.activated_channels[guild_id] = {}
@@ -63,9 +69,15 @@ class SettingsCog(BaseCog):
             self.activated_channels[guild_id][channel_id] = True
             self.save_activated_channels()
 
+            # Reload activated channels in RouterCog
+            router_cog = self.bot.get_cog('RouterCog')
+            if router_cog:
+                router_cog.activated_channels = self.activated_channels
+                logging.info(f"[Settings] Updated RouterCog activated channels: {router_cog.activated_channels}")
+
             await ctx.reply("✅ Bot will now respond to every message in this channel.")
         except Exception as e:
-            logging.error(f"Error activating channel: {e}")
+            logging.error(f"[Settings] Error activating channel: {e}")
             await ctx.reply("❌ Failed to activate channel. Please try again.")
 
     @commands.command(name="deactivate", aliases=["st_deactivate"])
@@ -75,6 +87,8 @@ class SettingsCog(BaseCog):
         try:
             guild_id = str(ctx.guild.id) if ctx.guild else "dm"
             channel_id = str(ctx.channel.id)
+
+            logging.info(f"[Settings] Deactivating channel {channel_id} in guild {guild_id}")
 
             # Remove the channel if it exists
             if (guild_id in self.activated_channels and 
@@ -86,11 +100,18 @@ class SettingsCog(BaseCog):
                     del self.activated_channels[guild_id]
                 
                 self.save_activated_channels()
+
+                # Reload activated channels in RouterCog
+                router_cog = self.bot.get_cog('RouterCog')
+                if router_cog:
+                    router_cog.activated_channels = self.activated_channels
+                    logging.info(f"[Settings] Updated RouterCog activated channels: {router_cog.activated_channels}")
+
                 await ctx.reply("✅ Bot will no longer respond to every message in this channel.")
             else:
                 await ctx.reply("❌ This channel was not previously activated.")
         except Exception as e:
-            logging.error(f"Error deactivating channel: {e}")
+            logging.error(f"[Settings] Error deactivating channel: {e}")
             await ctx.reply("❌ Failed to deactivate channel. Please try again.")
 
     @commands.command(name="list_activated", aliases=["st_list_activated"])
@@ -108,7 +129,7 @@ class SettingsCog(BaseCog):
             else:
                 await ctx.reply("No channels are currently activated in this server.")
         except Exception as e:
-            logging.error(f"Error listing activated channels: {e}")
+            logging.error(f"[Settings] Error listing activated channels: {e}")
             await ctx.reply("❌ Failed to list activated channels. Please try again.")
 
     # Existing methods (set_system_prompt, reset_system_prompt) remain unchanged
