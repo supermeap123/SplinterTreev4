@@ -17,8 +17,8 @@ class API:
         # Initialize aiohttp session with custom headers
         self.session = aiohttp.ClientSession(
             headers={
-                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
-                'X-Title': 'GwynTel'
+                'HTTP-Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'SplinterTree'
             }
         )
         
@@ -27,8 +27,8 @@ class API:
             api_key=OPENPIPE_API_KEY,
             base_url=OPENPIPE_API_URL,  # Base URL already includes /api/v1
             default_headers={
-                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
-                'X-Title': 'GwynTel'
+                'HTTP-Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'SplinterTree'
             }
         )
 
@@ -197,8 +197,8 @@ class API:
             
             # Add custom headers to the request
             extra_headers = {
-                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
-                'X-Title': 'GwynTel'
+                'HTTP-Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'SplinterTree'
             }
             
             # Add model cog header if provided
@@ -281,8 +281,8 @@ class API:
 
             # Add custom headers to the request
             extra_headers = {
-                'Referer': 'https://github.com/supermeap123/SplinterTreev4',
-                'X-Title': 'GwynTel'
+                'HTTP-Referer': 'https://github.com/supermeap123/SplinterTreev4',
+                'X-Title': 'SplinterTree'
             }
             
             # Add model cog header if provided
