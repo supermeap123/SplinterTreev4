@@ -175,7 +175,7 @@ class HelpCog(commands.Cog):
 • `!router_activate` - Make Router respond to all messages in the current channel (Admin only)
 • `!router_deactivate` - Stop Router from responding to all messages in the current channel (Admin only)
 • `!hook <message>` - Send an LLM response through configured Discord webhooks
-• `!activate` - Activate the bot to respond to every message in the current channel (Admin only)
+• `!channel_activate` - Activate the bot to respond to every message in the current channel (Admin only)
 • `!deactivate` - Deactivate the bot's response to every message in the current channel (Admin only)
 • `!list_activated` - List all activated channels in the current server (Admin only)
 
@@ -262,7 +262,7 @@ When setting custom system prompts, you can use these variables:
 
             # Update config.py
             try:
-                with open('config.py', 'r') as f:
+                with open('config/config.py', 'r') as f:
                     config_content = f.read()
                 
                 # Update or add the CONTEXT_WINDOWS dictionary
@@ -273,7 +273,7 @@ When setting custom system prompts, you can use these variables:
                     config_content
                 )
                 
-                with open('config.py', 'w') as f:
+                with open('config/config.py', 'w') as f:
                     f.write(config_content)
             except Exception as e:
                 logging.warning(f"Could not update config.py: {str(e)}")
@@ -318,7 +318,7 @@ When setting custom system prompts, you can use these variables:
 
             # Update config.py
             try:
-                with open('config.py', 'r') as f:
+                with open('config/config.py', 'r') as f:
                     config_content = f.read()
                 
                 # Update or add the CONTEXT_WINDOWS dictionary
@@ -329,7 +329,7 @@ When setting custom system prompts, you can use these variables:
                     config_content
                 )
                 
-                with open('config.py', 'w') as f:
+                with open('config/config.py', 'w') as f:
                     f.write(config_content)
             except Exception as e:
                 logging.warning(f"Could not update config.py: {str(e)}")
@@ -378,7 +378,7 @@ When setting custom system prompts, you can use these variables:
             return
 
         if DEBUG_LOGGING:
-            logging.info(f"[Help] Processing hook command: {content}")
+            logging.info(f"[WebhookCog] Processing hook command: {content}")
 
         # Create a copy of the message with the content
         message = discord.Message.__new__(discord.Message)
@@ -402,7 +402,7 @@ When setting custom system prompts, you can use these variables:
                         used_cog = router_cog
                         break
             except Exception as e:
-                logging.error(f"[Help] Error using router: {str(e)}")
+                logging.error(f"[WebhookCog] Error using router: {str(e)}")
 
         # If router didn't work, try direct cog matching
         if not response:
@@ -420,7 +420,7 @@ When setting custom system prompts, you can use these variables:
                                     used_cog = cog
                                     break
                         except Exception as e:
-                            logging.error(f"[Help] Error with cog {cog.__class__.__name__}: {str(e)}")
+                            logging.error(f"[WebhookCog] Error with cog {cog.__class__.__name__}: {str(e)}")
 
         if response:
             # Send to webhooks
@@ -466,7 +466,7 @@ When setting custom system prompts, you can use these variables:
             logging.error(f"[Help] Error deactivating router: {str(e)}")
             await ctx.reply("❌ Failed to deactivate router")
 
-    @commands.command(name="activate", aliases=["st_activate"])
+    @commands.command(name="channel_activate", aliases=["st_activate"])
     @commands.has_permissions(manage_messages=True)
     async def activate_channel(self, ctx):
         """Activate the bot to respond to every message in the current channel"""
