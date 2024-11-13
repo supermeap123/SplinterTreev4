@@ -55,10 +55,20 @@ class SplinterTreeBot(commands.Bot):
         }
         self.cogs_loaded = False  # Flag to prevent multiple cog setups
         self.last_status_check = 0  # Track last status check time
+        self.current_status = None  # Track current custom status
 
     async def process_commands(self, message):
         ctx = await self.get_context(message)
         await self.invoke(ctx)
+
+    def get_uptime_enabled(self):
+        """Get uptime status toggle state"""
+        try:
+            with open('bot_config.json', 'r') as f:
+                config = json.load(f)
+                return config.get('uptime_enabled', True)
+        except:
+            return True
 
     async def check_status_file(self):
         """Check if there's a new status to set"""
@@ -76,6 +86,7 @@ class SplinterTreeBot(commands.Bot):
                 status = f.read().strip()
             
             if status:
+                self.current_status = status
                 await self.change_presence(activity=discord.Game(name=status))
                 self.last_status_check = mod_time
                 
@@ -220,17 +231,19 @@ async def setup_cogs():
     logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
 
     bot.cogs_loaded = True  # Set the flag to indicate cogs have been loaded
-
 @tasks.loop(seconds=30)
 async def update_status():
-    """Update bot status with current uptime"""
+    """Update bot status"""
     try:
         # Check for status updates from web UI
         await bot.check_status_file()
         
-        # If no custom status, show uptime
-        if not os.path.exists('bot_status.txt') or os.path.getsize('bot_status.txt') == 0:
+        # If no custom status and uptime is enabled, show uptime
+        if not bot.current_status and bot.get_uptime_enabled():
             await bot.change_presence(activity=discord.Game(name=f"Up for {get_uptime()}"))
+        elif bot.current_status:
+            # Ensure custom status stays set
+            await bot.change_presence(activity=discord.Game(name=bot.current_status))
     except Exception as e:
         logging.error(f"Error updating status: {str(e)}")
 
@@ -349,3 +362,4 @@ if __name__ == "__main__":
     logging.debug("Starting bot...")
     load_processed_messages()  # Load processed messages on startup
     bot.run(TOKEN)
+
