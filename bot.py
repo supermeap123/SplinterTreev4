@@ -246,9 +246,7 @@ def get_model_from_message(content):
 
 @bot.event
 async def on_message(message):
-    # Ignore bot's own messages
-    if message.author == bot.user:
-        return
+    # Removed the check that was ignoring bot messages
 
     # Check if message has already been processed - do this check first
     if message.id in bot.processed_messages:
