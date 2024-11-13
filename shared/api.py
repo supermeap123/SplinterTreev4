@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Union, AsyncGenerator
 import aiohttp
 import backoff
 from urllib.parse import urlparse, urljoin
-from config import OPENPIPE_API_KEY, OPENPIPE_API_URL
+from config import OPENPIPE_API_KEY, OPENPIPE_API_URL, HELICONE_API_KEY
 from openai import AsyncOpenAI
 
 class API:
@@ -22,14 +22,21 @@ class API:
             }
         )
         
-        # Initialize OpenPipe client with custom headers
+        # Prepare Helicone headers
+        helicone_headers = {
+            'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
+            'X-Title': 'splintertree by GwynTel',
+            'Helicone-Auth': f'Bearer {HELICONE_API_KEY}' if HELICONE_API_KEY else None,
+            'Helicone-Cache-Enabled': 'true'
+        }
+        # Remove None values from headers
+        helicone_headers = {k: v for k, v in helicone_headers.items() if v is not None}
+        
+        # Initialize OpenPipe client with custom headers including Helicone
         self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
             base_url=OPENPIPE_API_URL,  # Base URL already includes /api/v1
-            default_headers={
-                'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
-                'X-Title': 'splintertree by GwynTel'
-            }
+            default_headers=helicone_headers
         )
 
         # Rate limiting
@@ -198,8 +205,14 @@ class API:
             # Add custom headers to the request
             extra_headers = {
                 'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
-                'X-Title': 'splintertree by GwynTel'
+                'X-Title': 'splintertree by GwynTel',
+                'Helicone-Property-UserID': str(user_id) if user_id else None,
+                'Helicone-Property-GuildID': str(guild_id) if guild_id else None,
+                'Helicone-Property-ModelCog': model_cog if model_cog else None,
+                'Helicone-Property-PromptFile': prompt_file if prompt_file else None
             }
+            # Remove None values from headers
+            extra_headers = {k: v for k, v in extra_headers.items() if v is not None}
             
             # Add model cog header if provided
             if model_cog:
@@ -282,8 +295,14 @@ class API:
             # Add custom headers to the request
             extra_headers = {
                 'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
-                'X-Title': 'splintertree by GwynTel'
+                'X-Title': 'splintertree by GwynTel',
+                'Helicone-Property-UserID': str(user_id) if user_id else None,
+                'Helicone-Property-GuildID': str(guild_id) if guild_id else None,
+                'Helicone-Property-ModelCog': model_cog if model_cog else None,
+                'Helicone-Property-PromptFile': prompt_file if prompt_file else None
             }
+            # Remove None values from headers
+            extra_headers = {k: v for k, v in extra_headers.items() if v is not None}
             
             # Add model cog header if provided
             if model_cog:

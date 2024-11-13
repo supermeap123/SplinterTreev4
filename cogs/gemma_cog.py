@@ -11,7 +11,7 @@ class GemmaCog(BaseCog):
             name="Gemma",
             nickname="Gemma",
             trigger_words=['gemma'],
-            model="google/gemma-2-9b-it",
+            model="google/gemma-2-27b-it",
             provider="openrouter",
             prompt_file="gemma_prompts",
             supports_vision=False

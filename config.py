@@ -19,6 +19,9 @@ OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1
 # OpenAI API key (dummy)
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'sk-dummy-openai-api-key')
 
+# Helicone API key
+HELICONE_API_KEY = os.getenv('HELICONE_API_KEY')
+
 # Logging level
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
