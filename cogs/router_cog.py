@@ -40,6 +40,17 @@ class RouterCog(BaseCog):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
+    def activate_channel(self, channel_id: str):
+        """Activate router for a channel"""
+        RouterCog.active_channels[channel_id] = True
+        logging.info(f"[Router] Activated for channel {channel_id}")
+
+    def deactivate_channel(self, channel_id: str):
+        """Deactivate router for a channel"""
+        if channel_id in RouterCog.active_channels:
+            del RouterCog.active_channels[channel_id]
+            logging.info(f"[Router] Deactivated for channel {channel_id}")
+
     async def handle_message(self, message, full_content=None):
         """Handle incoming messages for routing"""
         try:
