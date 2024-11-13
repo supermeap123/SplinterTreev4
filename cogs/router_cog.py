@@ -22,6 +22,29 @@ class RouterCog(BaseCog):
         logging.debug(f"[Router] Initialized")
         logging.debug(f"[Router] Using provider: {self.provider}")
 
+        # Add model selection prompt
+        self.model_selection_prompt = """You are a router that selects the most appropriate AI model to handle a user's message. 
+        Based on the message content and context, select ONE model from this list:
+        {valid_models}
+
+        Consider these factors:
+        - Message complexity and length
+        - Required expertise or domain knowledge
+        - Emotional context and tone
+        - Previous conversation context if available
+
+        Respond ONLY with the model name, exactly as shown in the list. No explanation or additional text.
+
+        User message: {user_message}
+        Previous context: {context}
+        """.format(valid_models=", ".join([
+            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
+            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
+            "FreeRouter", "Gemma", "Hermes", "Liquid",
+            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
+            "Openchat", "Rplus"
+        ]))
+
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
@@ -73,6 +96,24 @@ class RouterCog(BaseCog):
         except Exception as e:
             logging.error(f"[Router] Error checking activated channel: {e}")
             return False
+
+    def validate_model_selection(self, raw_selection: str) -> str:
+        """Validate and clean up model selection"""
+        # Remove any extra whitespace and punctuation
+        cleaned = raw_selection.strip().strip('.,!?').strip()
+        
+        # Check if the cleaned selection is in valid_models
+        if cleaned in self.valid_models:
+            return cleaned
+            
+        # Try case-insensitive match
+        for valid_model in self.valid_models:
+            if cleaned.lower() == valid_model.lower():
+                return valid_model
+                
+        # If no match found, return default
+        logging.warning(f"[Router] Invalid model selection '{cleaned}', defaulting to FreeRouter")
+        return "FreeRouter"
 
     async def route_message(self, message):
         """Route message to appropriate model and get response"""
