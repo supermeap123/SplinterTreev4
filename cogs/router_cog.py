@@ -40,24 +40,6 @@ class RouterCog(BaseCog):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
-    @commands.command(name='router_activate')
-    @commands.has_permissions(manage_messages=True)
-    async def router_activate(self, ctx):
-        """Activate RouterCog for the current channel"""
-        channel_id = str(ctx.channel.id)
-        RouterCog.active_channels[channel_id] = True
-        await ctx.send("✅ Bot will now respond to every message in this channel.")
-        logging.info(f"[Router] Activated in channel {channel_id}")
-
-    @commands.command(name='router_deactivate')
-    @commands.has_permissions(manage_messages=True)
-    async def router_deactivate(self, ctx):
-        """Deactivate RouterCog for the current channel"""
-        channel_id = str(ctx.channel.id)
-        RouterCog.active_channels.pop(channel_id, None)
-        await ctx.send("❌ Bot will no longer respond to messages in this channel.")
-        logging.info(f"[Router] Deactivated in channel {channel_id}")
-
     async def handle_message(self, message, full_content=None):
         """Handle incoming messages for routing"""
         try:
