@@ -128,7 +128,7 @@ class Claude3HaikuCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file=self.prompt_file
+                prompt_file="claude_prompts"
             )
 
             return response_stream
@@ -136,7 +136,6 @@ class Claude3HaikuCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Claude-3-Haiku: {e}")
             return None
-
 async def setup(bot):
     try:
         cog = Claude3HaikuCog(bot)

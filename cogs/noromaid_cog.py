@@ -128,7 +128,7 @@ class NoromaidCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file=self.prompt_file
+                prompt_file="noromaid_prompts"
             )
 
             return response_stream
@@ -136,7 +136,6 @@ class NoromaidCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Noromaid: {e}")
             return None
-
 async def setup(bot):
     try:
         cog = NoromaidCog(bot)

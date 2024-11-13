@@ -1,9 +1,8 @@
 import discord
 from discord.ext import commands
 import logging
-import shlex
-from datetime import datetime
 from .base_cog import BaseCog
+import json
 
 class ManagementCog(BaseCog):
     def __init__(self, bot):
@@ -11,103 +10,138 @@ class ManagementCog(BaseCog):
             bot=bot,
             name="Management",
             nickname="Management",
-            trigger_words=[],  # No trigger words needed for management
+            trigger_words=[],
             model="meta-llama/llama-3.1-405b-instruct",
             provider="openrouter",
-            prompt_file=None,
+            prompt_file="None",
             supports_vision=False
         )
-        self.start_time = datetime.utcnow()
+        logging.debug(f"[Management] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Management] Using provider: {self.provider}")
+        logging.debug(f"[Management] Vision support: {self.supports_vision}")
 
-    @commands.command(name="uptime")
-    async def uptime(self, ctx):
-        """Shows how long the bot has been running"""
-        current_time = datetime.utcnow()
-        delta = current_time - self.start_time
-
-        days = delta.days
-        hours, remainder = divmod(delta.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        uptime_str = []
-        if days > 0:
-            uptime_str.append(f"{days} days")
-        if hours > 0:
-            uptime_str.append(f"{hours} hours")
-        if minutes > 0:
-            uptime_str.append(f"{minutes} minutes")
-        if seconds > 0 or not uptime_str:
-            uptime_str.append(f"{seconds} seconds")
-
-        await ctx.send(f"🕒 Bot has been running for {', '.join(uptime_str)}")
-
-    @commands.command(name="clone_agent")
-    @commands.has_permissions(administrator=True)
-    async def clone_agent(self, ctx, *, args=None):
-        """Clone an existing agent with a new name and system prompt
-        Usage: !clone_agent <agent_name> <new_name> <system_prompt>"""
+        # Load temperature settings
         try:
-            if not args:
-                await ctx.send("❌ Please provide the agent name, new name, and system prompt.")
-                return
+            with open('temperatures.json', 'r') as f:
+                self.temperatures = json.load(f)
+        except Exception as e:
+            logging.error(f"[Management] Failed to load temperatures.json: {e}")
+            self.temperatures = {}
 
-            # Parse arguments using shlex to handle quoted strings
-            try:
-                parsed_args = shlex.split(args)
-            except ValueError as e:
-                await ctx.send(f"❌ Error parsing arguments: {str(e)}")
-                return
+    @property
+    def qualified_name(self):
+        """Override qualified_name to match the expected cog name"""
+        return "Management"
 
-            if len(parsed_args) < 3:
-                await ctx.send("❌ Please provide all required arguments: agent_name, new_name, and system_prompt.")
-                return
+    def get_temperature(self):
+        """Get temperature setting for this agent"""
+        return self.temperatures.get(self.name.lower(), 0.7)
 
-            agent_name = parsed_args[0]
-            new_name = parsed_args[1]
-            system_prompt = " ".join(parsed_args[2:])
+    async def generate_response(self, message):
+        """Generate a response using openrouter"""
+        try:
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{"role": "system", "content": formatted_prompt}]
 
-            # Find the original agent cog
-            original_cog = None
-            for cog in self.bot.cogs.values():
-                if hasattr(cog, 'name') and cog.name.lower() == agent_name.lower():
-                    original_cog = cog
-                    break
+            # Get last 50 messages from database, excluding current message
+            channel_id = str(message.channel.id)
+            history_messages = await self.context_cog.get_context_messages(
+                channel_id, 
+                limit=50,
+                exclude_message_id=str(message.id)
+            )
+            
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
+                
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
 
-            if not original_cog:
-                await ctx.send(f"❌ Agent '{agent_name}' not found.")
-                return
+            # Process current message and any images
+            content = []
+            has_images = False
+            
+            # Add any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": attachment.url }
+                    })
 
-            # Create new trigger words based on new name
-            new_trigger_words = [new_name.lower()]
+            # Check for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": embed.image.url }
+                    })
+                if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": embed.thumbnail.url }
+                    })
 
-            # Create new cog instance with same model but new name and prompt
-            new_cog = type(original_cog)(
-                bot=self.bot,
-                name=new_name,
-                nickname=new_name,
-                trigger_words=new_trigger_words,
-                model=original_cog.model,
-                provider=original_cog.provider,
-                prompt_file=original_cog.prompt_file,
-                supports_vision=original_cog.supports_vision
+            # Add the text content
+            content.append({
+                "type": "text",
+                "text": "Please describe this image in detail." if has_images else message.content
+            })
+
+            # Add the message with multimodal content
+            messages.append({
+                "role": "user",
+                "content": content
+            })
+
+            logging.debug(f"[Management] Sending {len(messages)} messages to API")
+            logging.debug(f"[Management] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Management] Has images: {has_images}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[Management] Using temperature: {temperature}")
+
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_openpipe(
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                stream=True,
+                provider="openrouter",
+                user_id=user_id,
+                guild_id=guild_id,
+                prompt_file="None"
             )
 
-            # Set the custom system prompt
-            new_cog.raw_prompt = system_prompt
-
-            # Add the new cog to the bot
-            await self.bot.add_cog(new_cog)
-            await ctx.send(f"✅ Successfully cloned {agent_name} as {new_name} with custom system prompt.")
+            return response_stream
 
         except Exception as e:
-            logging.error(f"Error cloning agent: {str(e)}")
-            await ctx.send(f"❌ Failed to clone agent: {str(e)}")
-
+            logging.error(f"Error processing message for Management: {e}")
+            return None
 async def setup(bot):
     try:
         cog = ManagementCog(bot)
         await bot.add_cog(cog)
         logging.info(f"[Management] Registered cog with qualified_name: {cog.qualified_name}")
+        return cog
     except Exception as e:
         logging.error(f"[Management] Failed to register cog: {e}", exc_info=True)
         raise

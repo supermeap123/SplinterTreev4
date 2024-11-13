@@ -98,7 +98,7 @@ class Llama3290bVisionCog(BaseCog):
             # Add the text content
             content.append({
                 "type": "text",
-                "text": "Please describe this image in detail." if has_images else message.content
+                "text": message.content
             })
 
             # Add the message with multimodal content
@@ -128,7 +128,7 @@ class Llama3290bVisionCog(BaseCog):
                 provider="openrouter",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file=self.prompt_file
+                prompt_file="llama32_90b_prompts"
             )
 
             return response_stream
@@ -136,7 +136,6 @@ class Llama3290bVisionCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Llama-3.2-90B-Vision: {e}")
             return None
-
 async def setup(bot):
     try:
         cog = Llama3290bVisionCog(bot)

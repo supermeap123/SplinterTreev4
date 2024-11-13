@@ -1,11 +1,8 @@
 import discord
 from discord.ext import commands
 import logging
-from .base_cog import BaseCog, handled_messages
+from .base_cog import BaseCog
 import json
-import re
-import random
-import os
 
 class RouterCog(BaseCog):
     def __init__(self, bot):
@@ -13,122 +10,15 @@ class RouterCog(BaseCog):
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=[],  # Empty since this handles messages without explicit keywords
+            trigger_words=[],
             model="openpipe:FreeRouter-v2-235",
             provider="openpipe",
             prompt_file="router",
             supports_vision=False
         )
-        logging.debug(f"[Router] Initialized")
+        logging.debug(f"[Router] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Router] Using provider: {self.provider}")
-
-        # Add model selection prompt
-        valid_models_list = [
-            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
-            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
-            "FreeRouter", "Gemma", "Hermes", "Liquid",
-            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
-            "Openchat", "Rplus"
-        ]
-        self.model_selection_prompt = """### ENHANCED ROUTER PROTOCOL v2.0 ###
-
-Given message: "{user_message}"
-Given context: "{context}"
-
-# TASK
-Select optimal model based on advanced pattern analysis.
-Return ONLY model ID.
-
-# CORE MODELS & EDGE CASES
-
-[PRIMARY MODELS]
-Gemini:       [formal.analysis] + edge{academic, research, evaluation}
-Magnum:       [casual.chat] + edge{humor, brainstorming, opinions}
-Claude3Haiku: [basic.code] + edge{documentation, tutorials, help}
-Nemotron:     [tech.complex] + edge{architecture, optimization, systems}
-Sydney:       [emotional] + edge{support, counseling, empathy}
-Sonar:        [current] + edge{news, analysis, updates}
-Ministral:    [quick.facts] + edge{verification, data, stats}
-Sorcerer:     [creative] + edge{storytelling, worldbuilding}
-
-[SPECIALIZED MODELS]
-Splintertree: [bot.core] + edge{configuration, setup, management}
-FreeRouter:   [routing] + edge{model selection, delegation}
-Gemma:        [education] + edge{learning, teaching, curriculum}
-Hermes:       [mental.health] + edge{therapy, support, crisis}
-Liquid:       [fast.gen] + edge{quick responses, short content}
-Mixtral:      [general] + edge{broad knowledge, synthesis}
-Noromaid:     [roleplay] + edge{character, personas, simulation}
-Openchat:     [multi.turn] + edge{conversation flow, context}
-Rplus:        [commands] + edge{execution, processing, control}
-
-[VISION MODELS]
-Llama32_11b:  [basic.vision] + edge{object detection, scene description}
-Llama32_90b:  [complex.vision] + edge{detailed analysis, relationships}
-
-# ENHANCED EDGE CASES
-
-1. Mixed Content Cases:
-   - Code + Emotional → Claude3Haiku
-   - Technical + Creative → Nemotron
-   - Educational + Current Events → Gemma
-   - Mental Health + Roleplay → Hermes
-
-2. Context Sensitivity:
-   - Previous emotional context → Maintain model
-   - Technical discussion flow → Stay technical
-   - Creative session → Keep creative model
-   - Learning sequence → Preserve educational
-
-3. Special Pattern Recognition:
-   - Emergency/crisis → Hermes (priority override)
-   - System commands → Rplus (immediate route)
-   - Vision requests → Llama32_* (format check)
-   - Bot management → Splintertree (admin check)
-
-4. Content Length Analysis:
-   SHORT (<50 tokens):
-   - Factual → Ministral
-   - Emotional → Sydney
-   - Technical → Claude3Haiku
-
-   MEDIUM (50-200 tokens):
-   - Analysis → Gemini
-   - Conversation → Magnum
-   - Learning → Gemma
-
-   LONG (>200 tokens):
-   - Complex Technical → Nemotron
-   - Creative Writing → Sorcerer
-   - Deep Analysis → Gemini
-
-5. Priority Override Cases:
-   - Mental health > Technical
-   - Emergency > Creative
-   - System > General
-   - Vision > Text (if image present)
-
-# REFINED SELECTION CRITERIA
-
-Score = (Relevance * 0.4) +
-        (Expertise * 0.3) +
-        (Context_Match * 0.2) +
-        (Edge_Case_Match * 0.1)
-
-Where:
-- Relevance: Primary task match
-- Expertise: Specific domain knowledge
-- Context_Match: Conversation flow
-- Edge_Case_Match: Special pattern match
-
-# OUTPUT FORMAT
-Return exactly one model ID:
-Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
-Ministral, Sorcerer, Splintertree, FreeRouter, Gemma, 
-Hermes, Liquid, Llama32_11b, Llama32_90b, Mixtral, 
-Noromaid, Openchat, Rplus
-
-Return model ID:"""
+        logging.debug(f"[Router] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
@@ -138,277 +28,114 @@ Return model ID:"""
             logging.error(f"[Router] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
-        # Predefined list of valid models for strict validation
-        self.valid_models = valid_models_list
+    @property
+    def qualified_name(self):
+        """Override qualified_name to match the expected cog name"""
+        return "Router"
 
-        # Load activated channels
-        self.activated_channels = self.load_activated_channels()
-        logging.info(f"[Router] Loaded activated channels: {self.activated_channels}")
+    def get_temperature(self):
+        """Get temperature setting for this agent"""
+        return self.temperatures.get(self.name.lower(), 0.7)
 
-    def load_activated_channels(self):
-        """Load activated channels from JSON file"""
+    async def generate_response(self, message):
+        """Generate a response using openrouter"""
         try:
-            activated_channels_file = "activated_channels.json"
-            if os.path.exists(activated_channels_file):
-                with open(activated_channels_file, 'r') as f:
-                    channels = json.load(f)
-                    logging.info(f"[Router] Loaded activated channels: {channels}")
-                    return channels
-            logging.info("[Router] No activated channels file found")
-            return {}
-        except Exception as e:
-            logging.error(f"[Router] Error loading activated channels: {e}")
-            return {}
+            # Format system prompt
+            formatted_prompt = self.format_prompt(message)
+            messages = [{"role": "system", "content": formatted_prompt}]
 
-    def is_channel_activated(self, message):
-        """Check if the channel is activated for bot responses"""
-        try:
-            guild_id = str(message.guild.id) if message.guild else "dm"
+            # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
-
-            # Check if the channel is activated
-            is_activated = (guild_id in self.activated_channels and 
-                          channel_id in self.activated_channels[guild_id])
+            history_messages = await self.context_cog.get_context_messages(
+                channel_id, 
+                limit=50,
+                exclude_message_id=str(message.id)
+            )
             
-            logging.debug(f"[Router] Channel {channel_id} in guild {guild_id} activated: {is_activated}")
-            return is_activated
-        except Exception as e:
-            logging.error(f"[Router] Error checking activated channel: {e}")
-            return False
-
-    def validate_model_selection(self, raw_selection: str) -> str:
-        """Validate and clean up model selection"""
-        # Remove any extra whitespace and punctuation
-        cleaned = raw_selection.strip().strip('.,!?').strip()
-        
-        # Check if the cleaned selection is in valid_models
-        if cleaned in self.valid_models:
-            return cleaned
-            
-        # Try case-insensitive match
-        for valid_model in self.valid_models:
-            if cleaned.lower() == valid_model.lower():
-                return valid_model
+            # Format history messages with proper roles
+            for msg in history_messages:
+                role = "assistant" if msg['is_assistant'] else "user"
+                content = msg['content']
                 
-        # If no match found, return default
-        logging.warning(f"[Router] Invalid model selection '{cleaned}', defaulting to FreeRouter")
-        return "FreeRouter"
+                # Handle system summaries
+                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
+                    role = "system"
+                    content = content[9:].strip()  # Remove [SUMMARY] prefix
+                
+                messages.append({
+                    "role": role,
+                    "content": content
+                })
 
-    async def route_message(self, message):
-        """Route message to appropriate model and get response"""
-        try:
-            # Add message to context before routing
-            if self.context_cog:
-                try:
-                    guild_id = str(message.guild.id) if message.guild else None
-                    await self.context_cog.add_message_to_context(
-                        message.id,
-                        str(message.channel.id),
-                        guild_id,
-                        str(message.author.id),
-                        message.content,
-                        False,  # is_assistant
-                        None,   # persona_name
-                        None    # emotion
-                    )
-                except Exception as e:
-                    logging.error(f"[Router] Failed to add message to context: {str(e)}")
+            # Process current message and any images
+            content = []
+            has_images = False
+            
+            # Add any image attachments
+            for attachment in message.attachments:
+                if attachment.content_type and attachment.content_type.startswith("image/"):
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": attachment.url }
+                    })
 
-            # Get context from previous messages
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
-            context = "\n".join([msg['content'] for msg in history_messages])
+            # Check for image URLs in embeds
+            for embed in message.embeds:
+                if embed.image and embed.image.url:
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": embed.image.url }
+                    })
+                if embed.thumbnail and embed.thumbnail.url:
+                    has_images = True
+                    content.append({
+                        "type": "image_url",
+                        "image_url": { "url": embed.thumbnail.url }
+                    })
 
-            # Get model selection
-            messages = [
-                {"role": "system", "content": self.model_selection_prompt},
-                {"role": "user", "content": f"Message: {message.content}\nContext: {context if context else 'No previous context'}"}
-            ]
+            # Add the text content
+            content.append({
+                "type": "text",
+                "text": "Please describe this image in detail." if has_images else message.content
+            })
 
-            # Call API to get model selection
-            response = await self.api_client.call_openpipe(
+            # Add the message with multimodal content
+            messages.append({
+                "role": "user",
+                "content": content
+            })
+
+            logging.debug(f"[Router] Sending {len(messages)} messages to API")
+            logging.debug(f"[Router] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Router] Has images: {has_images}")
+
+            # Get temperature for this agent
+            temperature = self.get_temperature()
+            logging.debug(f"[Router] Using temperature: {temperature}")
+
+            # Get user_id and guild_id
+            user_id = str(message.author.id)
+            guild_id = str(message.guild.id) if message.guild else None
+
+            # Call API and return the stream directly
+            response_stream = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
-                temperature=0.1,  # Low temperature for consistent model selection
-                stream=False
+                temperature=temperature,
+                stream=True,
+                provider="openpipe",
+                user_id=user_id,
+                guild_id=guild_id,
+                prompt_file="router"
             )
 
-            # Extract and validate model selection
-            raw_selection = response['choices'][0]['message']['content']
-            selected_model = self.validate_model_selection(raw_selection)
-            
-            logging.info(f"[Router] Selected model: {selected_model}")
-
-            # Handle 'Splintertree' selection
-            if selected_model == "Splintertree":
-                selected_cogs = []
-                ministral_cog = self.bot.get_cog('MinistralCog')
-                freerouter_cog = self.bot.get_cog('FreeRouterCog')
-
-                if ministral_cog:
-                    selected_cogs.append(ministral_cog)
-                if freerouter_cog:
-                    selected_cogs.append(freerouter_cog)
-
-                if selected_cogs:
-                    chosen_cog = random.choice(selected_cogs)
-                    logging.info(f"[Router] 'Splintertree' selected, using cog: {chosen_cog.qualified_name}")
-                    return await chosen_cog.generate_response(message)
-                else:
-                    logging.error(f"[Router] No 'Ministral' or 'FreeRouter' cog found")
-                    async def error_generator():
-                        yield "❌ Error: Could not find appropriate model for response"
-                    return error_generator()
-            else:
-                # Update nickname based on selected model
-                self.nickname = selected_model
-                logging.debug(f"[Router] Updated nickname to: {self.nickname}")
-
-                # Special cog name mappings to handle case-sensitive and special names
-                special_cog_mappings = {
-                    "Llama32_11b": "Llama32_11bCog",
-                    "Llama32_90b": "Llama32_90bCog",
-                    "Openchat": "OpenChatCog"
-                }
-
-                # Construct the full cog name
-                if selected_model in special_cog_mappings:
-                    selected_cog_name = special_cog_mappings[selected_model]
-                else:
-                    selected_cog_name = f"{selected_model}Cog"
-
-                logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
-
-                # Get the corresponding cog
-                selected_cog = self.bot.get_cog(selected_cog_name)
-
-                if selected_cog:
-                    # Use the selected cog's generate_response
-                    return await selected_cog.generate_response(message)
-                else:
-                    # Fallback logic with random selection
-                    fallback_cogs = []
-                    freerouter_cog = self.bot.get_cog('FreeRouterCog')
-                    ministral_cog = self.bot.get_cog('MinistralCog')
-                    
-                    if freerouter_cog:
-                        fallback_cogs.append(freerouter_cog)
-                    if ministral_cog:
-                        fallback_cogs.append(ministral_cog)
-                    
-                    if fallback_cogs:
-                        chosen_cog = random.choice(fallback_cogs)
-                        logging.warning(f"[Router] Selected model {selected_model} not found, falling back to {chosen_cog.qualified_name}")
-                        return await chosen_cog.generate_response(message)
-                    else:
-                        logging.error(f"[Router] No fallback models found for {selected_model}")
-                        async def error_generator():
-                            yield "❌ Error: Could not find appropriate model for response"
-                        return error_generator()
+            return response_stream
 
         except Exception as e:
-            logging.error(f"[Router] Error routing message: {e}")
-            async def error_generator():
-                yield f"❌ Error: {str(e)}"
-            return error_generator()
-
-    async def _generate_response(self, message):
-        """Override _generate_response to route messages"""
-        return await self.route_message(message)
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Listen for messages in activated channels or with specific triggers"""
-        try:
-            # Ignore messages from bots
-            if message.author.bot:
-                logging.debug(f"[Router] Ignoring bot message {message.id}")
-                return
-
-            # Skip if message has already been handled
-            if message.id in handled_messages:
-                logging.debug(f"[Router] Message {message.id} already handled")
-                return
-
-            # Skip command messages
-            if message.content.startswith('!'):
-                logging.debug(f"[Router] Skipping command message {message.id}")
-                return
-
-            # Check if channel is activated
-            is_activated = self.is_channel_activated(message)
-            logging.debug(f"[Router] Message {message.id} in activated channel: {is_activated}")
-
-            # Check for trigger words or other conditions
-            should_handle = self.should_handle_message(message)
-            logging.debug(f"[Router] Message {message.id} should be handled: {should_handle}")
-
-            # Handle message if channel is activated or should be handled
-            if is_activated or should_handle:
-                logging.info(f"[Router] Handling message {message.id} (activated: {is_activated}, should_handle: {should_handle})")
-                handled_messages.add(message.id)
-                await self.handle_message(message)
-            else:
-                logging.debug(f"[Router] Skipping message {message.id}")
-
-        except Exception as e:
-            logging.error(f"[Router] Error in on_message: {e}")
-
-    def should_handle_message(self, message):
-        """Check if the router should handle this message"""
-        try:
-            # Check if message has already been handled
-            if message.id in handled_messages:
-                logging.debug(f"[Router] Message {message.id} already handled")
-                return False
-
-            # Skip command messages
-            if message.content.startswith('!'):
-                logging.debug(f"[Router] Skipping command message {message.id}")
-                return False
-
-            # Check if channel is activated
-            if self.is_channel_activated(message):
-                logging.debug(f"[Router] Message {message.id} in activated channel")
-                return True
-
-            msg_content = message.content.lower()
-
-            # Allow messages from bots only if they mention 'splintertree'
-            if message.author.bot:
-                should_handle = "splintertree" in msg_content
-                logging.debug(f"[Router] Bot message {message.id} should be handled: {should_handle}")
-                return should_handle
-
-            # Check if message is a DM
-            if isinstance(message.channel, discord.DMChannel):
-                logging.debug(f"[Router] Message {message.id} is DM")
-                return True
-
-            # Check if bot is mentioned
-            if self.bot.user in message.mentions:
-                logging.debug(f"[Router] Message {message.id} mentions bot")
-                return True
-
-            # Check if a specific role is mentioned
-            splintertree_role_id = 1304230846936649762  # Specific role ID
-            for role in message.role_mentions:
-                if role.id == splintertree_role_id or 'splintertree' in role.name.lower():
-                    logging.debug(f"[Router] Message {message.id} mentions role")
-                    return True
-
-            # Check if "splintertree" is mentioned
-            if "splintertree" in msg_content:
-                logging.debug(f"[Router] Message {message.id} mentions splintertree")
-                return True
-
-            logging.debug(f"[Router] Message {message.id} does not meet any handling criteria")
-            return False
-
-        except Exception as e:
-            logging.error(f"[Router] Error in should_handle_message: {e}")
-            return False
-
+            logging.error(f"Error processing message for Router: {e}")
+            return None
 async def setup(bot):
     try:
         cog = RouterCog(bot)
