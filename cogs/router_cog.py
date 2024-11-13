@@ -200,9 +200,40 @@ Return designation:"""
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
 
+    def has_send_permission(self, channel):
+        """
+        Check if the bot has permission to send messages in a channel
+        
+        This method handles both guild and DM channels, with a fallback mechanism
+        """
+        try:
+            # For DM channels, always allow
+            if isinstance(channel, discord.DMChannel):
+                return True
+
+            # For guild channels, check bot's permissions
+            if isinstance(channel, discord.TextChannel):
+                # Use bot's member object to check permissions
+                bot_member = channel.guild.me
+                permissions = channel.permissions_for(bot_member)
+                return permissions.send_messages
+            
+            # Fallback for unexpected channel types
+            return True
+        except Exception as e:
+            logging.error(f"[Router] Permission check error: {e}")
+            return True  # Default to allowing message if permission check fails
+
     async def generate_response(self, message):
         """Generate a response using the router model"""
         try:
+            # Check send permissions first
+            if not self.has_send_permission(message.channel):
+                logging.warning(f"[Router] No send permission in channel {message.channel}")
+                async def error_generator():
+                    yield "❌ Error: Missing send permissions in this channel"
+                return error_generator()
+
             # Get context from previous messages
             channel_id = str(message.channel.id)
             history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
@@ -260,17 +291,20 @@ Return designation:"""
                 self.nickname = selected_model
                 logging.debug(f"[Router] Updated nickname to: {self.nickname}")
 
-                # Construct the full cog name by appending 'Cog'
-                selected_cog_name = f"{selected_model}Cog"
-                logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
-
-                # Special handling for cogs with underscores
+                # Special cog name mappings to handle case-sensitive and special names
                 special_cog_mappings = {
                     "Llama32_11b": "Llama32_11bCog",
-                    "Llama32_90b": "Llama32_90bCog"
+                    "Llama32_90b": "Llama32_90bCog",
+                    "Openchat": "OpenChatCog"  # Added special mapping for Openchat
                 }
+
+                # Construct the full cog name
                 if selected_model in special_cog_mappings:
                     selected_cog_name = special_cog_mappings[selected_model]
+                else:
+                    selected_cog_name = f"{selected_model}Cog"
+
+                logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
 
                 # Get the corresponding cog
                 selected_cog = self.bot.get_cog(selected_cog_name)
