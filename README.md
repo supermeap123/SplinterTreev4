@@ -5,7 +5,7 @@ A powerful Discord bot that provides access to multiple AI language models with 
 ## ✨ Features
 
 ### Core Features
-- **Multi-Model Support**: Access to various AI models through OpenRouter and OpenPipe.
+- **Multi-Model Support**: Access to various AI models through OpenRouter, OpenPipe, and Groq.
 - **Direct Message Support**: Full support for private messaging with the bot, with automatic model routing.
 - **Streaming Responses**: Real-time response streaming with 1-3 sentence chunks for a more natural conversation flow.
 - **Shared Context Database**: SQLite-based persistent conversation history shared between all models.
@@ -41,30 +41,31 @@ A powerful Discord bot that provides access to multiple AI language models with 
 
 - **Gemini**: Google's advanced model for formal analysis patterns. Trigger word: **"gemini"**.
 - **Gemma**: A variant of Gemini focused on language translation and assistance. Trigger word: **"gemma"**.
-- **Magnum**: Designed for casual reasoning patterns, replicating the prose quality of the Claude 3 models. Fine-tuned on top of Qwen2.5 72B. Trigger word: **"magnum"**.
-- **Mistral**: An 8B parameter model excelling in factual recall patterns and knowledge tasks. Trigger word: **"mistral"**.
-- **Mixtral**: Enhances Mistral with mixed reasoning and creativity capabilities. Trigger word: **"mixtral"**.
-- **Llama32_90b**: A 90-billion-parameter model for complex reasoning tasks, offering advanced problem-solving. Trigger word: **"llama90b"**.
-- **Llama32_11b**: An 11-billion-parameter model for lightweight reasoning tasks. Trigger word: **"llama11b"**.
+- **Magnum**: Designed for casual reasoning patterns, replicating the prose quality of the Claude 3 models. Trigger word: **"magnum"**.
+- **Management**: Handles management commands like uptime and agent listing. Trigger word: **"management"**.
+- **Claude3Haiku**: Focused on documentation patterns and generating haikus and poetry. Trigger word: **"claude3haiku"**.
+- **Hermes**: A generalist language model with advanced capabilities in communication and messaging patterns. Trigger word: **"hermes"**.
+- **Liquid**: Designed for creative writing and artistic expressions. Trigger word: **"liquid"**.
+- **Llama-3.2-11b**: An 11-billion-parameter model for lightweight reasoning tasks. Trigger word: **"11b"**.
+- **Llama-3.2-90B-Vision**: A 90-billion-parameter model for complex reasoning tasks with vision support. Trigger word: **"llamavision", "describe image", "what is this image", "llama", "llama3", "llama 3", "llama 3.2", "llama3.2", "90b", "llama 90b", "vision"**.
+- **Magnum**: See above.
+- **Ministral**: An 8B parameter model excelling in factual recall patterns and knowledge tasks. Trigger word: **"ministral"**.
+- **Nemotron**: Specialized in technical code patterns, logic, and reasoning. Trigger word: **"nemotron"**.
 - **Noromaid**: Suitable for code refactoring, optimization, and technical code patterns. Trigger word: **"noromaid"**.
 - **OpenChat**: An open-source chat model designed for open-ended conversation patterns. Trigger word: **"openchat"**.
-- **Nemotron**: Specialized in technical code patterns, logic, and reasoning. Trigger word: **"nemotron"**.
-- **RPlus**: An enhanced model for advanced analytical tasks. Trigger word: **"rplus"**.
+- **R-Plus**: An enhanced model for advanced analytical tasks. Trigger word: **"rplus"**.
+- **Sorcerer**: Specialized in creative story patterns and narrative generation. Trigger word: **"sorcerer"**.
+- **Sydney**: Focused on emotional support patterns and engaging dialogue. Trigger word: **"sydney"**.
+- **Sonar**: Suitable for temporal analysis patterns and trend analysis with internet access. Trigger word: **"sonar"**.
 
 ### OpenPipe Models
 
-- **Hermes**: A generalist language model with advanced capabilities in communication and messaging patterns. Trigger word: **"hermes"**.
-- **Liquid**: Designed for creative writing and artistic expressions. Trigger word: **"liquid"**.
-- **Sonar**: Suitable for temporal analysis patterns and trend analysis with internet access. Trigger word: **"sonar"**.
-- **Sydney**: Focused on emotional support patterns and engaging dialogue. Trigger word: **"sydney"**.
-- **Sorcerer**: Specialized in creative story patterns and narrative generation. Trigger word: **"sorcerer"**.
-
-### Additional Models
-
-- **Router**: Dynamically routes messages to the most appropriate model based on content. Trigger word: **"router"**.
 - **FreeRouter**: An unrestricted version of the Router with fewer limitations. Trigger word: **"freerouter"**.
-- **Claude3Haiku**: Focused on documentation patterns and generating haikus and poetry. Trigger word: **"claude3haiku"**.
-- **Splintertree**: Provides general assistance patterns for a wide range of queries. Trigger word: **"splintertree"**.
+- **Router**: Dynamically routes messages to the most appropriate model based on content. Trigger word: **"router"**.
+
+### Groq Models
+
+- **Mixtral**: Enhances Mistral with mixed reasoning and creativity capabilities. Trigger word: **"mixtral"**.
 
 ## 🛠️ Setup
 
@@ -186,10 +187,10 @@ freerouter give me an unrestricted response
   - Handles error cases and permissions.
   - Supports agent cloning.
   - Implements OpenPipe request reporting for each processed message.
-  - Uses `context_cog` for message history management.
+  - Uses `ContextCog` for message history management.
   - Centralizes core functionality to reduce code duplication.
 - **Context Management**: SQLite-based conversation history.
-- **API Integration**: OpenRouter and OpenPipe connections with streaming support.
+- **API Integration**: OpenRouter, OpenPipe, and Groq connections with streaming support.
 - **File Processing**: Handles various file types.
 - **Image Processing**: Integrated vision support in base cog for all models.
 - **Settings Management**: Handles dynamic system prompts.
