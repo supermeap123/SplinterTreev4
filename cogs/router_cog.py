@@ -32,7 +32,7 @@ class RouterCog(BaseCog):
         # Predefined list of valid models for strict validation
         self.valid_models = [
             "Gemini", "Magnum", "Claude3Haiku", "Nemotron", 
-            "Sydney", "Sonar", "Ministral", "Sorcerer"
+            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree"
         ]
 
         # Model selection system prompt using exact cog class names
@@ -48,14 +48,15 @@ Route user input to optimal model.
 Return only designation.
 
 # ENTITY CATALOG
-Gemini........: formal analysis patterns
-Magnum........: casual reasoning patterns
-Claude3Haiku..: documentation patterns
-Nemotron......: technical patterns
-Sydney........: emotional patterns
-Sonar.........: temporal patterns
-Ministral.....: fact patterns
-Sorcerer......: dream patterns
+Gemini...........: formal analysis patterns
+Magnum...........: casual reasoning patterns
+Claude3Haiku.....: documentation patterns
+Nemotron.........: technical patterns
+Sydney...........: emotional patterns
+Sonar............: temporal patterns
+Ministral........: fact patterns
+Sorcerer.........: dream patterns
+Splintertree.....: general patterns
 
 # PATTERN RECOGNITION
 1. Code Detection:
@@ -90,12 +91,12 @@ Sorcerer......: dream patterns
 
 6. Default Pattern:
    > general queries
-   IF no match: return "Ministral"
+   IF no match: return "Splintertree"
 
 # OUTPUT PROTOCOL
 Return single designation:
 Gemini, Magnum, Claude3Haiku, Nemotron, 
-Sydney, Sonar, Ministral, Sorcerer
+Sydney, Sonar, Ministral, Sorcerer, Splintertree
 
 # PRIORITY MATRIX
 1. code.patterns
@@ -150,8 +151,8 @@ Return designation:"""
                 return valid_model
         
         # Default fallback with detailed logging
-        logging.warning(f"[Router] Unrecognized model selection: '{model_name}'. Defaulting to Ministral.")
-        return "Ministral"
+        logging.warning(f"[Router] Unrecognized model selection: '{model_name}'. Defaulting to Splintertree.")
+        return "Splintertree"
 
     @property
     def qualified_name(self):
@@ -196,45 +197,62 @@ Return designation:"""
             
             logging.info(f"[Router] Selected model: {selected_model}")
 
-            # Update nickname based on selected model
-            self.nickname = selected_model
-            logging.debug(f"[Router] Updated nickname to: {self.nickname}")
-
-            # Construct the full cog name by appending 'Cog'
-            selected_cog_name = f"{selected_model}Cog"
-            logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
-
-            # Get the corresponding cog
-            selected_cog = None
-            for cog_name, cog in self.bot.cogs.items():
-                logging.debug(f"[Router] Checking cog: {cog_name}")
-                if cog_name == selected_cog_name:
-                    selected_cog = cog
-                    break
-
-            if selected_cog:
-                # Use the selected cog's generate_response
-                return await selected_cog.generate_response(message)
-            else:
-                # Fallback logic with 50/50 chance between FreeRouter and Ministral
-                fallback_cogs = []
-                freerouter_cog = self.bot.get_cog('FreeRouterCog')
+            # Handle 'Splintertree' selection
+            if selected_model == "Splintertree":
+                # Choose randomly between 'Ministral' and 'FreeRouter' cogs
+                selected_cogs = []
                 ministral_cog = self.bot.get_cog('MinistralCog')
-                
-                if freerouter_cog:
-                    fallback_cogs.append(freerouter_cog)
+                freerouter_cog = self.bot.get_cog('FreeRouterCog')
+
                 if ministral_cog:
-                    fallback_cogs.append(ministral_cog)
-                
-                if fallback_cogs:
-                    chosen_cog = random.choice(fallback_cogs)
-                    logging.warning(f"[Router] Selected model {selected_model} not found, falling back to {chosen_cog.qualified_name}")
+                    selected_cogs.append(ministral_cog)
+                if freerouter_cog:
+                    selected_cogs.append(freerouter_cog)
+
+                if selected_cogs:
+                    chosen_cog = random.choice(selected_cogs)
+                    logging.info(f"[Router] 'Splintertree' selected, using cog: {chosen_cog.qualified_name}")
                     return await chosen_cog.generate_response(message)
                 else:
-                    logging.error(f"[Router] No fallback models found for {selected_model}")
+                    logging.error(f"[Router] No 'Ministral' or 'FreeRouter' cog found")
                     async def error_generator():
                         yield "❌ Error: Could not find appropriate model for response"
                     return error_generator()
+            else:
+                # Update nickname based on selected model
+                self.nickname = selected_model
+                logging.debug(f"[Router] Updated nickname to: {self.nickname}")
+
+                # Construct the full cog name by appending 'Cog'
+                selected_cog_name = f"{selected_model}Cog"
+                logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
+
+                # Get the corresponding cog
+                selected_cog = self.bot.get_cog(selected_cog_name)
+
+                if selected_cog:
+                    # Use the selected cog's generate_response
+                    return await selected_cog.generate_response(message)
+                else:
+                    # Fallback logic with 50/50 chance between FreeRouter and Ministral
+                    fallback_cogs = []
+                    freerouter_cog = self.bot.get_cog('FreeRouterCog')
+                    ministral_cog = self.bot.get_cog('MinistralCog')
+                    
+                    if freerouter_cog:
+                        fallback_cogs.append(freerouter_cog)
+                    if ministral_cog:
+                        fallback_cogs.append(ministral_cog)
+                    
+                    if fallback_cogs:
+                        chosen_cog = random.choice(fallback_cogs)
+                        logging.warning(f"[Router] Selected model {selected_model} not found, falling back to {chosen_cog.qualified_name}")
+                        return await chosen_cog.generate_response(message)
+                    else:
+                        logging.error(f"[Router] No fallback models found for {selected_model}")
+                        async def error_generator():
+                            yield "❌ Error: Could not find appropriate model for response"
+                        return error_generator()
 
         except Exception as e:
             logging.error(f"[Router] Error processing message: {e}")
@@ -259,8 +277,15 @@ Return designation:"""
             return True
 
         # Check if bot is mentioned
-        if self.bot.user.id == 1270760587022041088 and self.bot.user in message.mentions:
+        if self.bot.user in message.mentions:
             return True
+
+        # Check if a specific role is mentioned
+        splintertree_role_id = 1304230846936649762  # Specific role ID
+        for role in message.role_mentions:
+            if role.id == splintertree_role_id or 'splintertree' in role.name.lower():
+                logging.debug(f"[Router] Role mention detected: {role.name}")
+                return True
 
         # Check if "splintertree" is mentioned
         if "splintertree" in msg_content:
