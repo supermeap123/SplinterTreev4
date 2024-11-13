@@ -55,6 +55,10 @@ class SplinterTreeBot(commands.Bot):
         }
         self.cogs_loaded = False  # Flag to prevent multiple cog setups
 
+    async def process_commands(self, message):
+        ctx = await self.get_context(message)
+        await self.invoke(ctx)
+
 # Initialize bot with a default command prefix
 bot = SplinterTreeBot(command_prefix='!', intents=intents, help_command=None)
 
