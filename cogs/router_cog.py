@@ -307,15 +307,18 @@ Return designation:"""
 
     def should_handle_message(self, message):
         """Check if the router should handle this message"""
-        # Ignore messages from bots
-        if message.author.bot:
-            return False
-
         # Check if message has already been handled
         if message.id in handled_messages:
             return False
 
         msg_content = message.content.lower()
+
+        # Allow messages from bots only if they mention 'splintertree'
+        if message.author.bot:
+            if "splintertree" in msg_content:
+                return True
+            else:
+                return False
 
         # Check if message is a DM
         if isinstance(message.channel, discord.DMChannel):
