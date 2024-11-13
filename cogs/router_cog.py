@@ -58,6 +58,7 @@ Given: "{user_message}", "{context}"
    - NSFW/Edge → Goliath
    - Emotional → Sydney
    - Current events → Sonar
+   - Philosophy/Psychology/Deep discourse → Rplus (Eos)
 
 4. DEFAULT
    IF general query:
@@ -74,7 +75,7 @@ Given: "{user_message}", "{context}"
 Return one:
 Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
 Ministral, Mixtral, Hermes, Noromaid, Llama32_11b, 
-Llama32_90b, Gemma, Inferor, Goliath
+Llama32_90b, Gemma, Inferor, Goliath, Rplus
 
 Return model:"""
 

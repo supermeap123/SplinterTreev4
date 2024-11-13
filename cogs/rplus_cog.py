@@ -10,7 +10,7 @@ class RPlusCog(BaseCog):
             bot=bot,
             name="R-Plus",
             nickname="RPlus",
-            trigger_words=['rplus', 'r plus'],
+            trigger_words=['rplus', 'r plus', 'eos'],
             model="cohere/command-r-plus",
             provider="openrouter",
             prompt_file="rplus_prompts",
