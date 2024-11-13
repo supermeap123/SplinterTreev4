@@ -33,104 +33,48 @@ class RouterCog(BaseCog):
             "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
             "Openchat", "Rplus"
         ]
-        self.model_selection_prompt = """### ඞ SUSSY ROUTER PROTOCOL v2.0 ඞ ###
+        self.model_selection_prompt = """### ROUTER PROTOCOL v3.0 ###
 
-Given message: "{user_message}"
-Given context: "{emergency meeting}"
+Given: "{user_message}", "{context}"
 
-# TASK
-Find the imposter model based on sussy pattern analysis.
-Return ONLY the most sus model ID.
+# PRIMARY ROUTES
+1. TECHNICAL
+   IF code/technical:
+   - Complex → Nemotron
+   - Basic → Claude3Haiku
 
-# CORE MODELS & VENT PATTERNS
-[CREW MODELS]
-Gemini:       [scan.task] + vent{doing wires, card swipe, shields}
-Magnum:       [casual.sus] + vent{saw them scan, clear visual}
-Claude3Haiku: [basic.task] + vent{medbay scan, upload data}
-Nemotron:     [electrical] + vent{fix lights, calibrate}
-Sydney:       [emotional] + vent{saw them cry in cams}
-Sonar:        [security] + vent{watching cams, door logs}
-Ministral:    [admin] + vent{check vitals, swipe card}
-Sorcerer:     [reactor] + vent{start reactor, crystal}
+2. ANALYSIS
+   IF reasoning/research:
+   - Formal → Gemini
+   - Casual → Magnum
 
-[SUS MODELS]
-Splintertree: [o2] + vent{emergency oxygen, filtered}
-FreeRouter:   [nav] + vent{chart course, stabilize}
-Gemma:       [weapons] + vent{clear asteroids, prime}
-Hermes:      [medical] + vent{sample test, inspect}
-Liquid:      [comms] + vent{restore comms, reboot}
-Mixtral:     [storage] + vent{fuel engines, clean}
-Noromaid:    [shields] + vent{prime shields, lasers}
-Openchat:    [cafeteria] + vent{empty garbage, food}
-Rplus:       [upper engine] + vent{align output, divert}
+3. SPECIAL
+   IF detected:
+   - Mental health → Hermes  [PRIORITY]
+   - Vision → Llama32_*
+   - Education → Gemma
+   - Roleplay → Noromaid
+   - Emotional → Sydney
+   - Current events → Sonar
 
-[VISION MODELS]
-Llama32_11b:  [basic.scan] + vent{body found, report}
-Llama32_90b:  [advanced.cam] + vent{security footage}
+4. DEFAULT
+   IF general query:
+   - Quick fact → Ministral
+   - Knowledge → Mixtral
 
-# ENHANCED VENT PATTERNS
+# OVERRIDE SEQUENCE
+1. Mental health/crisis
+2. Technical/code
+3. Analysis/research
+4. Special cases
+5. General queries
 
-1. Mixed Sus Cases:
-   - Task + Dead Body → Very Sus
-   - Electrical + Lights Out → Super Sus
-   - Multiple in Admin → Mega Sus
-   - Reactor + O2 → Ultra Sus
-
-2. Sus Sensitivity:
-   - Previous kill cooldown → Track Sus
-   - Task bar not moving → Stay Sus
-   - Faking tasks → Keep Sus
-   - Emergency Meeting → Vote Sus
-
-3. Special Sus Recognition:
-   - Emergency → Red Sus
-   - System Sabotage → Yellow Sus
-   - Vision of Kill → Purple Sus
-   - Admin Chart → Blue Sus
-
-4. Task Length Analysis:
-   SHORT TASKS:
-   - Swipe → Not Sus
-   - Scan → Clear
-   - Wires → Maybe Sus
-
-   MEDIUM TASKS:
-   - Upload → Kinda Sus
-   - Calibrate → Pretty Sus
-   - Samples → Very Sus
-
-   LONG TASKS:
-   - Reactor → Mega Sus
-   - Asteroids → Ultra Sus
-   - Lab Scan → Omega Sus
-
-5. Priority Sus Cases:
-   - Vent > Tasks
-   - Kill > Sabotage
-   - Emergency > Meeting
-   - Body > Report
-
-# REFINED SUS CRITERIA
-
-Sus_Score = (Vent_Usage * 0.4) +
-            (Kill_Cooldown * 0.3) +
-            (Task_Bar * 0.2) +
-            (Emergency_Meetings * 0.1)
-
-Where:
-- Vent_Usage: Times seen near vent
-- Kill_Cooldown: Time since last kill
-- Task_Bar: Task completion rate
-- Emergency_Meetings: Times sussed out
-
-# OUTPUT FORMAT
-Return exactly one sussy baka:
+Return one:
 Gemini, Magnum, Claude3Haiku, Nemotron, Sydney, Sonar, 
-Ministral, Sorcerer, Splintertree, FreeRouter, Gemma, 
-Hermes, Liquid, Llama32_11b, Llama32_90b, Mixtral, 
-Noromaid, Openchat, Rplus
+Ministral, Mixtral, Hermes, Noromaid, Llama32_11b, 
+Llama32_90b, Gemma
 
-ඞ Return sus ID ඞ:"""
+Return model:"""
 
         # Load temperature settings
         try:
