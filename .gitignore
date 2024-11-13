@@ -47,3 +47,5 @@ coverage.xml
 .pytest_cache
 .hypothesis
 git_commit_message.txt
+processed_messages.json
+activated_channels.json
