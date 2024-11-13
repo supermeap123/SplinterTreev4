@@ -197,6 +197,23 @@ Return model ID:"""
     async def route_message(self, message):
         """Route message to appropriate model and get response"""
         try:
+            # Add message to context before routing
+            if self.context_cog:
+                try:
+                    guild_id = str(message.guild.id) if message.guild else None
+                    await self.context_cog.add_message_to_context(
+                        message.id,
+                        str(message.channel.id),
+                        guild_id,
+                        str(message.author.id),
+                        message.content,
+                        False,  # is_assistant
+                        None,   # persona_name
+                        None    # emotion
+                    )
+                except Exception as e:
+                    logging.error(f"[Router] Failed to add message to context: {str(e)}")
+
             # Get context from previous messages
             channel_id = str(message.channel.id)
             history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
