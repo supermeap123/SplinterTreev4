@@ -73,6 +73,9 @@ class WebhookCog(commands.Cog):
             await ctx.reply("❌ Please provide a message after !hook")
             return
 
+        if DEBUG_LOGGING:
+            logging.info(f"[WebhookCog] Processing hook command: {content}")
+
         # Find an appropriate LLM cog to handle the message
         response = None
         used_cog = None
@@ -81,9 +84,14 @@ class WebhookCog(commands.Cog):
         router_cog = self.bot.get_cog('RouterCog')
         if router_cog and hasattr(router_cog, 'route_message'):
             try:
-                cog = await router_cog.route_message(ctx.message)
+                # Create a copy of the message with modified content
+                modified_message = discord.Message.__new__(discord.Message)
+                modified_message.__dict__.update(ctx.message.__dict__)
+                modified_message.content = content
+
+                cog = await router_cog.route_message(modified_message)
                 if cog and hasattr(cog, 'generate_response'):
-                    response_stream = await cog.generate_response(ctx.message)
+                    response_stream = await cog.generate_response(modified_message)
                     if response_stream:
                         response = ""
                         async for chunk in response_stream:
@@ -100,7 +108,12 @@ class WebhookCog(commands.Cog):
                     msg_content = content.lower()
                     if any(word in msg_content for word in cog.trigger_words):
                         try:
-                            response_stream = await cog.generate_response(ctx.message)
+                            # Create a copy of the message with modified content
+                            modified_message = discord.Message.__new__(discord.Message)
+                            modified_message.__dict__.update(ctx.message.__dict__)
+                            modified_message.content = content
+
+                            response_stream = await cog.generate_response(modified_message)
                             if response_stream:
                                 response = ""
                                 async for chunk in response_stream:
