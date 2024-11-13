@@ -1,3 +1,6 @@
-Reverted to commit fa5f35ddf5d9f35d52d48ba9f9c716509ff01c52
+Add custom header for model cog in API calls
 
-Performed a hard reset to the specified historical commit, removing all subsequent commits from the main branch.
+- Updated shared/api.py to include a new 'model_cog' parameter in call_openpipe and call_openrouter methods
+- Added 'X-Model-Cog' header to API requests when model_cog is provided
+- Updated logging tags to include model_cog information
+- Ensures each API call can now include the specific model cog that initiated the request

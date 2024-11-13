@@ -181,7 +181,7 @@ class API:
                 await asyncio.sleep(self.min_request_interval - time_since_last)
             self.last_request_time = time.time()
 
-    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None, prompt_file=None):
+    async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None, prompt_file=None, model_cog=None):
         """Stream responses from OpenPipe API"""
         logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
@@ -200,6 +200,10 @@ class API:
                 'Referer': 'https://github.com/supermeap123/SplinterTreev4',
                 'X-Title': 'GwynTel'
             }
+            
+            # Add model cog header if provided
+            if model_cog:
+                extra_headers['X-Model-Cog'] = model_cog
             
             stream = await self.openpipe_client.chat.completions.create(
                 model=openpipe_model,
@@ -223,7 +227,8 @@ class API:
                 "source": "openpipe",
                 "user_id": str(user_id) if user_id else None,
                 "guild_id": str(guild_id) if guild_id else None,
-                "prompt_file": prompt_file
+                "prompt_file": prompt_file,
+                "model_cog": model_cog
             }
 
             # Log request to database after completion
@@ -260,7 +265,7 @@ class API:
         max_tries=5,
         max_time=60
     )
-    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None, user_id: str = None, guild_id: str = None, prompt_file: str = None, model_cog: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
             # Enforce rate limit
             await self._enforce_rate_limit()
@@ -279,9 +284,13 @@ class API:
                 'Referer': 'https://github.com/supermeap123/SplinterTreev4',
                 'X-Title': 'GwynTel'
             }
+            
+            # Add model cog header if provided
+            if model_cog:
+                extra_headers['X-Model-Cog'] = model_cog
 
             if stream:
-                return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file)
+                return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
             else:
                 # Validate and normalize message roles
                 validated_messages = await self._validate_message_roles(messages)
@@ -310,7 +319,8 @@ class API:
                     "source": "openpipe",
                     "user_id": str(user_id) if user_id else None,
                     "guild_id": str(guild_id) if guild_id else None,
-                    "prompt_file": prompt_file
+                    "prompt_file": prompt_file,
+                    "model_cog": model_cog
                 }
 
                 # Log the interaction
@@ -336,8 +346,9 @@ class API:
             error_message = str(e)
             logging.error(f"[API] OpenPipe error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
+    
     # Alias for OpenRouter models to use OpenPipe
-    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
+    async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None, model_cog: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
         return await self.call_openpipe(
             messages=messages, 
@@ -348,7 +359,8 @@ class API:
             provider='openrouter',
             user_id=user_id,
             guild_id=guild_id,
-            prompt_file=prompt_file
+            prompt_file=prompt_file,
+            model_cog=model_cog
         )
 
     async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None, user_id: str = None, guild_id: str = None):
