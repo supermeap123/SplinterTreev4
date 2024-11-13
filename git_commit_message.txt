@@ -1,6 +1,5 @@
-Add custom header for model cog in API calls
+Allow messages from other bots to be processed
 
-- Updated shared/api.py to include a new 'model_cog' parameter in call_openpipe and call_openrouter methods
-- Added 'X-Model-Cog' header to API requests when model_cog is provided
-- Updated logging tags to include model_cog information
-- Ensures each API call can now include the specific model cog that initiated the request
+- Removed the check that was ignoring messages from other bots
+- This allows the bot to interact with and process messages from other bots
+- Maintains existing processing logic for message handling
