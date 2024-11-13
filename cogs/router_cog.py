@@ -23,9 +23,16 @@ class RouterCog(BaseCog):
         logging.debug(f"[Router] Using provider: {self.provider}")
 
         # Add model selection prompt
+        valid_models_list = [
+            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
+            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
+            "FreeRouter", "Gemma", "Hermes", "Liquid",
+            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
+            "Openchat", "Rplus"
+        ]
         self.model_selection_prompt = """You are a router that selects the most appropriate AI model to handle a user's message. 
         Based on the message content and context, select ONE model from this list:
-        {valid_models}
+        {}
 
         Consider these factors:
         - Message complexity and length
@@ -33,17 +40,7 @@ class RouterCog(BaseCog):
         - Emotional context and tone
         - Previous conversation context if available
 
-        Respond ONLY with the model name, exactly as shown in the list. No explanation or additional text.
-
-        User message: {user_message}
-        Previous context: {context}
-        """.format(valid_models=", ".join([
-            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
-            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
-            "FreeRouter", "Gemma", "Hermes", "Liquid",
-            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
-            "Openchat", "Rplus"
-        ]))
+        Respond ONLY with the model name, exactly as shown in the list. No explanation or additional text.""".format(", ".join(valid_models_list))
 
         # Load temperature settings
         try:
@@ -54,13 +51,7 @@ class RouterCog(BaseCog):
             self.temperatures = {}
 
         # Predefined list of valid models for strict validation
-        self.valid_models = [
-            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
-            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
-            "FreeRouter", "Gemma", "Hermes", "Liquid",
-            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
-            "Openchat", "Rplus"
-        ]
+        self.valid_models = valid_models_list
 
         # Load activated channels
         self.activated_channels = self.load_activated_channels()
@@ -123,16 +114,10 @@ class RouterCog(BaseCog):
             history_messages = await self.context_cog.get_context_messages(channel_id, limit=5)
             context = "\n".join([msg['content'] for msg in history_messages])
 
-            # Format the prompt with message and context
-            formatted_prompt = self.model_selection_prompt.format(
-                user_message=message.content,
-                context=context if context else "No previous context"
-            )
-
             # Get model selection
             messages = [
-                {"role": "system", "content": formatted_prompt},
-                {"role": "user", "content": message.content}
+                {"role": "system", "content": self.model_selection_prompt},
+                {"role": "user", "content": f"Message: {message.content}\nContext: {context if context else 'No previous context'}"}
             ]
 
             # Call API to get model selection
