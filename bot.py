@@ -174,7 +174,7 @@ async def setup_cogs():
     await load_context_settings()
 
     # First load core cogs
-    core_cogs = ['settings_cog', 'context_cog', 'management_cog', 'webhook_cog']  # Added webhook_cog
+    core_cogs = ['context_cog', 'management_cog', 'webhook_cog']  # Removed settings_cog
     for cog in core_cogs:
         try:
             await bot.load_extension(f'cogs.{cog}')
