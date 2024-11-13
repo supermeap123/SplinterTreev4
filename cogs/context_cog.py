@@ -65,7 +65,7 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to set up database: {str(e)}")
 
     async def get_context_messages(self, channel_id: str, limit: int = None, exclude_message_id: str = None) -> List[Dict]:
-        """Get previous messages from the context database"""
+        """Get previous messages from the context database for all users and cogs in the channel"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -75,38 +75,29 @@ class ContextCog(commands.Cog):
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Simplified query to get unique messages with better performance
-                cursor.execute('''
-                WITH RankedMessages AS (
-                    SELECT 
-                        id,
-                        user_id,
-                        content,
-                        is_assistant,
-                        persona_name,
-                        emotion,
-                        timestamp,
-                        ROW_NUMBER() OVER (PARTITION BY content ORDER BY timestamp DESC) as rn
-                    FROM messages
-                    WHERE channel_id = ? 
-                    AND (? IS NULL OR id != ?)
-                )
-                SELECT 
-                    id,
-                    user_id,
-                    content,
-                    is_assistant,
-                    persona_name,
-                    emotion,
-                    timestamp
-                FROM RankedMessages
-                WHERE rn = 1
-                ORDER BY timestamp DESC
+                # Query to get messages from all users and cogs in chronological order
+                query = '''
+                SELECT DISTINCT
+                    m.id,
+                    m.user_id,
+                    m.content,
+                    m.is_assistant,
+                    m.persona_name,
+                    m.emotion,
+                    m.timestamp
+                FROM messages m
+                WHERE m.channel_id = ?
+                AND (? IS NULL OR m.id != ?)
+                AND m.content IS NOT NULL
+                AND m.content != ''
+                ORDER BY m.timestamp DESC
                 LIMIT ?
-                ''', (
-                    channel_id, 
-                    exclude_message_id, 
-                    exclude_message_id, 
+                '''
+                
+                cursor.execute(query, (
+                    channel_id,
+                    exclude_message_id,
+                    exclude_message_id,
                     window_size
                 ))
                 
@@ -115,6 +106,11 @@ class ContextCog(commands.Cog):
                 
                 for row in cursor.fetchall():
                     content = row[2]
+                    
+                    # Skip empty or None content
+                    if not content or content.isspace():
+                        continue
+                        
                     # Skip if we've seen this exact content before
                     if content in seen_contents:
                         continue
@@ -166,6 +162,10 @@ class ContextCog(commands.Cog):
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""
         try:
+            # Skip empty or whitespace-only content
+            if not content or content.isspace():
+                return
+
             # Check for duplicate content
             last_msg = self.last_messages.get(channel_id, {}).get('assistant' if is_assistant else 'user')
             if last_msg and last_msg['content'] == content:
