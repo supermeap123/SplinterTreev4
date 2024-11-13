@@ -13,7 +13,7 @@ class RouterCog(BaseCog):
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=["*"],  # Match all messages
+            trigger_words=[],  # Match all messages
             model="mistralai/ministral-3b",
             provider="openrouter",
             prompt_file="router",

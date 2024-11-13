@@ -1,12 +1,9 @@
-from flask import Flask, render_template_string, request, redirect, url_for, flash
+from flask import Flask, render_template_string, request, redirect, url_for, flash, jsonify
 import os
 import sqlite3
 import json
 from datetime import datetime, timedelta
 import pytz
-import discord
-from discord.ext import commands
-import asyncio
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')
@@ -90,7 +87,7 @@ DASHBOARD_TEMPLATE = """
             border-radius: 8px;
         }
         .status-form input[type="text"] {
-            width: 100%;
+            width: calc(100% - 22px);
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #ddd;
@@ -107,6 +104,51 @@ DASHBOARD_TEMPLATE = """
         .status-form button:hover {
             background: #2980b9;
         }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
         @media (max-width: 600px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -114,10 +156,50 @@ DASHBOARD_TEMPLATE = """
         }
     </style>
     <script>
-        // Auto-refresh every 30 seconds
-        setTimeout(function() {
-            window.location.reload();
-        }, 30000);
+        function updateStats() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update statistics
+                    document.getElementById('total-messages').textContent = data.total_messages;
+                    document.getElementById('active-channels').textContent = data.active_channels;
+                    document.getElementById('messages-today').textContent = data.messages_today;
+                    document.getElementById('most-active-model').textContent = data.most_active_model;
+
+                    // Update recent activity
+                    const activityContainer = document.getElementById('recent-activity-container');
+                    activityContainer.innerHTML = '';
+                    data.recent_activity.forEach(activity => {
+                        const div = document.createElement('div');
+                        div.className = 'activity-item';
+                        div.innerHTML = `
+                            <span class="timestamp">${activity.timestamp}</span>
+                            <br>
+                            ${activity.content}
+                        `;
+                        activityContainer.appendChild(div);
+                    });
+
+                    // Update last refresh time
+                    document.getElementById('last-update').textContent = data.current_time;
+                });
+        }
+
+        // Update stats every 5 seconds
+        setInterval(updateStats, 5000);
+
+        function toggleUptimeStatus() {
+            const checked = document.getElementById('uptime-toggle').checked;
+            fetch('/api/toggle_uptime', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    enabled: checked
+                })
+            });
+        }
     </script>
 </head>
 <body>
@@ -125,7 +207,14 @@ DASHBOARD_TEMPLATE = """
         <h1>🌳 SplinterTree Dashboard</h1>
         
         <div class="status-form">
-            <h3>Set Bot Status</h3>
+            <h3>Bot Status Control</h3>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="uptime-toggle" onchange="toggleUptimeStatus()" {{ 'checked' if uptime_enabled else '' }}>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span>Show Uptime in Status</span>
+            </div>
             <form action="/set_status" method="POST">
                 <input type="text" name="status" placeholder="Enter new bot status..." required>
                 <button type="submit">Update Status</button>
@@ -135,34 +224,36 @@ DASHBOARD_TEMPLATE = """
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Total Messages</h3>
-                <div class="stat-value">{{ stats.total_messages }}</div>
+                <div class="stat-value" id="total-messages">{{ stats.total_messages }}</div>
             </div>
             <div class="stat-card">
                 <h3>Active Channels</h3>
-                <div class="stat-value">{{ stats.active_channels }}</div>
+                <div class="stat-value" id="active-channels">{{ stats.active_channels }}</div>
             </div>
             <div class="stat-card">
                 <h3>Messages Today</h3>
-                <div class="stat-value">{{ stats.messages_today }}</div>
+                <div class="stat-value" id="messages-today">{{ stats.messages_today }}</div>
             </div>
             <div class="stat-card">
                 <h3>Most Active Model</h3>
-                <div class="stat-value">{{ stats.most_active_model }}</div>
+                <div class="stat-value" id="most-active-model">{{ stats.most_active_model }}</div>
             </div>
         </div>
 
         <div class="recent-activity">
             <h2>Recent Activity</h2>
-            {% for activity in recent_activity %}
-            <div class="activity-item">
-                <span class="timestamp">{{ activity.timestamp }}</span>
-                <br>
-                {{ activity.content }}
+            <div id="recent-activity-container">
+                {% for activity in recent_activity %}
+                <div class="activity-item">
+                    <span class="timestamp">{{ activity.timestamp }}</span>
+                    <br>
+                    {{ activity.content }}
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
 
-        <p class="refresh-text">Dashboard auto-refreshes every 30 seconds. Last updated: {{ current_time }}</p>
+        <p class="refresh-text">Stats auto-update every 5 seconds. Last updated: <span id="last-update">{{ current_time }}</span></p>
     </div>
 </body>
 </html>
@@ -246,13 +337,39 @@ def get_db_stats():
             'current_time': datetime.now(pytz.UTC).strftime('%Y-%m-%d %H:%M:%S UTC')
         }
 
+def get_uptime_enabled():
+    """Get uptime status toggle state"""
+    try:
+        with open('bot_config.json', 'r') as f:
+            config = json.load(f)
+            return config.get('uptime_enabled', True)
+    except:
+        return True
+
+def save_uptime_enabled(enabled):
+    """Save uptime status toggle state"""
+    try:
+        config = {'uptime_enabled': enabled}
+        with open('bot_config.json', 'w') as f:
+            json.dump(config, f)
+    except Exception as e:
+        print(f"Error saving config: {e}")
+
 @app.route('/')
 def dashboard():
     """Render the dashboard"""
     stats = get_db_stats()
-    return render_template_string(DASHBOARD_TEMPLATE, stats=stats, 
+    uptime_enabled = get_uptime_enabled()
+    return render_template_string(DASHBOARD_TEMPLATE, 
+                                stats=stats,
                                 recent_activity=stats['recent_activity'],
-                                current_time=stats['current_time'])
+                                current_time=stats['current_time'],
+                                uptime_enabled=uptime_enabled)
+
+@app.route('/api/stats')
+def api_stats():
+    """API endpoint for stats"""
+    return jsonify(get_db_stats())
 
 @app.route('/set_status', methods=['POST'])
 def set_status():
@@ -266,6 +383,17 @@ def set_status():
     except Exception as e:
         print(f"Error setting status: {e}")
     return redirect(url_for('dashboard'))
+
+@app.route('/api/toggle_uptime', methods=['POST'])
+def toggle_uptime():
+    """Toggle uptime status display"""
+    try:
+        data = request.get_json()
+        enabled = data.get('enabled', True)
+        save_uptime_enabled(enabled)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
