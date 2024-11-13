@@ -115,6 +115,8 @@ class HelpCog(commands.Cog):
 6. Manage conversation context with `!setcontext`, `!getcontext`, and `!resetcontext`
 7. Clone agents to create custom AI assistants tailored to your needs
 8. Use system prompt variables for dynamic and personalized prompts
+9. Use `!router_activate` in a channel to make the Router respond to all messages
+10. DMs with the bot are automatically handled by the Router
 
 **Available Commands:**
 • `!help` - Show this help message
@@ -131,6 +133,8 @@ class HelpCog(commands.Cog):
 • `!summarize` - Force create a summary for the current channel (Admin only)
 • `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
 • `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
+• `!router_activate` - Make Router respond to all messages in the current channel (Admin only)
+• `!router_deactivate` - Stop Router from responding to all messages in the current channel (Admin only)
 
 **System Prompt Variables:**
 When setting custom system prompts, you can use these variables:
