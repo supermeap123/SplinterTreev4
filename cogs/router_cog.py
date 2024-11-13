@@ -21,6 +21,10 @@ class RouterCog(BaseCog):
         logging.debug(f"[Router] Initialized")
         logging.debug(f"[Router] Using provider: {self.provider}")
 
+        # Load activated channels
+        self.activated_channels = {}
+        self.load_activated_channels()
+
         # Add model selection prompt
         valid_models_list = [
             "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
@@ -139,6 +143,36 @@ Return model ID:"""
 
         # Predefined list of valid models for strict validation
         self.valid_models = valid_models_list
+
+    def load_activated_channels(self):
+        """Load activated channels from JSON file"""
+        try:
+            activated_channels_file = "activated_channels.json"
+            if os.path.exists(activated_channels_file):
+                with open(activated_channels_file, 'r') as f:
+                    self.activated_channels = json.load(f)
+                    logging.info(f"[Router] Loaded activated channels: {self.activated_channels}")
+        except Exception as e:
+            logging.error(f"[Router] Error loading activated channels: {e}")
+
+    def is_channel_activated(self, message):
+        """Check if the channel is activated for bot responses"""
+        try:
+            if isinstance(message.channel, discord.DMChannel):
+                return True
+
+            guild_id = str(message.guild.id)
+            channel_id = str(message.channel.id)
+
+            # Check if the channel is activated
+            is_activated = (guild_id in self.activated_channels and 
+                          channel_id in self.activated_channels[guild_id])
+            
+            logging.debug(f"[Router] Channel {channel_id} in guild {guild_id} activated: {is_activated}")
+            return is_activated
+        except Exception as e:
+            logging.error(f"[Router] Error checking activated channel: {e}")
+            return False
 
     def validate_model_selection(self, raw_selection: str) -> str:
         """Validate and clean up model selection"""
@@ -304,16 +338,13 @@ Return model ID:"""
                 return
 
             # Check if in an activated channel
-            guild_id = str(message.guild.id)
-            channel_id = str(message.channel.id)
-            
-            if hasattr(self.bot, 'activated_channels'):
-                if (guild_id in self.bot.activated_channels and 
-                    channel_id in self.bot.activated_channels[guild_id]):
-                    logging.info(f"[Router] Handling message in activated channel {message.id}")
-                    handled_messages.add(message.id)
-                    await self.handle_message(message)
-                    return
+            if self.is_channel_activated(message):
+                logging.info(f"[Router] Handling message in activated channel {message.id}")
+                handled_messages.add(message.id)
+                await self.handle_message(message)
+                return
+
+            logging.debug(f"[Router] Message {message.id} does not meet handling criteria")
 
         except Exception as e:
             logging.error(f"[Router] Error in on_message: {e}")
