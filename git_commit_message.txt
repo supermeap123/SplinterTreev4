@@ -1,7 +1,3 @@
-Add HTTP Referrer and X-Title headers
+Reverted to commit fa5f35ddf5d9f35d52d48ba9f9c716509ff01c52
 
-- Updated shared/api.py to include custom headers:
-  * Added 'Referer' header pointing to GitHub repo
-  * Added 'X-Title' header with value 'GwynTel'
-- Modified both streaming and non-streaming OpenPipe API request methods
-- Added headers to aiohttp ClientSession and OpenAI client initialization
+Performed a hard reset to the specified historical commit, removing all subsequent commits from the main branch.
