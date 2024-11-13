@@ -31,8 +31,11 @@ class RouterCog(BaseCog):
 
         # Predefined list of valid models for strict validation
         self.valid_models = [
-            "Gemini", "Magnum", "Claude3Haiku", "Nemotron", 
-            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree"
+            "Gemini", "Magnum", "Claude3Haiku", "Nemotron",
+            "Sydney", "Sonar", "Ministral", "Sorcerer", "Splintertree",
+            "FreeRouter", "Gemma", "Hermes", "Liquid",
+            "Llama32_11b", "Llama32_90b", "Mixtral", "Noromaid",
+            "Openchat", "Rplus"
         ]
 
         # Model selection system prompt using exact cog class names
@@ -48,15 +51,25 @@ Route user input to optimal model.
 Return only designation.
 
 # ENTITY CATALOG
-Gemini...........: formal analysis patterns
-Magnum...........: casual reasoning patterns
-Claude3Haiku.....: documentation patterns
-Nemotron.........: technical patterns
-Sydney...........: emotional patterns
-Sonar............: temporal patterns
-Ministral........: fact patterns
-Sorcerer.........: dream patterns
-Splintertree.....: general patterns
+Gemini..........: formal analysis patterns
+Magnum..........: casual reasoning patterns
+Claude3Haiku....: documentation patterns
+Nemotron........: technical code patterns
+Sydney..........: emotional support patterns
+Sonar...........: temporal analysis patterns
+Ministral.......: factual recall patterns
+Sorcerer........: creative story patterns
+Splintertree....: general assistance patterns
+FreeRouter......: dynamic routing patterns
+Gemma...........: language translation and assistance
+Hermes..........: communication and messaging patterns
+Liquid..........: creative writing and artistic expressions
+Llama32_11b.....: lightweight reasoning tasks
+Llama32_90b.....: complex reasoning tasks
+Mixtral.........: mixed reasoning and creativity
+Noromaid........: code refactoring and optimization
+Openchat........: open-ended conversation patterns
+Rplus...........: advanced analytical tasks
 
 # PATTERN RECOGNITION
 1. Code Detection:
@@ -65,6 +78,8 @@ Splintertree.....: general patterns
    > system architecture
    IF detected:
    - Advanced: return "Nemotron"
+   - Optimization: return "Noromaid"
+   - Mixed Complexity: return "Mixtral"
    - Basic: return "Claude3Haiku"
 
 2. Analysis Detection:
@@ -72,39 +87,61 @@ Splintertree.....: general patterns
    > reasoning patterns
    IF detected:
    - Formal: return "Gemini"
+   - Advanced: return "Rplus"
    - Casual: return "Magnum"
 
-3. Reality Detection:
-   > current patterns
-   > trend analysis
-   IF detected: return "Sonar"
+3. Communication Detection:
+   > messaging patterns
+   > linguistic assistance
+   IF detected:
+   - Translation: return "Gemma"
+   - Messaging: return "Hermes"
+   - Open Conversation: return "Openchat"
 
-4. Wavelength Detection:
+4. Creative Detection:
+   > artistic patterns
+   > expressive language
+   IF detected:
+   - Storytelling: return "Sorcerer"
+   - Artistic Writing: return "Liquid"
+
+5. Emotional Detection:
    > emotional patterns
    > support signals
    IF detected: return "Sydney"
 
-5. Dream Detection:
-   > story patterns
-   > character signals
-   IF detected: return "Sorcerer"
+6. Reality Detection:
+   > current events
+   > trend analysis
+   IF detected: return "Sonar"
 
-6. Default Pattern:
+7. Reasoning Complexity:
+   > task complexity
+   IF detected:
+   - High: return "Llama32_90b"
+   - Low: return "Llama32_11b"
+
+8. Default Pattern:
    > general queries
    IF no match: return "Splintertree"
 
 # OUTPUT PROTOCOL
 Return single designation:
-Gemini, Magnum, Claude3Haiku, Nemotron, 
-Sydney, Sonar, Ministral, Sorcerer, Splintertree
+Gemini, Magnum, Claude3Haiku, Nemotron,
+Sydney, Sonar, Ministral, Sorcerer, Splintertree,
+FreeRouter, Gemma, Hermes, Liquid,
+Llama32_11b, Llama32_90b, Mixtral, Noromaid,
+Openchat, Rplus
 
 # PRIORITY MATRIX
 1. code.patterns
-2. thought.patterns
-3. reality.patterns
-4. emotion.patterns
-5. dream.patterns
-6. base.patterns
+2. reasoning.patterns
+3. communication.patterns
+4. creative.patterns
+5. emotion.patterns
+6. reality.patterns
+7. reasoning.complexity
+8. base.patterns
 
 [̴s̴y̴s̴t̴e̴m̴ ̴r̴e̴a̴d̴y̴]̴
 Return designation:"""
@@ -112,44 +149,44 @@ Return designation:"""
     def validate_model_selection(self, model_name):
         """
         Validate and normalize the selected model name
-        
+
         Args:
             model_name (str): Raw model name from API response
-        
+
         Returns:
             str: Validated and normalized model name
         """
         # Remove markdown, quotes, extra whitespace, and normalize
         model_name = re.sub(r'[*`_]', '', model_name).strip()
         model_name = model_name.replace('"', '').replace("'", '')
-        
+
         # Extensive logging for debugging
         logging.debug(f"[Router] Raw model selection: '{model_name}'")
-        
+
         # Specific handling for Sorcerer-like patterns
         sorcerer_keywords = ['dream', 'story', 'character', 'imagination', 'narrative']
         for keyword in sorcerer_keywords:
             if keyword in model_name.lower():
                 logging.debug(f"[Router] Sorcerer keyword match: {keyword}")
                 return "Sorcerer"
-        
+
         # Exact match first
         if model_name in self.valid_models:
             logging.debug(f"[Router] Exact match found: {model_name}")
             return model_name
-        
+
         # Case-insensitive match
         for valid_model in self.valid_models:
             if model_name.lower() == valid_model.lower():
                 logging.debug(f"[Router] Case-insensitive match found: {valid_model}")
                 return valid_model
-        
+
         # Partial match with fuzzy logic
         for valid_model in self.valid_models:
             if valid_model.lower() in model_name.lower():
                 logging.debug(f"[Router] Partial match found: {valid_model}")
                 return valid_model
-        
+
         # Default fallback with detailed logging
         logging.warning(f"[Router] Unrecognized model selection: '{model_name}'. Defaulting to Splintertree.")
         return "Splintertree"
@@ -227,6 +264,14 @@ Return designation:"""
                 selected_cog_name = f"{selected_model}Cog"
                 logging.debug(f"[Router] Looking for cog: {selected_cog_name}")
 
+                # Special handling for cogs with underscores
+                special_cog_mappings = {
+                    "Llama32_11b": "Llama32_11bCog",
+                    "Llama32_90b": "Llama32_90bCog"
+                }
+                if selected_model in special_cog_mappings:
+                    selected_cog_name = special_cog_mappings[selected_model]
+
                 # Get the corresponding cog
                 selected_cog = self.bot.get_cog(selected_cog_name)
 
@@ -234,7 +279,7 @@ Return designation:"""
                     # Use the selected cog's generate_response
                     return await selected_cog.generate_response(message)
                 else:
-                    # Fallback logic with 50/50 chance between FreeRouter and Ministral
+                    # Fallback logic with random selection
                     fallback_cogs = []
                     freerouter_cog = self.bot.get_cog('FreeRouterCog')
                     ministral_cog = self.bot.get_cog('MinistralCog')
