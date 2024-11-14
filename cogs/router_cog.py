@@ -41,11 +41,11 @@ class RouterCog(BaseCog):
 
         # Keywords that should bypass the router
         self.bypass_keywords = [
-            r'\b(use|switch to|try|with)\s+(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)\b',
-            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)\s+(please|now|instead)\b',
-            r'^(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)[,:]\s',
-            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)\b'  # Added to catch standalone model names
-        ]
+            r'\b(use|switch to|try|with)\s+(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\b',
+            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\s+(please|now|instead)\b',
+            r'^(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)[,:]\s',
+            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\b'  # Added to catch standalone model names
+         ]
 
         # Model mapping for routing
         self.model_mapping = {
@@ -70,7 +70,8 @@ class RouterCog(BaseCog):
             'Ministral': 'MinistralCog',
             'Ministeral': 'MinistralCog',
             'Liquid': 'LiquidCog',
-            'Hermes': 'HermesCog'
+            'Hermes': 'HermesCog',
+            'UnslopNemo': 'UnslopNemoCog'  # Added UnslopNemo
         }
 
         # Create case-insensitive lookup for model names
@@ -202,7 +203,7 @@ class RouterCog(BaseCog):
             if self.context_cog:
                 try:
                     history = await self.context_cog.get_context_messages(
-                        str(message.channel.id),
+                        str(message.channel.id) if message.channel else None,
                         limit=5,
                         exclude_message_id=str(message.id)
                     )
@@ -258,13 +259,13 @@ ROLEPLAY PATHS - EXTENDED
 │  ├─ Context: Multi-character, complex plots
 │  └─ Triggers: "saga", "campaign", "epic"
 │
-├─ Complex Scenes (Noromaid)
+├─ Complex Scenes (Noromaid/UnslopNemo)
 │  ├─ Token range: 500-1000
 │  ├─ Scenarios: Character development, relationships
 │  ├─ Context: Deep interaction, emotional
 │  └─ Triggers: "scene", "develop", "unfolds"
 │
-├─ Medium Interactions (Mixtral)
+├─ Medium Interactions (UnslopNemo/Mixtral)
 │  ├─ Token range: 200-500
 │  ├─ Scenarios: Group scenes, dialogue
 │  ├─ Context: Social interaction, exploration
@@ -386,8 +387,8 @@ TIME SENSITIVITY
 
 4. LENGTH OVERRIDES
    ├─ >1000 tokens → Magnum/Noromaid
-   ├─ 500-1000 → Noromaid/Mixtral
-   ├─ 200-500 → Mixtral/Sydney
+   ├─ 500-1000 → Noromaid/UnslopNemo
+   ├─ 200-500 → UnslopNemo/Mixtral
    └─ <200 → Liquid/Ministral
 
 [FUZZY LOGIC SCORING SYSTEM]
@@ -437,7 +438,7 @@ LENGTH DETECTION
 └─ Model Preferences
    ├─ Micro → Liquid/Ministral
    ├─ Small → Claude3Haiku/Mixtral
-   ├─ Medium → Mixtral/Sydney
+   ├─ Medium → UnslopNemo/Mixtral
    ├─ Large → Noromaid/Magnum
    └─ Epic → Magnum/Noromaid
 
@@ -470,7 +471,7 @@ RP SCENARIOS
 │  Input: "The party enters the tavern, looking for information..."
 │  Length: 200-500 tokens
 │  Context: Social scene, exploration
-│  Result: Mixtral
+│  Result: UnslopNemo
 │
 └─ Quick Combat
    Input: "Clara dodges the incoming arrow and draws her sword..."
@@ -510,7 +511,7 @@ TECHNICAL SCENARIOS
    Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
    Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
    Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
-   Dolphin, Gemma, Ministral, Liquid, Hermes
+   Dolphin, Gemma, Ministral, Liquid, Hermes, UnslopNemo
 
 Model ID:"""
 
