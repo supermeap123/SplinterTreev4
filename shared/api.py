@@ -5,21 +5,71 @@ import json
 import asyncio
 import sqlite3
 import base64
-from typing import Dict, Any, List, Union, AsyncGenerator
+from typing import Dict, Any, List, Union, AsyncGenerator, Optional
 import aiohttp
 import backoff
+from contextlib import asynccontextmanager
 from urllib.parse import urlparse, urljoin
 from config import OPENPIPE_API_KEY, OPENPIPE_API_URL, HELICONE_API_KEY
 from openai import AsyncOpenAI
+from concurrent.futures import ThreadPoolExecutor
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/api.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+class DatabasePool:
+    def __init__(self, database_path: str, max_connections: int = 10):
+        self.database_path = database_path
+        self.pool = asyncio.Queue(maxsize=max_connections)
+        self.executor = ThreadPoolExecutor(max_workers=max_connections)
+        
+        # Initialize the pool with connections
+        for _ in range(max_connections):
+            conn = sqlite3.connect(database_path)
+            conn.row_factory = sqlite3.Row
+            self.pool.put_nowait(conn)
+    
+    @asynccontextmanager
+    async def acquire(self):
+        conn = await self.pool.get()
+        try:
+            yield conn
+        finally:
+            # Reset the connection state before returning it to the pool
+            conn.rollback()
+            await self.pool.put(conn)
+    
+    async def close(self):
+        while not self.pool.empty():
+            conn = await self.pool.get()
+            conn.close()
+        self.executor.shutdown()
 
 class API:
     def __init__(self):
-        # Initialize aiohttp session with custom headers
+        # Initialize directories
+        os.makedirs('databases', exist_ok=True)
+        os.makedirs('logs', exist_ok=True)
+        
+        # Initialize database pool
+        self.db_pool = DatabasePool('databases/interaction_logs.db')
+        
+        # Initialize aiohttp session with custom headers and timeout
+        timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=10)
         self.session = aiohttp.ClientSession(
             headers={
                 'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
                 'X-Title': 'splintertree by GwynTel'
-            }
+            },
+            timeout=timeout
         )
         
         # Prepare Helicone headers
@@ -29,14 +79,14 @@ class API:
             'Helicone-Auth': f'Bearer {HELICONE_API_KEY}' if HELICONE_API_KEY else None,
             'Helicone-Cache-Enabled': 'true'
         }
-        # Remove None values from headers
         helicone_headers = {k: v for k, v in helicone_headers.items() if v is not None}
         
         # Initialize OpenPipe client with custom headers including Helicone
         self.openpipe_client = AsyncOpenAI(
             api_key=OPENPIPE_API_KEY,
-            base_url=OPENPIPE_API_URL,  # Base URL already includes /api/v1
-            default_headers=helicone_headers
+            base_url=OPENPIPE_API_URL,
+            default_headers=helicone_headers,
+            timeout=30.0
         )
 
         # Rate limiting
@@ -44,75 +94,68 @@ class API:
         self.last_request_time = 0
         self.min_request_interval = 0.1  # 100ms between requests
 
-        # Connect to SQLite database and apply schema
-        try:
-            # Ensure the databases directory exists
-            os.makedirs('databases', exist_ok=True)
-            
-            # Connect to the database
-            self.db_conn = sqlite3.connect('databases/interaction_logs.db')
-            self.db_cursor = self.db_conn.cursor()
-            
-            # Apply schema
-            self._apply_schema()
-            logging.info("[API] Connected to database and applied schema")
-        except Exception as e:
-            logging.error(f"[API] Failed to connect to database or apply schema: {str(e)}")
-            self.db_conn = None
-            self.db_cursor = None
+        # Initialize database schema
+        self._init_db()
 
-    def _apply_schema(self):
-        """Apply database schema"""
+    def _init_db(self):
+        """Initialize database schema"""
         try:
             with open('databases/schema.sql', 'r') as schema_file:
                 schema_sql = schema_file.read()
             
-            # Split SQL statements and execute each separately
-            statements = schema_sql.split(';')
-            for statement in statements:
-                statement = statement.strip()
-                if statement:
-                    self.db_cursor.execute(statement)
+            async def init_schema():
+                async with self.db_pool.acquire() as conn:
+                    cursor = conn.cursor()
+                    statements = schema_sql.split(';')
+                    for statement in statements:
+                        statement = statement.strip()
+                        if statement:
+                            cursor.execute(statement)
+                    conn.commit()
             
-            self.db_conn.commit()
-            logging.info("[API] Successfully applied database schema")
+            # Run schema initialization in event loop
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(init_schema())
+            logger.info("[API] Successfully initialized database schema")
         except Exception as e:
-            logging.error(f"[API] Failed to apply database schema: {str(e)}")
+            logger.error(f"[API] Failed to initialize database schema: {str(e)}")
             raise
 
-    async def _download_image(self, url: str) -> bytes:
-        """Download image from URL"""
-        try:
-            async with self.session.get(url, timeout=10) as response:
-                if response.status == 200:
-                    return await response.read()
-                else:
-                    logging.error(f"[API] Failed to download image. Status code: {response.status}")
+    async def _download_image(self, url: str) -> Optional[bytes]:
+        """Download image from URL with timeout and retries"""
+        @backoff.on_exception(
+            backoff.expo,
+            (aiohttp.ClientError, asyncio.TimeoutError),
+            max_tries=3
+        )
+        async def _download():
+            try:
+                async with self.session.get(url, timeout=10) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    logger.error(f"[API] Failed to download image. Status code: {response.status}")
                     return None
-        except asyncio.TimeoutError:
-            logging.error("[API] Image download timed out")
-            return None
-        except Exception as e:
-            logging.error(f"[API] Error downloading image: {str(e)}")
-            return None
+            except Exception as e:
+                logger.error(f"[API] Error downloading image: {str(e)}")
+                return None
+        
+        return await _download()
 
-    async def _convert_image_to_base64(self, url: str) -> str:
-        """Convert image URL to base64"""
+    async def _convert_image_to_base64(self, url: str) -> Optional[str]:
+        """Convert image URL to base64 with error handling"""
         try:
             image_data = await self._download_image(url)
             if image_data:
-                # Detect MIME type based on image data
                 mime_type = self._detect_mime_type(image_data)
                 base64_image = base64.b64encode(image_data).decode('utf-8')
                 return f"data:{mime_type};base64,{base64_image}"
             return None
         except Exception as e:
-            logging.error(f"[API] Error converting image to base64: {str(e)}")
+            logger.error(f"[API] Error converting image to base64: {str(e)}")
             return None
 
     def _detect_mime_type(self, image_data: bytes) -> str:
         """Detect MIME type of image data"""
-        # Common image signatures
         signatures = {
             b'\xFF\xD8\xFF': 'image/jpeg',
             b'\x89PNG\r\n\x1a\n': 'image/png',
@@ -125,7 +168,7 @@ class API:
             if image_data.startswith(signature):
                 return mime_type
         
-        return 'application/octet-stream'  # Default fallback
+        return 'application/octet-stream'
 
     async def _validate_message_roles(self, messages: List[Dict]) -> List[Dict]:
         """Validate and normalize message roles for API compatibility"""
@@ -135,27 +178,22 @@ class API:
         for msg in messages:
             role = msg.get('role', '').lower()
             
-            # Skip messages with invalid roles
             if role not in valid_roles:
-                logging.warning(f"[API] Skipping message with invalid role: {role}")
+                logger.warning(f"[API] Skipping message with invalid role: {role}")
                 continue
             
-            # Create normalized message
             normalized_msg = {
                 "role": role,
                 "content": msg.get('content', '')
             }
             
-            # Handle multimodal content
             if isinstance(normalized_msg['content'], list):
-                # Verify and convert image URLs to base64
                 valid_content = []
                 for item in normalized_msg['content']:
                     if isinstance(item, dict) and 'type' in item:
                         if item['type'] == 'text' and 'text' in item:
                             valid_content.append(item)
                         elif item['type'] == 'image_url' and 'image_url' in item:
-                            # Convert image URL to base64 with proper awaiting
                             base64_image = await self._convert_image_to_base64(item['image_url'])
                             if base64_image:
                                 valid_content.append({
@@ -170,13 +208,11 @@ class API:
 
     def _get_prefixed_model(self, model: str, provider: str = None) -> str:
         """Get the appropriate model name with prefix based on provider"""
-        # Always prefix based on provider
         if provider == 'openrouter':
             return f"openpipe:openrouter/{model.replace('openrouter:', '')}"
         elif provider == 'groq':
             return f"openpipe:groq/{model.replace('groq:', '')}"
         
-        # Default case: return model as-is or with openpipe prefix
         return model if not model.startswith('openpipe:') else model
 
     async def _enforce_rate_limit(self):
@@ -189,20 +225,15 @@ class API:
             self.last_request_time = time.time()
 
     async def _stream_openpipe_request(self, messages, model, temperature, max_tokens, provider=None, user_id=None, guild_id=None, prompt_file=None, model_cog=None):
-        """Stream responses from OpenPipe API"""
-        logging.debug(f"[API] Making OpenPipe streaming request to model: {model}")
+        """Stream responses from OpenPipe API with improved error handling"""
+        logger.debug(f"[API] Making OpenPipe streaming request to model: {model}")
         
         try:
-            # Enforce rate limit
             await self._enforce_rate_limit()
             
-            # Get prefixed model name
             openpipe_model = self._get_prefixed_model(model, provider)
-            
-            # Validate and normalize message roles
             validated_messages = await self._validate_message_roles(messages)
             
-            # Add custom headers to the request
             extra_headers = {
                 'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
                 'X-Title': 'splintertree by GwynTel',
@@ -211,10 +242,8 @@ class API:
                 'Helicone-Property-ModelCog': model_cog if model_cog else None,
                 'Helicone-Property-PromptFile': prompt_file if prompt_file else None
             }
-            # Remove None values from headers
             extra_headers = {k: v for k, v in extra_headers.items() if v is not None}
             
-            # Add model cog header if provided
             if model_cog:
                 extra_headers['X-Model-Cog'] = model_cog
             
@@ -235,7 +264,6 @@ class API:
 
             received_at = int(time.time() * 1000)
 
-            # Prepare tags with all metadata
             tags = {
                 "source": "openpipe",
                 "user_id": str(user_id) if user_id else None,
@@ -244,7 +272,6 @@ class API:
                 "model_cog": model_cog
             }
 
-            # Log request to database after completion
             completion_obj = {
                 'choices': [{
                     'message': {
@@ -252,6 +279,7 @@ class API:
                     }
                 }]
             }
+            
             await self.report(
                 requested_at=requested_at,
                 received_at=received_at,
@@ -269,30 +297,27 @@ class API:
             )
         except Exception as e:
             error_message = str(e)
-            logging.error(f"[API] OpenPipe streaming error: {error_message}")
+            logger.error(f"[API] OpenPipe streaming error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
 
     @backoff.on_exception(
         backoff.expo,
-        (aiohttp.ClientError, asyncio.TimeoutError),
+        (aiohttp.ClientError, asyncio.TimeoutError, Exception),
         max_tries=5,
         max_time=60
     )
     async def call_openpipe(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, provider: str = None, user_id: str = None, guild_id: str = None, prompt_file: str = None, model_cog: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         try:
-            # Enforce rate limit
             await self._enforce_rate_limit()
             
-            # Get prefixed model name
             openpipe_model = self._get_prefixed_model(model, provider)
             
-            logging.debug(f"[API] Making OpenPipe request to model: {openpipe_model}")
-            logging.debug(f"[API] Request messages structure:")
+            logger.debug(f"[API] Making OpenPipe request to model: {openpipe_model}")
+            logger.debug(f"[API] Request messages structure:")
             for msg in messages:
-                logging.debug(f"[API] Message role: {msg.get('role')}")
-                logging.debug(f"[API] Message content: {msg.get('content')}")
+                logger.debug(f"[API] Message role: {msg.get('role')}")
+                logger.debug(f"[API] Message content: {msg.get('content')}")
 
-            # Add custom headers to the request
             extra_headers = {
                 'HTTP-Referer': 'https://github.com/gwyntel/SplinterTreev4',
                 'X-Title': 'splintertree by GwynTel',
@@ -301,17 +326,14 @@ class API:
                 'Helicone-Property-ModelCog': model_cog if model_cog else None,
                 'Helicone-Property-PromptFile': prompt_file if prompt_file else None
             }
-            # Remove None values from headers
             extra_headers = {k: v for k, v in extra_headers.items() if v is not None}
             
-            # Add model cog header if provided
             if model_cog:
                 extra_headers['X-Model-Cog'] = model_cog
 
             if stream:
                 return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
             else:
-                # Validate and normalize message roles
                 validated_messages = await self._validate_message_roles(messages)
                 
                 requested_at = int(time.time() * 1000)
@@ -333,7 +355,6 @@ class API:
                     }]
                 }
 
-                # Prepare tags with all metadata
                 tags = {
                     "source": "openpipe",
                     "user_id": str(user_id) if user_id else None,
@@ -342,7 +363,6 @@ class API:
                     "model_cog": model_cog
                 }
 
-                # Log the interaction
                 await self.report(
                     requested_at=requested_at,
                     received_at=received_at,
@@ -363,10 +383,9 @@ class API:
 
         except Exception as e:
             error_message = str(e)
-            logging.error(f"[API] OpenPipe error: {error_message}")
+            logger.error(f"[API] OpenPipe error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
     
-    # Alias for OpenRouter models to use OpenPipe
     async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None, model_cog: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
         return await self.call_openpipe(
@@ -383,40 +402,37 @@ class API:
         )
 
     async def report(self, requested_at: int, received_at: int, req_payload: Dict, resp_payload: Dict, status_code: int, tags: Dict = None, user_id: str = None, guild_id: str = None):
-        """Report interaction metrics"""
+        """Report interaction metrics with improved error handling"""
         try:
-            if self.db_conn is None or self.db_cursor is None:
-                logging.error("[API] Database connection not available. Skipping logging.")
-                return
-
-            # Add timestamp to tags
             if tags is None:
                 tags = {}
             tags_str = json.dumps(tags)
 
-            # Prepare SQL statement
-            sql = """
-                INSERT INTO logs (
-                    requested_at, received_at, request, response, 
-                    status_code, tags, user_id, guild_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """
-            values = (
-                requested_at, received_at, json.dumps(req_payload),
-                json.dumps(resp_payload), status_code, tags_str,
-                user_id, guild_id
-            )
+            async with self.db_pool.acquire() as conn:
+                cursor = conn.cursor()
+                sql = """
+                    INSERT INTO logs (
+                        requested_at, received_at, request, response, 
+                        status_code, tags, user_id, guild_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """
+                values = (
+                    requested_at, received_at, json.dumps(req_payload),
+                    json.dumps(resp_payload), status_code, tags_str,
+                    user_id, guild_id
+                )
 
-            # Execute SQL statement
-            self.db_cursor.execute(sql, values)
-            self.db_conn.commit()
-            logging.debug(f"[API] Logged interaction with status code {status_code}")
+                cursor.execute(sql, values)
+                conn.commit()
+                logger.debug(f"[API] Logged interaction with status code {status_code}")
 
         except Exception as e:
-            logging.error(f"[API] Failed to report interaction: {str(e)}")
+            logger.error(f"[API] Failed to report interaction: {str(e)}")
 
     async def close(self):
+        """Cleanup resources"""
         await self.session.close()
-        if self.db_conn:
-            self.db_conn.close()
+        await self.db_pool.close()
+
+# Global API instance
 api = API()
