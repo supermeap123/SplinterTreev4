@@ -32,6 +32,9 @@ class RouterCog(BaseCog):
         # Initialize set to track active channels
         self.active_channels = set()
 
+        # Track last model used per channel to prevent loops
+        self.last_model_used = {}
+
         # Model mapping for routing
         self.model_mapping = {
             'Gemini': 'GeminiCog',
@@ -74,18 +77,51 @@ class RouterCog(BaseCog):
 
     def should_handle_message(self, message: discord.Message) -> bool:
         """Determine if the message should be handled by the router"""
+        # Never handle bot messages
+        if message.author.bot:
+            logging.debug(f"[Router] Ignoring bot message from {message.author.name}")
+            return False
+
+        # Never handle messages from self
+        if message.author.id == self.bot.user.id:
+            logging.debug("[Router] Ignoring own message")
+            return False
+
         # Always handle DMs
         if isinstance(message.channel, discord.DMChannel):
+            logging.debug("[Router] Handling DM")
             return True
 
         # Handle if bot is mentioned
         if self.bot.user in message.mentions:
+            logging.debug("[Router] Handling mention")
             return True
 
         # Handle if channel is activated
         if message.channel.id in self.active_channels:
+            logging.debug(f"[Router] Handling message in activated channel {message.channel.id}")
             return True
 
+        logging.debug(f"[Router] Not handling message: not DM/mention/activated channel")
+        return False
+
+    def check_routing_loop(self, channel_id: int, model_name: str) -> bool:
+        """Check if we're in a routing loop"""
+        if channel_id in self.last_model_used:
+            last_model = self.last_model_used[channel_id]
+            consecutive_count = self.last_model_used.get(f"{channel_id}_count", 0)
+            
+            if last_model == model_name:
+                consecutive_count += 1
+                if consecutive_count >= 3:  # Three consecutive same routes indicates a loop
+                    logging.warning(f"[Router] Detected routing loop to {model_name} in channel {channel_id}")
+                    return True
+            else:
+                consecutive_count = 1
+            
+            self.last_model_used[f"{channel_id}_count"] = consecutive_count
+        
+        self.last_model_used[channel_id] = model_name
         return False
 
     async def determine_route(self, message: discord.Message) -> str:
@@ -101,6 +137,7 @@ class RouterCog(BaseCog):
                         exclude_message_id=str(message.id)
                     )
                     context = "\n".join([msg['content'] for msg in history])
+                    logging.debug(f"[Router] Got context: {context[:200]}...")
                 except Exception as e:
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
@@ -198,6 +235,7 @@ Return model:"""
             has_image = self.has_image_attachments(message)
             if has_image:
                 routing_prompt = f"Note: Message contains image attachments.\n\n{routing_prompt}"
+                logging.debug("[Router] Message contains image attachments")
 
             # Call OpenRouter API for inference
             messages = [
@@ -205,6 +243,7 @@ Return model:"""
                 {"role": "user", "content": routing_prompt}
             ]
 
+            logging.debug(f"[Router] Calling OpenRouter API for message: {message.content[:100]}...")
             response = await self.api_client.call_openrouter(
                 messages=messages,
                 model=self.model,
@@ -215,14 +254,27 @@ Return model:"""
             )
 
             if response and 'choices' in response:
-                model_name = response['choices'][0]['message']['content'].strip()
+                raw_model_name = response['choices'][0]['message']['content'].strip()
+                logging.debug(f"[Router] Raw model name from API: {raw_model_name}")
+                
                 # Clean up response to match exact model names
                 model_name = next((name for name in self.model_mapping.keys() 
-                                 if name.lower() == model_name.lower()), 'Liquid')
-                logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
-                return model_name
+                                 if name.lower() == raw_model_name.lower()), None)
+                
+                if model_name:
+                    # Check for routing loops
+                    if self.check_routing_loop(message.channel.id, model_name):
+                        logging.warning(f"[Router] Breaking routing loop, falling back to Liquid")
+                        return 'Liquid'
+                    
+                    logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
+                    return model_name
+                else:
+                    logging.warning(f"[Router] API returned invalid model name: {raw_model_name}")
+                    return 'Liquid'
 
             logging.error("[Router] Invalid response format from OpenRouter")
+            logging.debug(f"[Router] Full API response: {response}")
             return 'Liquid'  # Default fallback
 
         except Exception as e:
@@ -264,6 +316,9 @@ Return model:"""
         """Deactivate RouterCog in the current channel."""
         channel_id = ctx.channel.id
         self.active_channels.discard(channel_id)
+        # Clear any loop detection state
+        self.last_model_used.pop(channel_id, None)
+        self.last_model_used.pop(f"{channel_id}_count", None)
         await ctx.send("RouterCog has been deactivated in this channel.")
         logging.info(f"[Router] Deactivated in channel {channel_id}")
 
@@ -272,6 +327,7 @@ Return model:"""
         """Handle all incoming messages"""
         # Skip if message is from a bot
         if message.author.bot:
+            logging.debug(f"[Router] Ignoring bot message from {message.author.name}")
             return
 
         # Check if this is an activation command
@@ -286,6 +342,13 @@ Return model:"""
             return
 
         try:
+            # Log message details for debugging
+            channel_type = "DM" if isinstance(message.channel, discord.DMChannel) else "guild"
+            logging.debug(f"[Router] Processing message: channel_type={channel_type}, "
+                        f"channel_id={message.channel.id}, "
+                        f"author={message.author.name}, "
+                        f"content={message.content[:100]}...")
+
             # Determine which model to route to
             model_name = await self.determine_route(message)
             logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
