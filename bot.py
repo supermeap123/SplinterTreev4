@@ -8,7 +8,7 @@ import asyncio
 import random
 import aiohttp
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import re
 import pytz
 import traceback
@@ -24,14 +24,7 @@ logging.basicConfig(
     ]
 )
 
-# Set up bot
-TOKEN = config.DISCORD_TOKEN
-if not TOKEN:
-    raise ValueError("DISCORD_TOKEN not found in config.py.")
-
-# Get the absolute path to the bot directory
-BOT_DIR = os.path.dirname(os.path.abspath(__file__))
-
+# Set up intents
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
@@ -65,8 +58,8 @@ class SplinterTreeBot(commands.Bot):
         """Get uptime status toggle state"""
         try:
             with open('bot_config.json', 'r') as f:
-                config = json.load(f)
-                return config.get('uptime_enabled', True)
+                config_data = json.load(f)
+                return config_data.get('uptime_enabled', True)
         except:
             return True
 
@@ -96,6 +89,84 @@ class SplinterTreeBot(commands.Bot):
                 
         except Exception as e:
             logging.error(f"Error checking status file: {e}")
+
+async def load_context_settings():
+    """Load saved context window settings"""
+    try:
+        settings_file = os.path.join(BOT_DIR, 'context_windows.json')
+        if os.path.exists(settings_file):
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+                config.CONTEXT_WINDOWS.update(settings)
+                logging.info("Loaded context window settings")
+    except Exception as e:
+        logging.error(f"Error loading context settings: {str(e)}")
+
+async def setup_cogs(bot: SplinterTreeBot):
+    """Load all cogs"""
+    if bot.cogs_loaded:
+        logging.info("Cogs have already been loaded. Skipping setup.")
+        return
+
+    bot.loaded_cogs = []  # Reset loaded cogs list
+
+    # Load context settings
+    await load_context_settings()
+
+    # First load core cogs
+    core_cogs = ['context_cog', 'management_cog', 'webhook_cog']
+    for cog in core_cogs:
+        try:
+            await bot.load_extension(f'cogs.{cog}')
+            logging.info(f"Loaded core cog: {cog}")
+        except Exception as e:
+            logging.error(f"Failed to load core cog {cog}: {str(e)}")
+            logging.error(traceback.format_exc())
+
+    # Then load all model cogs
+    cogs_dir = os.path.join(BOT_DIR, 'cogs')
+    for filename in os.listdir(cogs_dir):
+        if filename.endswith('_cog.py') and filename not in ['base_cog.py', 'help_cog.py', 'sorcerer_cog.py']:
+            module_name = filename[:-3]
+            try:
+                await bot.load_extension(f'cogs.{module_name}')
+                logging.debug(f"Attempting to load cog: {module_name}")
+                
+                # Dynamically derive the cog class name from the module name
+                class_name = ''.join(word.capitalize() for word in module_name.split('_'))
+                
+                cog_instance = bot.get_cog(class_name)
+                if cog_instance and hasattr(cog_instance, 'handle_message'):
+                    bot.loaded_cogs.append(cog_instance)
+                    logging.info(f"Loaded cog: {cog_instance.name}")
+                
+            except commands.errors.ExtensionAlreadyLoaded:
+                logging.info(f"Extension 'cogs.{module_name}' is already loaded, skipping.")
+            except Exception as e:
+                logging.error(f"Failed to load cog {filename}: {str(e)}")
+                logging.error(traceback.format_exc())
+
+    # Finally load help cog after all other cogs are loaded
+    try:
+        await bot.load_extension('cogs.help_cog')
+        logging.info("Loaded help cog")
+        
+        # Ensure help command is accessible
+        help_cog = bot.get_cog('HelpCog')
+        if help_cog:
+            logging.info("Help cog loaded successfully")
+        else:
+            logging.error("Failed to find HelpCog after loading")
+    except Exception as e:
+        logging.error(f"Failed to load help cog: {str(e)}")
+        logging.error(traceback.format_exc())
+
+    logging.info(f"Total loaded cogs with handle_message: {len(bot.loaded_cogs)}")
+    for cog in bot.loaded_cogs:
+        logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
+    logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
+
+    bot.cogs_loaded = True  # Set the flag to indicate cogs have been loaded
 
 # Initialize bot with a default command prefix
 bot = SplinterTreeBot(command_prefix='!', intents=intents, help_command=None)
@@ -152,85 +223,12 @@ def get_uptime():
 
 async def load_context_settings():
     """Load saved context window settings"""
-    try:
-        settings_file = os.path.join(BOT_DIR, 'context_windows.json')
-        if os.path.exists(settings_file):
-            with open(settings_file, 'r') as f:
-                settings = json.load(f)
-                config.CONTEXT_WINDOWS.update(settings)
-                logging.info("Loaded context window settings")
-    except Exception as e:
-        logging.error(f"Error loading context settings: {str(e)}")
+    # This function is already defined above
+    pass
 
 async def setup_cogs():
     """Load all cogs"""
-    if bot.cogs_loaded:
-        logging.info("Cogs have already been loaded. Skipping setup.")
-        return
-
-    bot.loaded_cogs = []  # Reset loaded cogs list
-
-    # Load context settings
-    await load_context_settings()
-
-    # First load core cogs
-    core_cogs = ['context_cog', 'management_cog', 'webhook_cog']  # Removed settings_cog
-    for cog in core_cogs:
-        try:
-            await bot.load_extension(f'cogs.{cog}')
-            logging.info(f"Loaded core cog: {cog}")
-        except Exception as e:
-            logging.error(f"Failed to load core cog {cog}: {str(e)}")
-            logging.error(traceback.format_exc())
-
-    # Then load all model cogs
-    cogs_dir = os.path.join(BOT_DIR, 'cogs')
-    for filename in os.listdir(cogs_dir):
-        if filename.endswith('_cog.py') and filename not in ['base_cog.py'] + [f"{cog}.py" for cog in core_cogs + ['help_cog']] + ['sorcerer_cog.py']:
-            try:
-                module_name = filename[:-3]  # Remove .py
-                logging.debug(f"Attempting to load cog: {module_name}")
-                
-                # Load the cog extension
-                await bot.load_extension(f'cogs.{module_name}')
-                
-                # Get the cog from bot.cogs using the module name
-                cog_instance = None
-                for cog in bot.cogs.values():
-                    if isinstance(cog, commands.Cog) and hasattr(cog, 'name') and cog.__class__.__name__.lower() == f"{module_name.lower()}cog":
-                        cog_instance = cog
-                        break
-                if cog_instance and hasattr(cog_instance, 'handle_message'):
-                    bot.loaded_cogs.append(cog_instance)
-                    logging.info(f"Loaded cog: {cog_instance.name}")
-                
-            except commands.errors.ExtensionAlreadyLoaded:
-                logging.info(f"Extension 'cogs.{module_name}' is already loaded, skipping.")
-            except Exception as e:
-                logging.error(f"Failed to load cog {filename}: {str(e)}")
-                logging.error(traceback.format_exc())
-
-    # Finally load help cog after all other cogs are loaded
-    try:
-        await bot.load_extension('cogs.help_cog')
-        logging.info("Loaded help cog")
-        
-        # Ensure help command is accessible
-        help_cog = bot.get_cog('HelpCog')
-        if help_cog:
-            logging.info("Help cog loaded successfully")
-        else:
-            logging.error("Failed to find HelpCog after loading")
-    except Exception as e:
-        logging.error(f"Failed to load help cog: {str(e)}")
-        logging.error(traceback.format_exc())
-
-    logging.info(f"Total loaded cogs with handle_message: {len(bot.loaded_cogs)}")
-    for cog in bot.loaded_cogs:
-        logging.debug(f"Available cog: {cog.name} (Vision: {getattr(cog, 'supports_vision', False)})")
-    logging.info(f"Loaded extensions: {list(bot.extensions.keys())}")
-
-    bot.cogs_loaded = True  # Set the flag to indicate cogs have been loaded
+    await setup_cogs(bot)
 
 @tasks.loop(seconds=30)
 async def update_status():
