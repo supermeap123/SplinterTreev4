@@ -31,7 +31,7 @@ def mock_message():
 def test_cog_initialization(cog):
     assert cog.name == "Router"
     assert cog.nickname == "Router"
-    assert cog.model == "mistralai/mistral-3b"
+    assert cog.model == "mistralai/ministral-3b"  # Updated to match actual model
     assert cog.provider == "openrouter"
     assert cog.supports_vision == False
     assert isinstance(cog.model_mapping, dict)
