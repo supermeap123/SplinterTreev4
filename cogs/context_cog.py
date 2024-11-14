@@ -209,10 +209,6 @@ class ContextCog(commands.Cog):
     async def on_message(self, message):
         """Listen for messages and add them to context"""
         try:
-            # Skip bot messages
-            if message.author.bot and not message.content.lower().startswith('[summary]'):
-                return
-
             # Skip command messages
             if message.content.startswith('!'):
                 return
