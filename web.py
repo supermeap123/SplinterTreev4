@@ -603,7 +603,7 @@ def set_status():
         # Write status atomically using a temporary file
         temp_path = f"{STATUS_PATH}.tmp"
         try:
-            with open(temp_path, 'w', encoding='utf-8') as f:
+            with open(temp_path, 'w', encoding='utf-8', errors='replace') as f:
                 f.write(status)
             os.replace(temp_path, STATUS_PATH)
             logger.info(f"Bot status updated: {status}")
