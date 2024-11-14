@@ -4,6 +4,7 @@ import logging
 from .base_cog import BaseCog
 import json
 from typing import Optional, Dict, List
+import re
 
 class RouterCog(BaseCog):
     def __init__(self, bot):
@@ -38,6 +39,13 @@ class RouterCog(BaseCog):
         # Track handled messages to prevent duplicates
         self.handled_messages = set()
 
+        # Keywords that should bypass the router
+        self.bypass_keywords = [
+            r'\b(use|switch to|try|with)\s+(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)\b',
+            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)\s+(please|now|instead)\b',
+            r'^(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes)[,:]\s'
+        ]
+
         # Model mapping for routing
         self.model_mapping = {
             'Gemini': 'GeminiCog',
@@ -67,6 +75,15 @@ class RouterCog(BaseCog):
         # Create case-insensitive lookup for model names
         self.model_lookup = {k.lower(): k for k in self.model_mapping.keys()}
         logging.debug(f"[Router] Model lookup table: {self.model_lookup}")
+
+    def has_bypass_keywords(self, content: str) -> bool:
+        """Check if message contains keywords that should bypass routing"""
+        content = content.lower()
+        for pattern in self.bypass_keywords:
+            if re.search(pattern, content, re.IGNORECASE):
+                logging.debug(f"[Router] Found bypass keyword pattern: {pattern}")
+                return True
+        return False
 
     @property
     def qualified_name(self):
@@ -98,6 +115,11 @@ class RouterCog(BaseCog):
         # Skip if message already handled
         if message.id in self.handled_messages:
             logging.debug(f"[Router] Skipping already handled message {message.id}")
+            return False
+
+        # Skip if message contains bypass keywords
+        if self.has_bypass_keywords(message.content):
+            logging.debug(f"[Router] Skipping message with bypass keywords: {message.content[:100]}")
             return False
 
         # Always handle DMs
