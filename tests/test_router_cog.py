@@ -192,6 +192,7 @@ async def test_route_to_cog(cog, mock_message):
 
 @pytest.mark.asyncio
 async def test_activate_deactivate(cog):
+    # Create mock context
     ctx = MagicMock()
     ctx.channel.id = 123
     ctx.send = AsyncMock()
