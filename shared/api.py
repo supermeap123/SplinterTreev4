@@ -331,55 +331,84 @@ class API:
             if model_cog:
                 extra_headers['X-Model-Cog'] = model_cog
 
-            if stream:
-                return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
-            else:
-                validated_messages = await self._validate_message_roles(messages)
-                
-                requested_at = int(time.time() * 1000)
-                response = await self.openpipe_client.chat.completions.create(
-                    model=openpipe_model,
-                    messages=validated_messages,
-                    temperature=temperature if temperature is not None else 0.7,
-                    max_tokens=max_tokens if max_tokens is not None else 1000,
-                    store=True,
-                    extra_headers=extra_headers
-                )
-                received_at = int(time.time() * 1000)
+            try:
+                if stream:
+                    return self._stream_openpipe_request(messages, model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
+                else:
+                    validated_messages = await self._validate_message_roles(messages)
+                    
+                    requested_at = int(time.time() * 1000)
+                    response = await self.openpipe_client.chat.completions.create(
+                        model=openpipe_model,
+                        messages=validated_messages,
+                        temperature=temperature if temperature is not None else 0.7,
+                        max_tokens=max_tokens if max_tokens is not None else 1000,
+                        store=True,
+                        extra_headers=extra_headers
+                    )
+                    received_at = int(time.time() * 1000)
 
-                result = {
-                    'choices': [{
-                        'message': {
-                            'content': response.choices[0].message.content
+                    result = {
+                        'choices': [{
+                            'message': {
+                                'content': response.choices[0].message.content
+                            }
+                        }]
+                    }
+
+                    tags = {
+                        "source": "openpipe",
+                        "user_id": str(user_id) if user_id else None,
+                        "guild_id": str(guild_id) if guild_id else None,
+                        "prompt_file": prompt_file,
+                        "model_cog": model_cog
+                    }
+
+                    await self.report(
+                        requested_at=requested_at,
+                        received_at=received_at,
+                        req_payload={
+                            "model": openpipe_model,
+                            "messages": validated_messages,
+                            "temperature": temperature,
+                            "max_tokens": max_tokens
+                        },
+                        resp_payload=result,
+                        status_code=200,
+                        tags=tags,
+                        user_id=user_id,
+                        guild_id=guild_id
+                    )
+
+                    return result
+
+            except Exception as e:
+                error_message = str(e)
+                if "429 (Too Many Requests)" in error_message and ":free" in openpipe_model:
+                    # Remove :free suffix and retry
+                    logger.info(f"[API] Rate limit hit with free model, retrying without :free suffix")
+                    openpipe_model = openpipe_model.replace(":free", "")
+                    if stream:
+                        return self._stream_openpipe_request(messages, openpipe_model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
+                    else:
+                        validated_messages = await self._validate_message_roles(messages)
+                        response = await self.openpipe_client.chat.completions.create(
+                            model=openpipe_model,
+                            messages=validated_messages,
+                            temperature=temperature if temperature is not None else 0.7,
+                            max_tokens=max_tokens if max_tokens is not None else 1000,
+                            store=True,
+                            extra_headers=extra_headers
+                        )
+                        return {
+                            'choices': [{
+                                'message': {
+                                    'content': response.choices[0].message.content
+                                }
+                            }]
                         }
-                    }]
-                }
-
-                tags = {
-                    "source": "openpipe",
-                    "user_id": str(user_id) if user_id else None,
-                    "guild_id": str(guild_id) if guild_id else None,
-                    "prompt_file": prompt_file,
-                    "model_cog": model_cog
-                }
-
-                await self.report(
-                    requested_at=requested_at,
-                    received_at=received_at,
-                    req_payload={
-                        "model": openpipe_model,
-                        "messages": validated_messages,
-                        "temperature": temperature,
-                        "max_tokens": max_tokens
-                    },
-                    resp_payload=result,
-                    status_code=200,
-                    tags=tags,
-                    user_id=user_id,
-                    guild_id=guild_id
-                )
-
-                return result
+                else:
+                    raise
 
         except Exception as e:
             error_message = str(e)
