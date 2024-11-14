@@ -28,6 +28,9 @@ class RouterCog(BaseCog):
             logging.error(f"[Router] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
+        # Initialize set to track active channels
+        self.active_channels = set()
+
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
@@ -36,9 +39,37 @@ class RouterCog(BaseCog):
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
+
+    @commands.command(name='activate')
+    @commands.has_permissions(manage_channels=True)
+    async def activate(self, ctx):
+        """Activate RouterCog in the current channel."""
+        channel_id = ctx.channel.id
+        self.active_channels.add(channel_id)
+        await ctx.send("RouterCog has been activated in this channel.")
+        logging.info(f"[Router] Activated in channel {channel_id}")
+
+    @commands.command(name='deactivate')
+    @commands.has_permissions(manage_channels=True)
+    async def deactivate(self, ctx):
+        """Deactivate RouterCog in the current channel."""
+        channel_id = ctx.channel.id
+        self.active_channels.discard(channel_id)
+        await ctx.send("RouterCog has been deactivated in this channel.")
+        logging.info(f"[Router] Deactivated in channel {channel_id}")
+
     async def generate_response(self, message):
         """Generate a response using openrouter"""
         try:
+            # Determine if the bot should respond to this message
+            is_dm = isinstance(message.channel, discord.DMChannel)
+            is_active_channel = message.channel.id in self.active_channels
+            is_mentioned = self.bot.user in message.mentions
+            has_role_mention = any(role.mention in message.content for role in message.role_mentions)
+
+            if not (is_dm or is_active_channel or is_mentioned or has_role_mention):
+                return None  # Do not respond
+
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
             messages = [{"role": "system", "content": formatted_prompt}]
@@ -100,6 +131,11 @@ class RouterCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Router: {e}")
             return None
+
+    async def cog_check(self, ctx):
+        """Ensure that commands are only used in guilds."""
+        return ctx.guild is not None
+
 async def setup(bot):
     try:
         cog = RouterCog(bot)
