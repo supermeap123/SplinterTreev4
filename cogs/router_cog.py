@@ -3,7 +3,6 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 import json
-import re
 from typing import Optional, Dict, List
 
 class RouterCog(BaseCog):
@@ -13,8 +12,8 @@ class RouterCog(BaseCog):
             name="Router",
             nickname="Router",
             trigger_words=[],
-            model="openpipe:FreeRouter-v2-235",
-            provider="openpipe",
+            model="mistralai/mistral-3b",
+            provider="openrouter",
             prompt_file="router",
             supports_vision=False
         )
@@ -35,26 +34,21 @@ class RouterCog(BaseCog):
 
         # Model mapping for routing
         self.model_mapping = {
-            # Analysis & Formal
             'Gemini': 'GeminiCog',
             'Magnum': 'MagnumCog',
             'Sonar': 'SonarCog',
             'Sydney': 'SydneyCog',
             'Goliath': 'GoliathCog',
-            # Creative & Content
             'Pixtral': 'PixtralCog',
             'Mixtral': 'MixtralCog',
             'Claude3Haiku': 'Claude3HaikuCog',
             'Inferor': 'InferorCog',
-            # Technical & Command
             'Nemotron': 'NemotronCog',
             'Noromaid': 'NoromaidCog',
             'Rplus': 'RplusCog',
             'Router': 'RouterCog',
-            # Vision Systems
             'Llama32_11b': 'Llama32_11b_Cog',
             'Llama32_90b': 'Llama32_90b_Cog',
-            # Conversation & General
             'OpenChat': 'OpenChatCog',
             'Dolphin': 'DolphinCog',
             'Gemma': 'GemmaCog',
@@ -78,101 +72,146 @@ class RouterCog(BaseCog):
             return any(att.content_type and att.content_type.startswith('image/') for att in message.attachments)
         return False
 
-    def has_code_blocks(self, content: str) -> bool:
-        """Check if message contains code blocks"""
-        return bool(re.search(r'```[\w]*\n[\s\S]*?\n```', content))
-
-    def is_technical_query(self, content: str) -> bool:
-        """Check if message appears to be a technical query"""
-        technical_indicators = [
-            r'\b(?:error|bug|issue|problem|crash|fail)\b',
-            r'\b(?:code|function|method|api|database|server)\b',
-            r'\b(?:how to|how do I|help with)\b.*\b(?:implement|configure|setup|install)\b',
-            r'```[\w]*\n[\s\S]*?\n```',  # Code blocks
-            r'\b(?:npm|pip|git|docker)\b'
-        ]
-        return any(re.search(pattern, content, re.IGNORECASE) for pattern in technical_indicators)
-
-    def is_creative_request(self, content: str) -> bool:
-        """Check if message appears to be a creative request"""
-        creative_indicators = [
-            r'\b(?:write|create|generate|compose)\b',
-            r'\b(?:story|poem|article|blog|content)\b',
-            r'\b(?:creative|artistic|imaginative)\b'
-        ]
-        return any(re.search(pattern, content, re.IGNORECASE) for pattern in creative_indicators)
-
-    def is_analytical_query(self, content: str) -> bool:
-        """Check if message appears to be an analytical query"""
-        analytical_indicators = [
-            r'\b(?:analyze|analyse|explain|understand|compare)\b',
-            r'\b(?:what is|what are|why does|how does)\b',
-            r'\b(?:difference between|relationship|correlation)\b'
-        ]
-        return any(re.search(pattern, content, re.IGNORECASE) for pattern in analytical_indicators)
-
-    def is_personal_query(self, content: str) -> bool:
-        """Check if message appears to be a personal/emotional query"""
-        personal_indicators = [
-            r'\b(?:feel|feeling|felt|emotion|emotional)\b',
-            r'\b(?:advice|help me|should I|what should)\b',
-            r'\b(?:relationship|personal|private)\b',
-            r'(?:😊|😢|😭|😔|😕|🙁|☹️|😣|😖|😫|😩|🥺|😢|😭|😤|😠|😡|🤬|🥰|😍|🤗|😘)'
-        ]
-        return any(re.search(pattern, content, re.IGNORECASE) for pattern in personal_indicators)
-
     async def determine_route(self, message: discord.Message) -> str:
-        """Determine which model/cog to route the message to based on content analysis"""
-        content = message.content.lower()
-        has_image = self.has_image_attachments(message)
+        """Use OpenRouter inference to determine which model to route to"""
+        try:
+            # Get context from context_cog if available
+            context = ""
+            if self.context_cog:
+                try:
+                    history = await self.context_cog.get_context_messages(
+                        str(message.channel.id),
+                        limit=5,
+                        exclude_message_id=str(message.id)
+                    )
+                    context = "\n".join([msg['content'] for msg in history])
+                except Exception as e:
+                    logging.error(f"[Router] Error getting context: {str(e)}")
 
-        # 1. VISION CHECK
-        if has_image:
-            if len(content) > 100 or self.is_analytical_query(content):
-                return 'Llama32_90b'
-            return 'Llama32_11b'
+            # Format the routing prompt
+            routing_prompt = f"""### COMPREHENSIVE ROUTER PROTOCOL v4.1 ###
 
-        # 2. TECHNICAL SUPPORT
-        if self.is_technical_query(content):
-            if self.has_code_blocks(content) or len(content) > 500:
-                return 'Goliath'
-            if 'error' in content or 'bug' in content:
-                return 'Nemotron'
-            if 'how to' in content or 'help with' in content:
-                return 'Noromaid'
-            if any(cmd in content for cmd in ['npm', 'pip', 'git', 'docker']):
-                return 'Rplus'
+Given: "{message.content}", "{context}"
 
-        # 3. CONTENT CREATION
-        if self.is_creative_request(content):
-            if 'poem' in content or len(content) < 100:
-                return 'Claude3Haiku'
-            if 'article' in content or 'blog' in content:
-                return 'Pixtral'
-            if len(content) > 300:
-                return 'Magnum'
-            return 'Mixtral'
+# COMPLETE MODEL CATALOG
 
-        # 4. CONVERSATION TYPE
-        if self.is_analytical_query(content):
-            if re.search(r'[^\x00-\x7F]', content):  # Non-ASCII characters
-                return 'Gemini'
-            if len(content) > 200:
-                return 'Sonar'
-            return 'Dolphin'
+1. ANALYSIS & FORMAL
+   Gemini:       Advanced analysis, multilingual support
+   Magnum:       Advanced content gen, creative writing
+   Sonar:        Complex support, detailed explanations
+   Sydney:       High-level conversation, personal advice
+   Goliath:      Advanced problem-solving, technical detail
 
-        if self.is_personal_query(content):
-            if 'advice' in content or 'should I' in content:
-                return 'Hermes'
-            return 'Sydney'
+2. CREATIVE & CONTENT
+   Pixtral:      Creative writing, content generation
+   Mixtral:      Content generation, creative tasks
+   Claude3Haiku: Poetry, creative writing, concise
+   Inferor:      Basic conversation, support tasks
 
-        # 5. DEFAULT ROUTES
-        if len(content) > 300:
-            return 'Gemma'
-        if re.search(r'[^\x00-\x7F]', content):  # Non-ASCII characters
-            return 'Ministral'
-        
-        return 'Liquid'  # Default fallback
+3. TECHNICAL & COMMAND
+   Nemotron:     Technical support, complex problems
+   Noromaid:     Advanced problem-solving, technical 
+   Rplus:        Command execution, specific tasks
+   Router:       Message classification, routing
+
+4. VISION SYSTEMS
+   Llama32_11b:  Basic image analysis
+   Llama32_90b:  Complex image understanding
+
+5. CONVERSATION & GENERAL
+   OpenChat:     General conversation, community
+   Dolphin:      Multitask conversation handling
+   Gemma:        Advanced language understanding
+   Ministral:    General conversation, community
+   Liquid:       Fluid general conversation
+   Hermes:       High-level personal advice
+
+# ROUTING LOGIC
+
+1. VISION CHECK
+   IF image_present:
+     IF complex_analysis → Llama32_90b
+     ELSE → Llama32_11b
+
+2. TECHNICAL SUPPORT
+   IF technical_issue:
+     IF highly_complex → Goliath
+     IF complex → Nemotron
+     IF problem_solving → Noromaid
+     IF command_based → Rplus
+
+3. CONTENT CREATION
+   IF creative_writing:
+     IF poetry/concise → Claude3Haiku
+     IF content_gen → Pixtral/Mixtral
+     IF advanced → Magnum
+
+4. CONVERSATION TYPE
+   IF analytical:
+     IF multilingual/formal → Gemini
+     IF detailed → Sonar
+     IF multitask → Dolphin
+   IF personal/emotional:
+     IF advice → Hermes
+     IF complex → Sydney
+   IF community:
+     IF general → OpenChat
+     IF basic → Inferor
+
+5. DEFAULT ROUTES
+   IF general_chat → Ministral/Liquid
+   IF language_heavy → Gemma
+   IF routing_query → Router
+
+# PRIORITY OVERRIDE
+1. Vision processing
+2. Technical issues
+3. Creative tasks
+4. Analysis/Support
+5. General queries
+
+Return exactly one:
+Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
+Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
+Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
+Dolphin, Gemma, Ministral, Liquid, Hermes
+
+Return model:"""
+
+            # Add image presence info
+            has_image = self.has_image_attachments(message)
+            if has_image:
+                routing_prompt = f"Note: Message contains image attachments.\n\n{routing_prompt}"
+
+            # Call OpenRouter API for inference
+            messages = [
+                {"role": "system", "content": "You are a message routing assistant. Follow the routing protocol exactly."},
+                {"role": "user", "content": routing_prompt}
+            ]
+
+            response = await self.api_client.call_openrouter(
+                messages=messages,
+                model=self.model,
+                temperature=0.3,  # Low temperature for more consistent routing
+                stream=False,
+                user_id=str(message.author.id),
+                guild_id=str(message.guild.id) if message.guild else None
+            )
+
+            if response and 'choices' in response:
+                model_name = response['choices'][0]['message']['content'].strip()
+                # Clean up response to match exact model names
+                model_name = next((name for name in self.model_mapping.keys() 
+                                 if name.lower() == model_name.lower()), 'Liquid')
+                logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
+                return model_name
+
+            logging.error("[Router] Invalid response format from OpenRouter")
+            return 'Liquid'  # Default fallback
+
+        except Exception as e:
+            logging.error(f"[Router] Error determining route: {str(e)}")
+            return 'Liquid'  # Default fallback
 
     async def route_to_cog(self, message: discord.Message, model_name: str) -> None:
         """Route the message to the appropriate cog"""
