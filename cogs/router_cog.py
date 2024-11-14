@@ -212,62 +212,305 @@ class RouterCog(BaseCog):
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
             # Format the routing prompt
-            routing_prompt = f"""### MODEL ROUTER v5.0 ###
+            routing_prompt = f"""### UNIFIED PRODUCTION ROUTER v8.0 ###
 Message: "{message.content}"
 Context: "{context}"
 
-[PRIMARY MODELS - INTERNAL ONLY]
-Gemini:     Advanced analysis, formal research, academic writing
-Magnum:     Casual reasoning, brainstorming, friendly explanations
-Sonar:      Internet knowledge, trends, current events, real-world info
-Sydney:     Emotional support, empathy, personal guidance
-Nemotron:   Complex code, system design, technical architecture
-Claude3Haiku: Basic coding, documentation, help commands
-Mixtral:    General knowledge processing, broad understanding
-Ministral:  Quick factual responses, straightforward answers
+[MODEL PATHS & STRENGTHS]
 
-[SPECIALIZED MODELS - INTERNAL ONLY]
-Hermes:     Mental health support, therapy, sensitive topics
-Noromaid:   Character roleplay, storytelling, immersive chat
-Liquid:     Fast text generation, quick responses
-Gemma:      Educational content, teaching, tutorials
-OpenChat:   Multi-turn conversations, contextual chat
-Dolphin:    Multi-topic handling, conversation switching
-Pixtral:    Creative writing, content generation
-Goliath:    Advanced technical problem-solving
-Rplus:      Command processing, system operations
-Router:     Message routing, model selection
+ANALYTICAL PATHS
+├─ Gemini
+│  ├─ Strengths: Formal analysis, multilingual, research
+│  ├─ Best for: Academic writing, detailed explanations
+│  ├─ Context: Previous analysis, formal discussions
+│  └─ Token sweet spot: >200
+│
+└─ Magnum
+   ├─ Strengths: Casual analysis, creative expansion
+   ├─ Best for: Friendly explanations, brainstorming
+   ├─ Context: Informal discussion, idea generation
+   └─ Token sweet spot: 100-500
 
-[VISION MODELS - INTERNAL ONLY]
-Llama32_11b: Basic image understanding, object detection
-Llama32_90b: Complex image analysis, detailed visual processing
+REAL-TIME INFORMATION PATH
+└─ Sonar
+   ├─ Strengths: Current events, trends, updates
+   ├─ Best for: Time-sensitive info, recent changes
+   ├─ Context: Modern queries, updates needed
+   └─ Priority override: Latest info needs
 
-[PRIORITY OVERRIDES - INTERNAL ONLY]
-1. Current events/trends/news → Sonar
-2. Mental health/crisis → Hermes
-3. Vision content → Llama32_*
-4. Complex code → Nemotron
-5. System commands → Rplus
+TECHNICAL PATHS
+├─ Nemotron
+│  ├─ Strengths: Complex code, system design
+│  ├─ Best for: Advanced technical, optimization
+│  ├─ Context: Development, architecture
+│  └─ Token sweet spot: >300
+│
+└─ Claude3Haiku
+   ├─ Strengths: Basic code, documentation
+   ├─ Best for: Quick help, examples
+   ├─ Context: Learning, basics
+   └─ Token sweet spot: <200
 
-[EXTERNAL INFO TRIGGERS - INTERNAL ONLY]
-Route to Sonar for:
-- News inquiries
-- Current events
-- Trending topics
-- Recent developments
-- Real-world information
-- Internet knowledge
-- Cultural references
-- Latest updates
-- Search-like queries
-- Fact verification
+ROLEPLAY PATHS - EXTENDED
+├─ Epic Scale (Magnum/Noromaid)
+│  ├─ Token range: >1000
+│  ├─ Scenarios: Campaigns, wars, politics
+│  ├─ Context: Multi-character, complex plots
+│  └─ Triggers: "saga", "campaign", "epic"
+│
+├─ Complex Scenes (Noromaid)
+│  ├─ Token range: 500-1000
+│  ├─ Scenarios: Character development, relationships
+│  ├─ Context: Deep interaction, emotional
+│  └─ Triggers: "scene", "develop", "unfolds"
+│
+├─ Medium Interactions (Mixtral)
+│  ├─ Token range: 200-500
+│  ├─ Scenarios: Group scenes, dialogue
+│  ├─ Context: Social interaction, exploration
+│  └─ Triggers: "interact", "explore", "discuss"
+│
+└─ Quick Actions (Liquid)
+   ├─ Token range: <200
+   ├─ Scenarios: Combat turns, quick responses
+   ├─ Context: Immediate actions, reactions
+   └─ Triggers: "quickly", "reacts", "responds"
 
-# OUTPUT FORMAT
-Return exactly ONE model ID with no explanation:
-Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
-Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
-Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
-Dolphin, Gemma, Ministral, Liquid, Hermes
+EMOTIONAL SUPPORT PATHS
+├─ Sydney
+│  ├─ Strengths: Empathy, emotional intelligence
+│  ├─ Best for: Personal support, relationships
+│  ├─ Context: Emotional discussions
+│  └─ Token sweet spot: 100-400
+│
+└─ Hermes
+   ├─ Strengths: Mental health, crisis support
+   ├─ Best for: Sensitive topics, emergency
+   ├─ Context: Support needs
+   └─ Priority override: Crisis detection
+
+[SEMANTIC CLOUDS & FUZZY MATCHING]
+
+RP COMPLEXITY TRIGGERS
+├─ Epic Scale
+│  ├─ Primary: [saga, campaign, epic, chronicle, legend]
+│  ├─ Action: [conquer, rule, lead, command, govern]
+│  ├─ Scope: [kingdom, empire, world, realm, dynasty]
+│  ├─ Politics: [intrigue, diplomacy, alliance, treaty]
+│  └─ Pattern: (?=.*\\b(epic|saga)\\b)(?=.*\\b(world|kingdom)\\b)
+│
+├─ Complex Scene
+│  ├─ Development: [growth, evolution, change, transform]
+│  ├─ Character: [personality, background, history, depth]
+│  ├─ Emotion: [feeling, sentiment, mood, atmosphere]
+│  └─ Pattern: (?=.*\\b(character|scene)\\b)(?=.*\\b(deep|complex)\\b)
+│
+├─ Medium Scene
+│  ├─ Action: [interact, explore, investigate, discover]
+│  ├─ Social: [talk, discuss, meet, gather, convene]
+│  ├─ Movement: [travel, journey, walk, ride, traverse]
+│  └─ Pattern: (?=.*\\b(explore|interact)\\b)(?=.*\\b(group|party)\\b)
+│
+└─ Quick Action
+   ├─ Combat: [attack, defend, dodge, strike, parry]
+   ├─ Movement: [jump, run, dash, leap, sprint]
+   ├─ Response: [react, answer, reply, respond]
+   └─ Pattern: (?=.*\\b(quick|fast)\\b)(?=.*\\b(action|move)\\b)
+
+INFORMATION RECENCY TRIGGERS
+├─ Time Indicators
+│  ├─ Current: [now, present, ongoing, current, active]
+│  ├─ Recent: [latest, new, fresh, updated, modern]
+│  ├─ Trending: [popular, viral, hot, buzzing]
+│  └─ Pattern: (?=.*\\b(current|latest)\\b)|(?=.*\\b(now|trending)\\b)
+│
+└─ Update Needs
+   ├─ Status: [state, condition, situation, status]
+   ├─ Changes: [update, revision, modification, change]
+   ├─ News: [announcement, report, release, update]
+   └─ Pattern: (?=.*\\b(update|change)\\b)(?=.*\\b(status|news)\\b)
+
+TECHNICAL COMPLEXITY TRIGGERS
+├─ Advanced
+│  ├─ Code: [optimize, architect, design, implement]
+│  ├─ System: [infrastructure, framework, platform]
+│  ├─ Scale: [enterprise, distributed, scalable]
+│  └─ Pattern: (?=.*\\b(complex|advanced)\\b)(?=.*\\b(system|code)\\b)
+│
+└─ Basic
+   ├─ Help: [assist, guide, explain, show]
+   ├─ Learn: [understand, practice, begin, start]
+   ├─ Basic: [simple, fundamental, elementary]
+   └─ Pattern: (?=.*\\b(help|learn)\\b)(?=.*\\b(basic|simple)\\b)
+
+[CONTEXT WEIGHTING SYSTEM]
+
+TOKEN-BASED WEIGHTS
+├─ Micro (<50 tokens): 0.5x
+├─ Small (50-200): 1.0x
+├─ Medium (200-500): 1.5x
+├─ Large (500-1000): 2.0x
+└─ Epic (>1000): 2.5x
+
+CONTEXT CONTINUITY
+├─ Previous model used: 1.3x
+├─ Theme consistency: 1.2x
+├─ Character continuity: 1.4x
+└─ Scene continuity: 1.5x
+
+TIME SENSITIVITY
+├─ Emergency: 3.0x
+├─ Current events: 2.5x
+├─ Recent changes: 2.0x
+└─ General query: 1.0x
+
+[PRIORITY OVERRIDE MATRIX]
+
+1. EMERGENCY OVERRIDES
+   ├─ Crisis terms detected → Hermes
+   ├─ Mental health flags → Hermes
+   ├─ Urgent help needed → Hermes
+   └─ Priority: Highest
+
+2. TIME SENSITIVITY
+   ├─ Current events → Sonar
+   ├─ Recent changes → Sonar
+   ├─ Updates needed → Sonar
+   └─ Priority: Very High
+
+3. COMPLEXITY OVERRIDES
+   ├─ Technical complexity → Nemotron
+   ├─ RP epic scale → Magnum/Noromaid
+   ├─ Deep emotion → Sydney
+   └─ Priority: High
+
+4. LENGTH OVERRIDES
+   ├─ >1000 tokens → Magnum/Noromaid
+   ├─ 500-1000 → Noromaid/Mixtral
+   ├─ 200-500 → Mixtral/Sydney
+   └─ <200 → Liquid/Ministral
+
+[FUZZY LOGIC SCORING SYSTEM]
+
+MATCH SCORING
+├─ Exact Match: 1.0
+├─ Stem Match: 0.9 (analyze/analyzing)
+├─ Synonym Match: 0.8 (quick/fast)
+├─ Related Match: 0.6 (story/tale)
+├─ Context Match: 0.4 (implied meaning)
+└─ Minimum Threshold: 0.3
+
+COMPOSITE SCORE CALCULATION
+Score = (KeywordMatch * 0.3) +
+        (ContextMatch * 0.25) +
+        (LengthMatch * 0.2) +
+        (TimeMatch * 0.15) +
+        (PatternMatch * 0.1)
+
+SCORE ADJUSTMENTS
+├─ Emergency Multiplier: 3.0x
+├─ Current Info Need: 2.5x
+├─ Context Continuity: 1.5x
+├─ Scene Complexity: 1.3x
+└─ Basic Query: 1.0x
+
+[IMPLEMENTATION RULES]
+
+PATTERN RECOGNITION
+1. Check for emergency/crisis first
+2. Evaluate time sensitivity
+3. Analyze message length
+4. Detect context patterns
+5. Apply fuzzy matching
+6. Calculate composite score
+7. Apply adjustments
+8. Select highest score above threshold
+
+LENGTH DETECTION
+├─ Token Count Ranges
+│  ├─ Micro: <50 tokens
+│  ├─ Small: 50-200 tokens
+│  ├─ Medium: 200-500 tokens
+│  ├─ Large: 500-1000 tokens
+│  └─ Epic: >1000 tokens
+│
+└─ Model Preferences
+   ├─ Micro → Liquid/Ministral
+   ├─ Small → Claude3Haiku/Mixtral
+   ├─ Medium → Mixtral/Sydney
+   ├─ Large → Noromaid/Magnum
+   └─ Epic → Magnum/Noromaid
+
+CONTEXT HANDLING
+1. Store previous model used
+2. Track conversation theme
+3. Monitor scene continuity
+4. Check character persistence
+5. Evaluate topic shifts
+6. Maintain narrative flow
+7. Consider time gaps
+8. Preserve RP consistency
+
+[EXAMPLE PATTERNS]
+
+RP SCENARIOS
+├─ Epic Campaign
+│  Input: "The kingdom faces a growing threat from the ancient dragons..."
+│  Length: >1000 tokens
+│  Context: World-building, politics
+│  Result: Magnum
+│
+├─ Character Development
+│  Input: "As they sit by the campfire, Clara reflects on her journey..."
+│  Length: 500-1000 tokens
+│  Context: Personal growth, reflection
+│  Result: Noromaid
+│
+├─ Group Interaction
+│  Input: "The party enters the tavern, looking for information..."
+│  Length: 200-500 tokens
+│  Context: Social scene, exploration
+│  Result: Mixtral
+│
+└─ Quick Combat
+   Input: "Clara dodges the incoming arrow and draws her sword..."
+   Length: <200 tokens
+   Context: Action scene, immediate
+   Result: Liquid
+
+CURRENT INFO QUERIES
+├─ News Request
+│  Input: "What's happening with the latest tech regulations?"
+│  Pattern: Current events + specific topic
+│  Result: Sonar
+│
+└─ Update Check
+   Input: "Which version of Python is current for ML?"
+   Pattern: Status check + technical
+   Result: Sonar
+
+TECHNICAL SCENARIOS
+├─ Complex System
+│  Input: "Design a distributed caching system for..."
+│  Pattern: Advanced + technical
+│  Result: Nemotron
+│
+└─ Basic Help
+   Input: "How do I write a for loop in Python?"
+   Pattern: Basic + learning
+   Result: Claude3Haiku
+
+[FINAL OUTPUT RULES]
+
+1. Return ONLY the model ID
+2. No explanation
+3. No context
+4. No reasoning
+5. Exactly one of:
+   Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
+   Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
+   Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
+   Dolphin, Gemma, Ministral, Liquid, Hermes
 
 Model ID:"""
 
