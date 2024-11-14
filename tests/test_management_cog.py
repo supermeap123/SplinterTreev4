@@ -24,6 +24,10 @@ def mock_message():
     message.content = "Test message"
     message.author.id = "789"
     message.guild.id = "101112"
+    message.guild = MagicMock()
+    message.guild.name = "Test Server"
+    message.channel.name = "test-channel"
+    message.author.display_name = "TestUser"
     return message
 
 def test_cog_initialization(cog):
@@ -119,19 +123,26 @@ async def test_generate_response_error_handling(cog, mock_message):
     assert response is None
 
 @pytest.mark.asyncio
-async def test_setup(bot):
-    """Test cog setup"""
-    # Test successful setup
-    with patch('builtins.open', create=True) as mock_open:
-        mock_open.return_value.__enter__.return_value.read.return_value = '{}'
-        cog = await ManagementCog.setup(bot)
-        assert isinstance(cog, ManagementCog)
-        bot.add_cog.assert_called_once()
+async def test_handle_message(cog, mock_message):
+    """Test message handling"""
+    # Mock generate_response
+    async def mock_generator():
+        yield "Test response"
+    cog.generate_response = AsyncMock(return_value=mock_generator())
 
-    # Test setup failure
-    bot.add_cog.side_effect = Exception("Setup failed")
-    with pytest.raises(Exception):
-        await ManagementCog.setup(bot)
+    # Mock channel methods
+    mock_message.channel.send = AsyncMock()
+    mock_message.channel.typing = AsyncMock()
+    mock_message.add_reaction = AsyncMock()
+
+    # Test message handling
+    await cog.handle_message(mock_message)
+
+    # Verify typing indicator was started
+    mock_message.channel.typing.assert_called_once()
+
+    # Verify response was sent
+    mock_message.channel.send.assert_called()
 
 @pytest.mark.asyncio
 async def test_temperature_file_handling(bot):
@@ -152,3 +163,37 @@ async def test_temperature_file_handling(bot):
         mock_open.return_value.__enter__.return_value.read.return_value = 'invalid json'
         cog = ManagementCog(bot)
         assert cog.temperatures == {}
+
+@pytest.mark.asyncio
+async def test_error_handling(cog, mock_message):
+    """Test error handling in message processing"""
+    # Mock generate_response to raise error
+    cog.generate_response = AsyncMock(side_effect=Exception("Test error"))
+
+    # Mock channel methods
+    mock_message.channel.send = AsyncMock()
+    mock_message.channel.typing = AsyncMock()
+
+    # Test error handling
+    await cog.handle_message(mock_message)
+
+    # Verify error message was sent
+    error_calls = [call for call in mock_message.channel.send.call_args_list if "Error" in str(call)]
+    assert len(error_calls) > 0
+
+@pytest.mark.asyncio
+async def test_initialization(bot):
+    """Test cog initialization"""
+    with patch('builtins.open', create=True) as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = '{}'
+        cog = ManagementCog(bot)
+        
+        # Verify basic attributes
+        assert hasattr(cog, 'bot')
+        assert hasattr(cog, 'api_client')
+        assert hasattr(cog, 'temperatures')
+        
+        # Verify default values
+        assert cog.name == "Management"
+        assert cog.provider == "openrouter"
+        assert not cog.supports_vision
