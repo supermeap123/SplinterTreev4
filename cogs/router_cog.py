@@ -12,7 +12,7 @@ class RouterCog(BaseCog):
             name="Router",
             nickname="Router",
             trigger_words=[],  # Remove !activate from trigger_words
-            model="mistralai/mistral-3b",
+            model="mistralai/ministral-3b",
             provider="openrouter",
             prompt_file="router",
             supports_vision=False
