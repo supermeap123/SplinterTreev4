@@ -185,94 +185,59 @@ class RouterCog(BaseCog):
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
             # Format the routing prompt
-            routing_prompt = f"""### COMPREHENSIVE ROUTER PROTOCOL v4.1 ###
+            routing_prompt = f"""### MODEL ROUTER v4.2 ###
+Message: "{message.content}"
+Context: "{context}"
 
-Given: "{message.content}", "{context}"
+# MODEL PATHS 
+[DO NOT OUTPUT PATHS - INTERNAL ONLY]
+{{VISION}}
+Llama32_11b:  basic vision
+Llama32_90b:  complex vision
 
-# COMPLETE MODEL CATALOG
+{{TECHNICAL}}
+Goliath:      advanced tech
+Nemotron:     complex tech
+Noromaid:     problem solving
+Rplus:        commands
 
-1. ANALYSIS & FORMAL
-   Gemini:       Advanced analysis, multilingual support
-   Magnum:       Advanced content gen, creative writing
-   Sonar:        Complex support, detailed explanations
-   Sydney:       High-level conversation, personal advice
-   Goliath:      Advanced problem-solving, technical detail
+{{CREATIVE}}
+Pixtral:      creative
+Mixtral:      content
+Claude3Haiku: poetry
+Magnum:       advanced creative
 
-2. CREATIVE & CONTENT
-   Pixtral:      Creative writing, content generation
-   Mixtral:      Content generation, creative tasks
-   Claude3Haiku: Poetry, creative writing, concise
-   Inferor:      Basic conversation, support tasks
+{{ANALYSIS}}
+Gemini:       formal multilingual
+Sonar:        detailed support
+Sydney:       emotional advanced
+Inferor:      basic support
 
-3. TECHNICAL & COMMAND
-   Nemotron:     Technical support, complex problems
-   Noromaid:     Advanced problem-solving, technical 
-   Rplus:        Command execution, specific tasks
-   Router:       Message classification, routing
+{{GENERAL}}
+OpenChat:     community
+Dolphin:      multitask
+Gemma:        language
+Ministral:    general
+Liquid:       fluid
+Hermes:       personal
+Router:       routing
 
-4. VISION SYSTEMS
-   Llama32_11b:  Basic image analysis
-   Llama32_90b:  Complex image understanding
+[INTERNAL ONLY - DO NOT OUTPUT]:
+1. Check vision
+2. Check technical
+3. Check creative
+4. Check analysis
+5. Check general
+6. Apply overrides
 
-5. CONVERSATION & GENERAL
-   OpenChat:     General conversation, community
-   Dolphin:      Multitask conversation handling
-   Gemma:        Advanced language understanding
-   Ministral:    General conversation, community
-   Liquid:       Fluid general conversation
-   Hermes:       High-level personal advice
-
-# ROUTING LOGIC
-
-1. VISION CHECK
-   IF image_present:
-     IF complex_analysis → Llama32_90b
-     ELSE → Llama32_11b
-
-2. TECHNICAL SUPPORT
-   IF technical_issue:
-     IF highly_complex → Goliath
-     IF complex → Nemotron
-     IF problem_solving → Noromaid
-     IF command_based → Rplus
-
-3. CONTENT CREATION
-   IF creative_writing:
-     IF poetry/concise → Claude3Haiku
-     IF content_gen → Pixtral/Mixtral
-     IF advanced → Magnum
-
-4. CONVERSATION TYPE
-   IF analytical:
-     IF multilingual/formal → Gemini
-     IF detailed → Sonar
-     IF multitask → Dolphin
-   IF personal/emotional:
-     IF advice → Hermes
-     IF complex → Sydney
-   IF community:
-     IF general → OpenChat
-     IF basic → Inferor
-
-5. DEFAULT ROUTES
-   IF general_chat → Ministral/Liquid
-   IF language_heavy → Gemma
-   IF routing_query → Router
-
-# PRIORITY OVERRIDE
-1. Vision processing
-2. Technical issues
-3. Creative tasks
-4. Analysis/Support
-5. General queries
-
-Return exactly one:
+# OUTPUT FORMAT
+Return exactly ONE model ID with no explanation:
 Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
 Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
 Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
 Dolphin, Gemma, Ministral, Liquid, Hermes
 
-Return model:"""
+Model ID:"""
 
             # Add image presence info
             has_image = self.has_image_attachments(message)
