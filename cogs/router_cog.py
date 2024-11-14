@@ -11,8 +11,8 @@ class RouterCog(BaseCog):
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=[],  # Remove !activate from trigger_words
-            model="mistralai/ministral-3b",
+            trigger_words=[],
+            model="mistralai/mistral-3b",
             provider="openrouter",
             prompt_file="router",
             supports_vision=False
@@ -58,8 +58,8 @@ class RouterCog(BaseCog):
             'OpenChat': 'OpenChatCog',
             'Dolphin': 'DolphinCog',
             'Gemma': 'GemmaCog',
-            'Ministral': 'MinistralCog',  # Support both spellings
-            'Ministeral': 'MinistralCog',  # Support both spellings
+            'Ministral': 'MinistralCog',
+            'Ministeral': 'MinistralCog',
             'Liquid': 'LiquidCog',
             'Hermes': 'HermesCog'
         }
@@ -185,50 +185,102 @@ class RouterCog(BaseCog):
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
             # Format the routing prompt
-            routing_prompt = f"""### MODEL ROUTER v4.2 ###
+            routing_prompt = f"""### MODEL ROUTER v4.3 ###
 Message: "{message.content}"
 Context: "{context}"
 
-# MODEL PATHS 
-[DO NOT OUTPUT PATHS - INTERNAL ONLY]
-{{VISION}}
-Llama32_11b:  basic vision
-Llama32_90b:  complex vision
+[INTERNAL SCORING MATRIX - DO NOT OUTPUT]
+weights = {{
+    token_count: 0.15,
+    keyword_match: 0.25,
+    context_continuity: 0.20,
+    sentiment_score: 0.15,
+    technical_complexity: 0.15,
+    urgency: 0.10
+}}
 
-{{TECHNICAL}}
-Goliath:      advanced tech
-Nemotron:     complex tech
-Noromaid:     problem solving
-Rplus:        commands
+[PREPROCESSING CHECKS - DO NOT OUTPUT]
+1. Token Analysis:
+   SHORT: <50
+   MEDIUM: 50-200
+   LONG: >200
 
-{{CREATIVE}}
-Pixtral:      creative
-Mixtral:      content
-Claude3Haiku: poetry
-Magnum:       advanced creative
+2. Pattern Detection:
+   - Code blocks: ```
+   - URLs: http(s)://
+   - Images: [IMG]
+   - Math: LaTeX
+   - Commands: !/, ?, #
+   - Mentions: @
+   - Formatting: **, __, ~~
 
-{{ANALYSIS}}
-Gemini:       formal multilingual
-Sonar:        detailed support
-Sydney:       emotional advanced
-Inferor:      basic support
+3. Sentiment Range:
+   EMERGENCY: -1.0 to -0.8
+   DISTRESS: -0.8 to -0.5
+   NEUTRAL: -0.2 to 0.2
+   POSITIVE: 0.2 to 0.8
+   EXCITED: 0.8 to 1.0
 
-{{GENERAL}}
-OpenChat:     community
-Dolphin:      multitask
-Gemma:        language
-Ministral:    general
-Liquid:       fluid
-Hermes:       personal
-Router:       routing
+4. Context Continuity:
+   - Previous model
+   - Topic persistence
+   - Time gap
+   - User history
+   - Thread context
 
-[INTERNAL ONLY - DO NOT OUTPUT]:
-1. Check vision
-2. Check technical
-3. Check creative
-4. Check analysis
-5. Check general
-6. Apply overrides
+5. Technical Markers:
+   - Code complexity
+   - Technical terms
+   - Documentation
+   - System commands
+   - API patterns
+
+6. Urgency Signals:
+   - Emergency terms
+   - Time indicators
+   - Priority markers
+   - Help requests
+   - Error states
+
+[MODEL CAPABILITIES - DO NOT OUTPUT]
+Vision Processing:
+- Llama32_11b:  [basic: 0.6, complex: 0.2]
+- Llama32_90b:  [basic: 0.8, complex: 0.9]
+
+Technical Handling:
+- Goliath:      [tech: 0.9, complex: 0.9]
+- Nemotron:     [tech: 0.8, code: 0.9]
+- Noromaid:     [tech: 0.7, solve: 0.8]
+- Rplus:        [command: 0.9, system: 0.9]
+
+Creative Tasks:
+- Pixtral:      [creative: 0.8, content: 0.8]
+- Mixtral:      [content: 0.9, gen: 0.8]
+- Claude3Haiku: [concise: 0.9, creative: 0.7]
+- Magnum:       [creative: 0.9, complex: 0.8]
+
+Analysis:
+- Gemini:       [formal: 0.9, multi: 0.9]
+- Sonar:        [support: 0.8, detail: 0.9]
+- Sydney:       [emotion: 0.9, personal: 0.8]
+- Inferor:      [basic: 0.7, support: 0.6]
+
+General Purpose:
+- OpenChat:     [community: 0.8, casual: 0.7]
+- Dolphin:      [multi: 0.8, adapt: 0.8]
+- Gemma:        [language: 0.8, understand: 0.8]
+- Ministral:    [general: 0.7, basic: 0.7]
+- Liquid:       [fluid: 0.7, chat: 0.7]
+- Hermes:       [personal: 0.8, support: 0.8]
+- Router:       [route: 0.9, classify: 0.9]
+
+[OVERRIDE HIERARCHY - DO NOT OUTPUT]
+1. Emergency/Crisis → Hermes
+2. Vision/Image → Llama32_*
+3. Code/Technical → Nemotron/Goliath
+4. Creative/Generation → Pixtral/Mixtral
+5. Analysis/Research → Gemini/Sonar
+6. General/Chat → Based on scores
 
 # OUTPUT FORMAT
 Return exactly ONE model ID with no explanation:
@@ -247,7 +299,7 @@ Model ID:"""
 
             # Call OpenRouter API for inference
             messages = [
-                {"role": "system", "content": "You are a message routing assistant. Follow the routing protocol exactly."},
+                {"role": "system", "content": "You are a message routing assistant. Return only the model ID."},
                 {"role": "user", "content": routing_prompt}
             ]
 
