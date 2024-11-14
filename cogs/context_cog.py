@@ -23,6 +23,8 @@ class ContextCog(commands.Cog):
         )
         # Track last message per role to prevent duplicates
         self.last_messages = {}  # Format: {channel_id: {'user': msg, 'assistant': msg}}
+        # Track which channels have had their history loaded
+        self.loaded_channels = set()
 
     def _setup_database(self):
         """Initialize the SQLite database for interaction logs"""
@@ -40,9 +42,47 @@ class ContextCog(commands.Cog):
         except Exception as e:
             logging.error(f"Failed to set up database: {str(e)}")
 
+    async def _load_channel_history(self, channel_id: str):
+        """Load the last 50 messages from a Discord channel into the context database"""
+        try:
+            if channel_id in self.loaded_channels:
+                return
+
+            channel = self.bot.get_channel(int(channel_id))
+            if not channel:
+                logging.error(f"Could not find channel {channel_id}")
+                return
+
+            messages = []
+            async for message in channel.history(limit=50, oldest_first=True):
+                if not message.content.startswith('!'):  # Skip commands
+                    messages.append(message)
+
+            # Add messages to context in chronological order
+            for message in messages:
+                guild_id = str(message.guild.id) if message.guild else None
+                await self.add_message_to_context(
+                    message.id,
+                    str(message.channel.id),
+                    guild_id,
+                    str(message.author.id),
+                    message.content,
+                    message.author.bot,  # is_assistant
+                    None,  # persona_name
+                    None   # emotion
+                )
+
+            self.loaded_channels.add(channel_id)
+            logging.info(f"Loaded history for channel {channel_id}")
+        except Exception as e:
+            logging.error(f"Failed to load channel history: {str(e)}")
+
     async def get_context_messages(self, channel_id: str, limit: int = None, exclude_message_id: str = None) -> List[Dict]:
         """Get previous messages from the context database for all users and cogs in the channel"""
         try:
+            # Ensure channel history is loaded
+            await self._load_channel_history(channel_id)
+
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
