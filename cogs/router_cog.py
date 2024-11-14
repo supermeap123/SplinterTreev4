@@ -96,68 +96,12 @@ class RouterCog(BaseCog):
         await self.bot.process_commands(message)
 
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a fixed response for testing purposes"""
         try:
-            # Format system prompt
-            formatted_prompt = self.format_prompt(message)
-            messages = [{"role": "system", "content": formatted_prompt}]
-
-            # Get last 50 messages from database, excluding current message
-            channel_id = str(message.channel.id)
-            history_messages = await self.context_cog.get_context_messages(
-                channel_id, 
-                limit=50,
-                exclude_message_id=str(message.id)
-            )
-            
-            # Format history messages with proper roles
-            for msg in history_messages:
-                role = "assistant" if msg['is_assistant'] else "user"
-                content = msg['content']
-                
-                # Handle system summaries
-                if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
-                    role = "system"
-                    content = content[9:].strip()  # Remove [SUMMARY] prefix
-                
-                messages.append({
-                    "role": role,
-                    "content": content
-                })
-
-            # Add the current message
-            messages.append({
-                "role": "user",
-                "content": message.content
-            })
-
-            logging.debug(f"[Router] Sending {len(messages)} messages to API")
-            logging.debug(f"[Router] Formatted prompt: {formatted_prompt}")
-
-            # Get temperature for this agent
-            temperature = self.get_temperature()
-            logging.debug(f"[Router] Using temperature: {temperature}")
-
-            # Get user_id and guild_id
-            user_id = str(message.author.id)
-            guild_id = str(message.guild.id) if message.guild else None
-
-            # Call API and return the response
-            response_content = await self.api_client.call_openpipe(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=False,  # Changed to False to get complete response
-                provider="openpipe",
-                user_id=user_id,
-                guild_id=guild_id,
-                prompt_file="router"
-            )
-
-            return response_content
-
+            # Return a fixed response to verify activation works
+            return "Test response"
         except Exception as e:
-            logging.error(f"Error processing message for Router: {e}")
+            logging.error(f"Error generating test response for Router: {e}")
             return None
 
     async def cog_check(self, ctx):
