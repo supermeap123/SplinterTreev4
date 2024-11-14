@@ -126,10 +126,9 @@ class HelpCog(commands.Cog, name="Help"):
             vision_models, models = self.get_all_models()
             model_list = self.format_model_list(vision_models, models)
 
-            # Add special features and tips
             help_message = f"""{model_list}
 **📝 Special Features:**
-• **Multi-Model Support** - Access a variety of AI models through OpenRouter and OpenPipe
+• **Multi-Model Support** - Access to various AI models through OpenRouter and OpenPipe
 • **Streaming Responses** - Real-time response streaming for natural conversation flow
 • **Shared Context Database** - Models share conversation history for better context
 • **Universal Image Processing** - Automatic image description and analysis for all models
@@ -192,7 +191,6 @@ When setting custom system prompts, you can use these variables:
 • {{TZ}} - Local timezone (PST)
 • {{SERVER_NAME}} - Current Discord server name
 • {{CHANNEL_NAME}} - Current channel name
-
 """
 
             # Send the help message in chunks to avoid exceeding Discord's message length limit
@@ -236,101 +234,6 @@ When setting custom system prompts, you can use these variables:
         except Exception as e:
             logging.error(f"[Help] Error sending agent list: {str(e)}", exc_info=True)
             await ctx.send("An error occurred while fetching the agent list. Please try again later.")
-
-    @commands.command(name='st_setcontext')
-    @commands.has_permissions(manage_messages=True)
-    async def st_set_context(self, ctx, size: int):
-        """Set the number of previous messages to include in context"""
-        try:
-            # Validate size
-            if size < 1 or size > MAX_CONTEXT_WINDOW:
-                await ctx.reply(f"❌ Context size must be between 1 and {MAX_CONTEXT_WINDOW}")
-                return
-
-            # Update context window for this channel
-            channel_id = str(ctx.channel.id)
-            CONTEXT_WINDOWS[channel_id] = size
-
-            # Update database
-            try:
-                with sqlite3.connect('databases/interaction_logs.db') as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                    INSERT OR REPLACE INTO context_windows 
-                    (channel_id, window_size, last_modified) 
-                    VALUES (?, ?, ?)
-                    ''', (channel_id, size, datetime.now().isoformat()))
-                    conn.commit()
-            except Exception as e:
-                logging.warning(f"Could not update context_windows table: {str(e)}")
-
-            # Update config.py
-            try:
-                with open('config/config.py', 'r') as f:
-                    config_content = f.read()
-                
-                # Update or add the CONTEXT_WINDOWS dictionary
-                import re
-                config_content = re.sub(
-                    r'CONTEXT_WINDOWS\s*=\s*{[^}]*}', 
-                    f'CONTEXT_WINDOWS = {json.dumps(CONTEXT_WINDOWS)}', 
-                    config_content
-                )
-                
-                with open('config/config.py', 'w') as f:
-                    f.write(config_content)
-            except Exception as e:
-                logging.warning(f"Could not update config.py: {str(e)}")
-
-            await ctx.reply(f"✅ Context window set to {size} messages for this channel")
-        except Exception as e:
-            logging.error(f"Failed to set context: {str(e)}")
-            await ctx.reply("❌ Failed to set context window")
-
-    @commands.command(name='st_resetcontext')
-    @commands.has_permissions(manage_messages=True)
-    async def st_reset_context(self, ctx):
-        """Reset context window to default size"""
-        try:
-            channel_id = str(ctx.channel.id)
-            
-            # Remove channel-specific context setting
-            if channel_id in CONTEXT_WINDOWS:
-                del CONTEXT_WINDOWS[channel_id]
-
-            # Update database
-            try:
-                with sqlite3.connect('databases/interaction_logs.db') as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                    DELETE FROM context_windows WHERE channel_id = ?
-                    ''', (channel_id,))
-                    conn.commit()
-            except Exception as e:
-                logging.warning(f"Could not update context_windows table: {str(e)}")
-
-            # Update config.py
-            try:
-                with open('config/config.py', 'r') as f:
-                    config_content = f.read()
-                
-                # Update or add the CONTEXT_WINDOWS dictionary
-                import re
-                config_content = re.sub(
-                    r'CONTEXT_WINDOWS\s*=\s*{[^}]*}', 
-                    f'CONTEXT_WINDOWS = {json.dumps(CONTEXT_WINDOWS)}', 
-                    config_content
-                )
-                
-                with open('config/config.py', 'w') as f:
-                    f.write(config_content)
-            except Exception as e:
-                logging.warning(f"Could not update config.py: {str(e)}")
-
-            await ctx.reply(f"🔄 Context window reset to default ({DEFAULT_CONTEXT_WINDOW} messages)")
-        except Exception as e:
-            logging.error(f"Failed to reset context: {str(e)}")
-            await ctx.reply("❌ Failed to reset context window")
 
     @commands.command(name='hook')
     async def hook_command(self, ctx, *, content: str = None):
