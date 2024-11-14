@@ -36,7 +36,6 @@ class NoromaidCog(BaseCog):
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
-
     async def generate_response(self, message):
         """Generate a response using openrouter"""
         try:

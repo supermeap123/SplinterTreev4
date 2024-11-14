@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class ManagementCog(BaseCog):
+class FreeRouterCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Management",
-            nickname="Management",
-            trigger_words=[],
-            model="meta-llama/llama-3.1-405b-instruct",
-            provider="openrouter",
-            prompt_file="None",
+            name="FreeRouter",
+            nickname="FreeRouter",
+            trigger_words=['freerouter', 'router', 'route'],
+            model="openpipe:FreeRouter-v2-235",
+            provider="openpipe",
+            prompt_file="freerouter_prompts",
             supports_vision=False
         )
-        logging.debug(f"[Management] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Management] Using provider: {self.provider}")
-        logging.debug(f"[Management] Vision support: {self.supports_vision}")
+        logging.debug(f"[FreeRouter] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[FreeRouter] Using provider: {self.provider}")
+        logging.debug(f"[FreeRouter] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Management] Failed to load temperatures.json: {e}")
+            logging.error(f"[FreeRouter] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Management"
+        return "FreeRouter"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -72,12 +72,12 @@ class ManagementCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Management] Sending {len(messages)} messages to API")
-            logging.debug(f"[Management] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[FreeRouter] Sending {len(messages)} messages to API")
+            logging.debug(f"[FreeRouter] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Management] Using temperature: {temperature}")
+            logging.debug(f"[FreeRouter] Using temperature: {temperature}")
 
             # Get user_id and guild_id
             user_id = str(message.author.id)
@@ -89,23 +89,23 @@ class ManagementCog(BaseCog):
                 model=self.model,
                 temperature=temperature,
                 stream=True,
-                provider="openrouter",
+                provider="openpipe",
                 user_id=user_id,
                 guild_id=guild_id,
-                prompt_file="None"
+                prompt_file="freerouter_prompts"
             )
 
             return response_stream
 
         except Exception as e:
-            logging.error(f"Error processing message for Management: {e}")
+            logging.error(f"Error processing message for FreeRouter: {e}")
             return None
 async def setup(bot):
     try:
-        cog = ManagementCog(bot)
+        cog = FreeRouterCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Management] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[FreeRouter] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Management] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[FreeRouter] Failed to register cog: {e}", exc_info=True)
         raise

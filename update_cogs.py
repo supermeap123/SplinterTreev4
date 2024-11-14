@@ -43,8 +43,7 @@ class {class_name}(BaseCog):
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
-        return self.temperatures.get(self.name.lower(), 0.7)
-'''
+        return self.temperatures.get(self.name.lower(), 0.7)'''
 
 # Template for generate_response (same for all models now)
 RESPONSE_TEMPLATE = '''
@@ -342,6 +341,54 @@ COGS_CONFIG = {
         'supports_vision': 'False',
         'log_name': 'Sorcerer',
         'qualified_name': 'Sorcerer'
+    },
+    'inferor': {
+        'class_name': 'InferorCog',
+        'name': 'Inferor',
+        'nickname': 'Inferor',
+        'trigger_words': "['inferor']",
+        'model': 'infermatic/mn-inferor-12b',
+        'provider': 'openrouter',
+        'prompt_file': 'inferor_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Inferor',
+        'qualified_name': 'Inferor'
+    },
+    'goliath': {
+        'class_name': 'GoliathCog',
+        'name': 'Goliath',
+        'nickname': 'Goliath',
+        'trigger_words': "['120b', 'goliath']",
+        'model': 'alpindale/goliath-120b',
+        'provider': 'openrouter',
+        'prompt_file': 'goliath_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Goliath',
+        'qualified_name': 'Goliath'
+    },
+    'mixtral': {
+        'class_name': 'MixtralCog',
+        'name': 'Mixtral',
+        'nickname': 'Mixtral',
+        'trigger_words': "['mixtral']",
+        'model': 'mistralai/pixtral-12b',
+        'provider': 'openrouter',
+        'prompt_file': 'mixtral_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Mixtral',
+        'qualified_name': 'Mixtral'
+    },
+    'sonar': {
+        'class_name': 'SonarCog',
+        'name': 'Sonar',
+        'nickname': 'Sonar',
+        'trigger_words': "['sonar']",
+        'model': 'perplexity/llama-3.1-sonar-huge-128k-online',
+        'provider': 'openrouter',
+        'prompt_file': 'sonar_prompts',
+        'supports_vision': 'False',
+        'log_name': 'Sonar',
+        'qualified_name': 'Sonar'
     }
 }
 

@@ -7,5 +7,9 @@
     "Gemini": 0.6,
     "Gemini-Pro": 0.7,
     "Liquid": 0.7,
-    "MOA": 0.8
+    "MOA": 0.8,
+    "Inferor": 0.7,
+    "Goliath": 0.8,
+    "Mixtral": 0.7,
+    "Sonar": 0.7
 }

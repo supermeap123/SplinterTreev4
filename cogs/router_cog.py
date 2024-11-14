@@ -5,17 +5,14 @@ from .base_cog import BaseCog
 import json
 
 class RouterCog(BaseCog):
-    # Dictionary to track activation status per channel
-    active_channels = {}
-
     def __init__(self, bot):
         super().__init__(
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=[],  # Match all messages
-            model="mistralai/ministral-3b",
-            provider="openrouter",
+            trigger_words=[],
+            model="openpipe:FreeRouter-v2-235",
+            provider="openpipe",
             prompt_file="router",
             supports_vision=False
         )
@@ -39,59 +36,6 @@ class RouterCog(BaseCog):
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
-
-    def activate_channel(self, channel_id: str):
-        """Activate router for a channel"""
-        RouterCog.active_channels[channel_id] = True
-        logging.info(f"[Router] Activated for channel {channel_id}")
-
-    def deactivate_channel(self, channel_id: str):
-        """Deactivate router for a channel"""
-        if channel_id in RouterCog.active_channels:
-            del RouterCog.active_channels[channel_id]
-            logging.info(f"[Router] Deactivated for channel {channel_id}")
-
-    async def handle_message(self, message, full_content=None):
-        """Handle incoming messages for routing"""
-        try:
-            # Skip if message is from this bot
-            if message.author == self.bot.user:
-                return
-
-            # Skip if message is a command
-            if message.content.startswith('!'):
-                return
-
-            # Check if channel is active or is a DM
-            channel_id = str(message.channel.id)
-            if not isinstance(message.channel, discord.DMChannel) and channel_id not in RouterCog.active_channels:
-                return
-
-            # Use full_content if provided, otherwise use message content
-            content = full_content or message.content
-
-            # Generate response stream
-            response_stream = await self.generate_response(message)
-
-            if response_stream:
-                # Send response as a stream
-                response_message = await message.reply(f"[Router] Processing...")
-                full_response = ""
-                async for chunk in response_stream:
-                    if chunk:
-                        full_response += chunk
-                        # Update message with current response
-                        await response_message.edit(content=f"[Router] {full_response}")
-
-                # Final edit to remove processing indicator
-                await response_message.edit(content=f"[Router] {full_response}")
-            else:
-                await message.reply("[Router] Unable to generate a response.")
-
-        except Exception as e:
-            logging.error(f"[Router] Error in handle_message: {e}")
-            await message.reply(f"[Router] An error occurred: {str(e)}")
-
     async def generate_response(self, message):
         """Generate a response using openrouter"""
         try:
@@ -102,21 +46,21 @@ class RouterCog(BaseCog):
             # Get last 50 messages from database, excluding current message
             channel_id = str(message.channel.id)
             history_messages = await self.context_cog.get_context_messages(
-                channel_id,
+                channel_id, 
                 limit=50,
                 exclude_message_id=str(message.id)
             )
-
+            
             # Format history messages with proper roles
             for msg in history_messages:
                 role = "assistant" if msg['is_assistant'] else "user"
                 content = msg['content']
-
+                
                 # Handle system summaries
                 if msg['user_id'] == 'SYSTEM' and content.startswith('[SUMMARY]'):
                     role = "system"
                     content = content[9:].strip()  # Remove [SUMMARY] prefix
-
+                
                 messages.append({
                     "role": role,
                     "content": content
@@ -156,28 +100,6 @@ class RouterCog(BaseCog):
         except Exception as e:
             logging.error(f"Error processing message for Router: {e}")
             return None
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Listen for messages and route them"""
-        # Skip if message is from this bot
-        if message.author == self.bot.user:
-            return
-
-        # Skip if message is a command
-        if message.content.startswith('!'):
-            return
-
-        # Always handle DMs
-        if isinstance(message.channel, discord.DMChannel):
-            await self.handle_message(message)
-            return
-
-        # Check if channel is activated
-        channel_id = str(message.channel.id)
-        if channel_id in RouterCog.active_channels:
-            await self.handle_message(message)
-
 async def setup(bot):
     try:
         cog = RouterCog(bot)
