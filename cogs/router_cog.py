@@ -66,6 +66,7 @@ class RouterCog(BaseCog):
 
         # Create case-insensitive lookup for model names
         self.model_lookup = {k.lower(): k for k in self.model_mapping.keys()}
+        logging.debug(f"[Router] Model lookup table: {self.model_lookup}")
 
     @property
     def qualified_name(self):
@@ -143,7 +144,7 @@ class RouterCog(BaseCog):
         
         # Log the normalization process
         logging.debug(f"[Router] Normalizing model name: '{raw_model_name}' -> '{cleaned_name}'")
-        logging.debug(f"[Router] Available models: {list(self.model_lookup.keys())}")
+        logging.debug(f"[Router] Looking up in available models: {list(self.model_lookup.keys())}")
         
         # Look up the canonical model name
         canonical_name = self.model_lookup.get(cleaned_name)
@@ -152,6 +153,17 @@ class RouterCog(BaseCog):
             logging.info(f"[Router] Normalized '{raw_model_name}' to '{canonical_name}'")
             return canonical_name
         
+        # If not found, try some common variations
+        variations = {
+            'ministral': 'Ministral',
+            'ministeral': 'Ministral',
+            'mistral': 'Ministral'
+        }
+        if cleaned_name in variations:
+            canonical_name = variations[cleaned_name]
+            logging.info(f"[Router] Normalized variation '{raw_model_name}' to '{canonical_name}'")
+            return canonical_name
+            
         logging.warning(f"[Router] Could not normalize model name '{raw_model_name}', falling back to Liquid")
         return 'Liquid'
 
