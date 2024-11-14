@@ -31,11 +31,66 @@ def mock_message():
 def test_cog_initialization(cog):
     assert cog.name == "Router"
     assert cog.nickname == "Router"
-    assert cog.model == "mistralai/ministral-3b"  # Updated to match actual model
+    assert cog.model == "mistralai/ministral-3b"
     assert cog.provider == "openrouter"
     assert cog.supports_vision == False
     assert isinstance(cog.model_mapping, dict)
     assert len(cog.model_mapping) > 0
+    assert isinstance(cog.bypass_keywords, list)
+    assert len(cog.bypass_keywords) > 0
+    assert isinstance(cog.model_lookup, dict)
+    assert len(cog.model_lookup) > 0
+
+def test_has_bypass_keywords(cog):
+    # Test explicit model mentions
+    assert cog.has_bypass_keywords("use gemini please")
+    assert cog.has_bypass_keywords("switch to mixtral")
+    assert cog.has_bypass_keywords("try with claude3haiku")
+    
+    # Test model names with punctuation
+    assert cog.has_bypass_keywords("gemini: help me")
+    assert cog.has_bypass_keywords("mixtral, can you help?")
+    
+    # Test standalone model names
+    assert cog.has_bypass_keywords("gemini")
+    assert cog.has_bypass_keywords("mixtral")
+    
+    # Test cases that should not bypass
+    assert not cog.has_bypass_keywords("Tell me about artificial intelligence")
+    assert not cog.has_bypass_keywords("What's the weather like?")
+
+def test_normalize_model_name(cog):
+    # Test exact matches
+    assert cog.normalize_model_name("Mixtral") == "Mixtral"
+    assert cog.normalize_model_name("Gemini") == "Gemini"
+    
+    # Test case variations
+    assert cog.normalize_model_name("mixtral") == "Mixtral"
+    assert cog.normalize_model_name("MIXTRAL") == "Mixtral"
+    
+    # Test common variations
+    assert cog.normalize_model_name("ministral") == "Ministral"
+    assert cog.normalize_model_name("ministeral") == "Ministral"
+    assert cog.normalize_model_name("mistral") == "Ministral"
+    
+    # Test unknown models default to Liquid
+    assert cog.normalize_model_name("unknown_model") == "Liquid"
+    assert cog.normalize_model_name("") == "Liquid"
+
+def test_check_routing_loop(cog):
+    channel_id = 123
+    
+    # First use should not be a loop
+    assert not cog.check_routing_loop(channel_id, "Mixtral")
+    
+    # Second consecutive use should not be a loop
+    assert not cog.check_routing_loop(channel_id, "Mixtral")
+    
+    # Third consecutive use should be a loop
+    assert cog.check_routing_loop(channel_id, "Mixtral")
+    
+    # Different model should reset the counter
+    assert not cog.check_routing_loop(channel_id, "Gemini")
 
 def test_has_image_attachments(cog, mock_message):
     # Test with no attachments
@@ -71,6 +126,15 @@ def test_should_handle_message(cog, mock_message):
     mock_message.channel.id = 456
     assert not cog.should_handle_message(mock_message)
 
+    # Test bot message (should not handle)
+    mock_message.author.bot = True
+    assert not cog.should_handle_message(mock_message)
+
+    # Test bypass keywords
+    mock_message.author.bot = False
+    mock_message.content = "use gemini please"
+    assert not cog.should_handle_message(mock_message)
+
 @pytest.mark.asyncio
 async def test_determine_route_vision(cog, mock_message):
     # Mock OpenRouter API response
@@ -104,38 +168,38 @@ async def test_determine_route_technical(cog, mock_message):
     # Test complex technical query
     mock_message.content = "```python\ndef complex_function():\n    pass\n```\nCan you help fix this?"
     cog.api_client.call_openrouter.return_value = {
-        'choices': [{'message': {'content': 'Goliath'}}]
-    }
-    result = await cog.determine_route(mock_message)
-    assert result == 'Goliath'
-    
-    # Test error query
-    mock_message.content = "I'm getting this error in my code"
-    cog.api_client.call_openrouter.return_value = {
         'choices': [{'message': {'content': 'Nemotron'}}]
     }
     result = await cog.determine_route(mock_message)
     assert result == 'Nemotron'
-
-@pytest.mark.asyncio
-async def test_determine_route_creative(cog, mock_message):
-    cog.api_client.call_openrouter = AsyncMock()
     
-    # Test poem request
-    mock_message.content = "Write a haiku about spring"
+    # Test error query
+    mock_message.content = "I'm getting this error in my code"
     cog.api_client.call_openrouter.return_value = {
         'choices': [{'message': {'content': 'Claude3Haiku'}}]
     }
     result = await cog.determine_route(mock_message)
     assert result == 'Claude3Haiku'
+
+@pytest.mark.asyncio
+async def test_determine_route_creative(cog, mock_message):
+    cog.api_client.call_openrouter = AsyncMock()
     
-    # Test article request
-    mock_message.content = "Generate a blog post about AI"
+    # Test creative writing
+    mock_message.content = "Write a story about space exploration"
     cog.api_client.call_openrouter.return_value = {
         'choices': [{'message': {'content': 'Pixtral'}}]
     }
     result = await cog.determine_route(mock_message)
     assert result == 'Pixtral'
+    
+    # Test current events query
+    mock_message.content = "What's the latest news about AI?"
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Sonar'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Sonar'
 
 @pytest.mark.asyncio
 async def test_on_message(cog, mock_message):
