@@ -3,6 +3,7 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 import json
+from typing import AsyncGenerator
 
 class RouterCog(BaseCog):
     def __init__(self, bot):
@@ -69,7 +70,7 @@ class RouterCog(BaseCog):
         else:
             logging.debug("[Router] No response generated.")
 
-    async def generate_response(self, message) -> discord.AsyncGenerator[str, None]:
+    async def generate_response(self, message) -> AsyncGenerator[str, None]:
         """Generate a fixed response for testing purposes"""
         try:
             # Yield a fixed response to verify activation works

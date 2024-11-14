@@ -14,6 +14,9 @@ import pytz
 import traceback
 from shared.api import api  # Import the API singleton
 
+# Define BOT_DIR as the current working directory
+BOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Configure logging
 logging.basicConfig(
     level=config.LOG_LEVEL, 
