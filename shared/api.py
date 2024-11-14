@@ -14,6 +14,10 @@ from config import OPENPIPE_API_KEY, OPENPIPE_API_URL, HELICONE_API_KEY
 from openai import AsyncOpenAI
 from concurrent.futures import ThreadPoolExecutor
 
+# Create required directories before configuring logging
+os.makedirs('logs', exist_ok=True)
+os.makedirs('databases', exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -55,10 +59,6 @@ class DatabasePool:
 
 class API:
     def __init__(self):
-        # Initialize directories
-        os.makedirs('databases', exist_ok=True)
-        os.makedirs('logs', exist_ok=True)
-        
         # Initialize database pool
         self.db_pool = DatabasePool('databases/interaction_logs.db')
         
@@ -385,7 +385,7 @@ class API:
             error_message = str(e)
             logger.error(f"[API] OpenPipe error: {error_message}")
             raise Exception(f"OpenPipe API error: {error_message}")
-    
+
     async def call_openrouter(self, messages: List[Dict[str, Union[str, List[Dict[str, Any]]]]], model: str, temperature: float = None, stream: bool = False, max_tokens: int = None, user_id: str = None, guild_id: str = None, prompt_file: str = None, model_cog: str = None) -> Union[Dict, AsyncGenerator[str, None]]:
         """Redirect OpenRouter calls to OpenPipe with 'openrouter' provider"""
         return await self.call_openpipe(

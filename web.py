@@ -10,6 +10,11 @@ from contextlib import contextmanager
 import secrets
 from pathlib import Path
 
+# Create required directories before configuring logging
+Path('databases').mkdir(exist_ok=True)
+Path('logs').mkdir(exist_ok=True)
+Path('static').mkdir(exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -35,11 +40,6 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'change_me_in_production')
 DB_PATH = 'databases/interaction_logs.db'
 CONFIG_PATH = 'bot_config.json'
 STATUS_PATH = 'bot_status.txt'
-
-# Ensure required directories exist
-Path('databases').mkdir(exist_ok=True)
-Path('logs').mkdir(exist_ok=True)
-Path('static').mkdir(exist_ok=True)
 
 # Login page template with improved styling and security
 LOGIN_TEMPLATE = """
@@ -636,11 +636,6 @@ def toggle_uptime():
 def main():
     """Main entry point with initialization"""
     try:
-        # Create required directories
-        Path('databases').mkdir(exist_ok=True)
-        Path('logs').mkdir(exist_ok=True)
-        Path('static').mkdir(exist_ok=True)
-        
         # Create a simple tree favicon
         from PIL import Image, ImageDraw
         
