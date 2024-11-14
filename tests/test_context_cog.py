@@ -103,12 +103,12 @@ async def test_load_channel_history(context_cog, mock_channel_history):
 @pytest.mark.asyncio
 async def test_get_context_messages(context_cog, mock_channel_history):
     """Test getting context messages with history loading"""
-    # Mock database query results
+    # Mock database query results with timestamps in chronological order
     mock_cursor = MagicMock()
     mock_cursor.fetchall.return_value = [
-        ("msg1", "user1", "Message 1", 0, None, None, "2024-01-01"),
-        ("msg2", "SYSTEM", "[SUMMARY] Summary", 0, None, None, "2024-01-01"),
-        ("msg3", "user2", "Message 3", 1, "Assistant", "happy", "2024-01-01")
+        ("msg1", "user1", "Message 1", 0, None, None, "2024-01-01T10:00:00"),
+        ("msg2", "SYSTEM", "[SUMMARY] Summary", 0, None, None, "2024-01-01T10:01:00"),
+        ("msg3", "user2", "Message 3", 1, "Assistant", "happy", "2024-01-01T10:02:00")
     ]
     
     # Mock channel history
@@ -123,14 +123,15 @@ async def test_get_context_messages(context_cog, mock_channel_history):
         # Verify channel history was loaded
         assert "789" in context_cog.loaded_channels
         
-        # Verify SQL query was executed
-        mock_cursor.execute.assert_called()
+        # Verify SQL query was executed with ASC order
+        sql_call = mock_cursor.execute.call_args[0][0]
+        assert "ORDER BY m.timestamp ASC" in sql_call
         
-        # Verify returned messages
+        # Verify messages are in chronological order
         assert len(messages) == 3
-        assert messages[0]['id'] == 'msg1'
-        assert messages[1]['content'] == '[SUMMARY] Summary'
-        assert messages[2]['is_assistant'] == True
+        assert messages[0]['id'] == 'msg1'  # First message chronologically
+        assert messages[1]['content'] == '[SUMMARY] Summary'  # Second message
+        assert messages[2]['is_assistant'] == True  # Last message chronologically
 
 @pytest.mark.asyncio
 async def test_add_message_to_context(context_cog, mock_message):
@@ -172,7 +173,7 @@ async def test_add_message_to_context(context_cog, mock_message):
 @pytest.mark.asyncio
 async def test_on_message_handling(context_cog, mock_message):
     with patch.object(context_cog, 'add_message_to_context', new_callable=AsyncMock) as mock_add:
-        # Test regular message
+        # Test regular user message
         await context_cog.on_message(mock_message)
         mock_add.assert_called_once_with(
             mock_message.id,
@@ -180,7 +181,22 @@ async def test_on_message_handling(context_cog, mock_message):
             str(mock_message.guild.id),
             str(mock_message.author.id),
             mock_message.content,
-            False,
+            False,  # is_assistant=False for user message
+            None,
+            None
+        )
+        
+        # Test bot message
+        mock_message.author.bot = True
+        mock_add.reset_mock()
+        await context_cog.on_message(mock_message)
+        mock_add.assert_called_once_with(
+            mock_message.id,
+            str(mock_message.channel.id),
+            str(mock_message.guild.id),
+            str(mock_message.author.id),
+            mock_message.content,
+            True,  # is_assistant=True for bot message
             None,
             None
         )

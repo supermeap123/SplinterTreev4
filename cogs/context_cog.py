@@ -106,7 +106,7 @@ class ContextCog(commands.Cog):
                 AND (? IS NULL OR m.discord_message_id != ?)
                 AND m.content IS NOT NULL
                 AND m.content != ''
-                ORDER BY m.timestamp DESC
+                ORDER BY m.timestamp ASC
                 LIMIT ?
                 '''
                 
@@ -151,8 +151,6 @@ class ContextCog(commands.Cog):
                         'timestamp': row[6]
                     })
                 
-                # Reverse to maintain chronological order
-                messages.reverse()
                 return messages
                 
         except Exception as e:
@@ -261,7 +259,7 @@ class ContextCog(commands.Cog):
                 guild_id,
                 str(message.author.id),
                 message.content,  # Original content - username prefix added in add_message_to_context
-                False,  # is_assistant
+                message.author.bot,  # is_assistant - now properly detecting bot messages
                 None,   # persona_name
                 None    # emotion
             )
