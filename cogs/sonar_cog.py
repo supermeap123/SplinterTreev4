@@ -11,7 +11,7 @@ class SonarCog(BaseCog):
             name="Sonar",
             nickname="Sonar",
             trigger_words=['sonar'],
-            model="perplexity/llama-3.1-sonar-huge-128k-online",
+            model="perplexity/llama-3.1-sonar-large-128k-online",
             provider="openrouter",
             prompt_file="sonar_prompts",
             supports_vision=False
