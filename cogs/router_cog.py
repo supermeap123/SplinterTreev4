@@ -58,16 +58,34 @@ class RouterCog(BaseCog):
         await ctx.send("RouterCog has been deactivated in this channel.")
         logging.info(f"[Router] Deactivated in channel {channel_id}")
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Listener for incoming messages to generate responses when activated."""
+        # Prevent the bot from responding to its own messages
+        if message.author == self.bot.user:
+            return
+
+        # Check if the channel is active
+        if message.channel.id in self.active_channels:
+            response = await self.generate_response(message)
+            if response:
+                # Assuming response_stream is awaitable and returns the response content
+                await message.channel.send(response)
+        else:
+            # Additionally, respond to DMs, mentions, and role mentions
+            response = await self.generate_response(message)
+            if response:
+                await message.channel.send(response)
+
     async def generate_response(self, message):
         """Generate a response using openrouter"""
         try:
             # Determine if the bot should respond to this message
             is_dm = isinstance(message.channel, discord.DMChannel)
-            is_active_channel = message.channel.id in self.active_channels
             is_mentioned = self.bot.user in message.mentions
             has_role_mention = any(role.mention in message.content for role in message.role_mentions)
 
-            if not (is_dm or is_active_channel or is_mentioned or has_role_mention):
+            if not (is_dm or message.channel.id in self.active_channels or is_mentioned or has_role_mention):
                 return None  # Do not respond
 
             # Format system prompt
@@ -114,19 +132,19 @@ class RouterCog(BaseCog):
             user_id = str(message.author.id)
             guild_id = str(message.guild.id) if message.guild else None
 
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(
+            # Call API and return the response
+            response_content = await self.api_client.call_openpipe(
                 messages=messages,
                 model=self.model,
                 temperature=temperature,
-                stream=True,
+                stream=False,  # Changed to False to get complete response
                 provider="openpipe",
                 user_id=user_id,
                 guild_id=guild_id,
                 prompt_file="router"
             )
 
-            return response_stream
+            return response_content
 
         except Exception as e:
             logging.error(f"Error processing message for Router: {e}")
