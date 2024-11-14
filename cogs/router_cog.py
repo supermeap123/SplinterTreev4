@@ -12,7 +12,7 @@ class RouterCog(BaseCog):
             name="Router",
             nickname="Router",
             trigger_words=['!activate'],  # Only trigger on !activate command
-            model="mistralai/ministral-3b",
+            model="mistralai/mistral-3b",
             provider="openrouter",
             prompt_file="router",
             supports_vision=False
@@ -55,10 +55,14 @@ class RouterCog(BaseCog):
             'OpenChat': 'OpenChatCog',
             'Dolphin': 'DolphinCog',
             'Gemma': 'GemmaCog',
-            'Ministral': 'MinistralCog',
+            'Ministral': 'MinistralCog',  # Support both spellings
+            'Ministeral': 'MinistralCog',  # Support both spellings
             'Liquid': 'LiquidCog',
             'Hermes': 'HermesCog'
         }
+
+        # Create case-insensitive lookup for model names
+        self.model_lookup = {k.lower(): k for k in self.model_mapping.keys()}
 
     @property
     def qualified_name(self):
@@ -123,6 +127,25 @@ class RouterCog(BaseCog):
         
         self.last_model_used[channel_id] = model_name
         return False
+
+    def normalize_model_name(self, raw_model_name: str) -> str:
+        """Normalize model name to handle case differences and variations"""
+        # Clean up the raw model name
+        cleaned_name = raw_model_name.strip().lower()
+        
+        # Log the normalization process
+        logging.debug(f"[Router] Normalizing model name: '{raw_model_name}' -> '{cleaned_name}'")
+        logging.debug(f"[Router] Available models: {list(self.model_lookup.keys())}")
+        
+        # Look up the canonical model name
+        canonical_name = self.model_lookup.get(cleaned_name)
+        
+        if canonical_name:
+            logging.info(f"[Router] Normalized '{raw_model_name}' to '{canonical_name}'")
+            return canonical_name
+        
+        logging.warning(f"[Router] Could not normalize model name '{raw_model_name}', falling back to Liquid")
+        return 'Liquid'
 
     async def determine_route(self, message: discord.Message) -> str:
         """Use OpenRouter inference to determine which model to route to"""
@@ -257,21 +280,16 @@ Return model:"""
                 raw_model_name = response['choices'][0]['message']['content'].strip()
                 logging.debug(f"[Router] Raw model name from API: {raw_model_name}")
                 
-                # Clean up response to match exact model names
-                model_name = next((name for name in self.model_mapping.keys() 
-                                 if name.lower() == raw_model_name.lower()), None)
+                # Normalize the model name
+                model_name = self.normalize_model_name(raw_model_name)
                 
-                if model_name:
-                    # Check for routing loops
-                    if self.check_routing_loop(message.channel.id, model_name):
-                        logging.warning(f"[Router] Breaking routing loop, falling back to Liquid")
-                        return 'Liquid'
-                    
-                    logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
-                    return model_name
-                else:
-                    logging.warning(f"[Router] API returned invalid model name: {raw_model_name}")
+                # Check for routing loops
+                if self.check_routing_loop(message.channel.id, model_name):
+                    logging.warning(f"[Router] Breaking routing loop, falling back to Liquid")
                     return 'Liquid'
+                
+                logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
+                return model_name
 
             logging.error("[Router] Invalid response format from OpenRouter")
             logging.debug(f"[Router] Full API response: {response}")
