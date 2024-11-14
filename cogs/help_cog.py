@@ -11,9 +11,13 @@ import asyncio
 from config.webhook_config import load_webhooks, MAX_RETRIES, WEBHOOK_TIMEOUT, DEBUG_LOGGING
 from config import CONTEXT_WINDOWS, DEFAULT_CONTEXT_WINDOW, MAX_CONTEXT_WINDOW
 
-class HelpCog(commands.Cog):
+class HelpCog(commands.Cog, name="Help"):
+    """Help commands and channel management"""
+    
     def __init__(self, bot):
         self.bot = bot
+        # Remove default help command
+        self.bot.remove_command('help')
         self.context_cog = bot.get_cog('ContextCog')
         self.webhooks = load_webhooks()
         self.session = aiohttp.ClientSession()
@@ -176,7 +180,7 @@ class HelpCog(commands.Cog):
 • `!router_deactivate` - Stop Router from responding to all messages in the current channel (Admin only)
 • `!hook <message>` - Send an LLM response through configured Discord webhooks
 • `!channel_activate` - Activate the bot to respond to every message in the current channel (Admin only)
-• `!deactivate` - Deactivate the bot's response to every message in the current channel (Admin only)
+• `!channel_deactivate` - Deactivate the bot's response to every message in the current channel (Admin only)
 • `!list_activated` - List all activated channels in the current server (Admin only)
 
 **System Prompt Variables:**
@@ -283,17 +287,6 @@ When setting custom system prompts, you can use these variables:
             logging.error(f"Failed to set context: {str(e)}")
             await ctx.reply("❌ Failed to set context window")
 
-    @commands.command(name='st_getcontext')
-    async def st_get_context(self, ctx):
-        """View current context window size"""
-        try:
-            channel_id = str(ctx.channel.id)
-            context_size = CONTEXT_WINDOWS.get(channel_id, DEFAULT_CONTEXT_WINDOW)
-            await ctx.reply(f"📋 Current context window: {context_size} messages")
-        except Exception as e:
-            logging.error(f"Failed to get context: {str(e)}")
-            await ctx.reply("❌ Failed to retrieve context window size")
-
     @commands.command(name='st_resetcontext')
     @commands.has_permissions(manage_messages=True)
     async def st_reset_context(self, ctx):
@@ -338,37 +331,6 @@ When setting custom system prompts, you can use these variables:
         except Exception as e:
             logging.error(f"Failed to reset context: {str(e)}")
             await ctx.reply("❌ Failed to reset context window")
-
-    @commands.command(name='st_clearcontext')
-    @commands.has_permissions(manage_messages=True)
-    async def st_clear_context(self, ctx, hours: Optional[int] = None):
-        """Clear conversation history, optionally specify hours"""
-        try:
-            channel_id = str(ctx.channel.id)
-            
-            with sqlite3.connect('databases/interaction_logs.db') as conn:
-                cursor = conn.cursor()
-                
-                if hours:
-                    # Delete messages older than specified hours
-                    cutoff_time = (datetime.now() - timedelta(hours=hours)).isoformat()
-                    cursor.execute("""
-                        DELETE FROM messages
-                        WHERE channel_id = ? AND timestamp < ?
-                    """, (channel_id, cutoff_time))
-                else:
-                    # Delete all messages for this channel
-                    cursor.execute("""
-                        DELETE FROM messages
-                        WHERE channel_id = ?
-                    """, (channel_id,))
-                
-                conn.commit()
-
-            await ctx.reply(f"🗑️ Cleared conversation history{f' older than {hours} hours' if hours else ''}")
-        except Exception as e:
-            logging.error(f"Failed to clear context: {str(e)}")
-            await ctx.reply("❌ Failed to clear conversation history")
 
     @commands.command(name='hook')
     async def hook_command(self, ctx, *, content: str = None):
@@ -495,9 +457,9 @@ When setting custom system prompts, you can use these variables:
             logging.error(f"[Help] Error activating channel: {e}")
             await ctx.reply("❌ Failed to activate channel. Please try again.")
 
-    @commands.command(name="deactivate", aliases=["st_deactivate"])
+    @commands.command(name="channel_deactivate", aliases=["st_deactivate"])
     @commands.has_permissions(manage_messages=True)
-    async def deactivate_channel(self, ctx):
+    async def channel_deactivate(self, ctx):
         """Deactivate the bot's response to every message in the current channel"""
         try:
             guild_id = str(ctx.guild.id) if ctx.guild else "dm"
@@ -675,9 +637,11 @@ When setting custom system prompts, you can use these variables:
 
 async def setup(bot):
     try:
+        # Remove default help command before adding our custom help command
+        bot.remove_command('help')
         cog = HelpCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Help] Registered cog with qualified_name: HelpCog")
+        logging.info(f"[Help] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
         logging.error(f"[Help] Failed to register cog: {e}", exc_info=True)

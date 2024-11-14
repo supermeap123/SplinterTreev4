@@ -3,11 +3,18 @@ from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
 from discord import Intents
 from discord.ext import commands
 from bot import SplinterTreeBot, setup_cogs, update_status
+from cogs.help_cog import HelpCog
 from datetime import datetime
+import os
 
 class MockState:
     def __init__(self):
         self._command_tree = None
+
+@pytest.fixture(scope='module', autouse=True)
+def set_openai_api_key():
+    os.environ['OPENAI_API_KEY'] = 'your_openai_api_key_here'
+    print(f"OPENAI_API_KEY: {os.environ.get('OPENAI_API_KEY')}")
 
 @pytest.mark.asyncio
 async def test_cog_loading():
@@ -85,3 +92,31 @@ async def test_on_command_error():
 
         await bot.on_command_error(ctx, error)
         ctx.reply.assert_not_called()  # CommandNotFound should not trigger a reply
+
+@pytest.mark.asyncio
+async def test_help_command():
+    # Create bot instance with help_command set to None to remove default help command
+    bot = SplinterTreeBot(command_prefix='!', intents=Intents.default(), help_command=None)
+    
+    # Create a properly mocked context with async methods
+    ctx = AsyncMock()
+    ctx.bot = bot
+    ctx.author.name = "test_user"
+    ctx.channel.history = AsyncMock(return_value=[])
+    ctx.send = AsyncMock()
+    
+    # Mock the get_all_models method
+    with patch('cogs.help_cog.HelpCog.get_all_models', return_value=([], [])):
+        # Create and add the help cog directly
+        help_cog = HelpCog(bot)
+        await bot.add_cog(help_cog)
+        
+        # Get the help command
+        help_command = bot.get_command('help')
+        assert help_command is not None, "Help command not found"
+        
+        # Execute the help command
+        await help_command(ctx)
+        
+        # Verify the help message was sent
+        assert ctx.send.called
