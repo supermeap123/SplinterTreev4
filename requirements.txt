@@ -11,3 +11,4 @@ openai>=1.7,<1.53
 openpipe==4.32.0
 Flask==3.0.2
 gunicorn==21.2.0
+pytest

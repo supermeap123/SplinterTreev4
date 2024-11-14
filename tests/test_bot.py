@@ -23,41 +23,40 @@ async def test_cog_loading():
 async def test_status_update():
     mock_game = MagicMock(name='game')
 
-    with patch('bot.bot') as mock_bot, \
+    with patch.object(SplinterTreeBot, 'change_presence', new_callable=AsyncMock) as mock_change_presence, \
          patch('discord.Game', return_value=mock_game), \
-         patch('bot.get_uptime', return_value='0s'), \
-         patch.object(mock_bot, 'change_presence', new_callable=AsyncMock):
+         patch('bot.get_uptime', return_value='0s'):
         
-        # Set up the mock bot
-        mock_bot.get_uptime_enabled.return_value = True
-        mock_bot.current_status = None
-        mock_bot.start_time = datetime.now()
-
-        # Call update_status
-        await update_status()
-
-        # Verify change_presence was called with the correct game activity
-        mock_bot.change_presence.assert_awaited_once_with(activity=mock_game)
+        bot_instance = SplinterTreeBot(command_prefix='!', intents=Intents.default())
+        bot_instance.start_time = datetime.now()
+        bot_instance.current_status = None
+        bot_instance.get_uptime_enabled = MagicMock(return_value=True)
+        
+        # Assign the bot instance to the global 'bot' used in update_status
+        with patch('bot.bot', bot_instance):
+            # Call update_status
+            await update_status()
+        
+            # Verify change_presence was called with the correct game activity
+            mock_change_presence.assert_awaited_once_with(activity=mock_game)
 
 @pytest.mark.asyncio
 async def test_on_message():
     mock_user = MagicMock()
     mock_user.id = 123
-    mock_ctx = AsyncMock()
     mock_state = MockState()
 
-    with patch('discord.ext.commands.Bot.process_commands', new_callable=AsyncMock) as mock_process, \
-         patch('discord.ext.commands.Bot.get_context', new_callable=AsyncMock, return_value=mock_ctx), \
-         patch.object(SplinterTreeBot, '_get_state', return_value=mock_state), \
+    with patch.object(SplinterTreeBot, '_get_state', return_value=mock_state), \
          patch('discord.app_commands.CommandTree'), \
-         patch.object(SplinterTreeBot, 'user', new_callable=PropertyMock) as mock_user_prop:
+         patch.object(SplinterTreeBot, 'user', new_callable=PropertyMock) as mock_user_prop, \
+         patch.object(SplinterTreeBot, 'process_commands', new_callable=AsyncMock) as mock_process_commands:
 
         mock_user_prop.return_value = mock_user
 
         bot = SplinterTreeBot(command_prefix='!', intents=Intents.default())
 
         # Create message mock
-        message = AsyncMock()
+        message = MagicMock()
         message.author = MagicMock()
         message.author.id = 456  # Different from bot.user.id
         message.content = "Test message"
@@ -65,7 +64,7 @@ async def test_on_message():
         message.reference = None
 
         await bot.on_message(message)
-        mock_process.assert_awaited_once_with(message)
+        mock_process_commands.assert_awaited_once_with(message)
 
 @pytest.mark.asyncio
 async def test_on_command_error():
