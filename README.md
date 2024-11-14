@@ -42,7 +42,13 @@ A powerful Discord bot that provides access to multiple AI language models with 
 - **File Processing**: Automatic content extraction from text files.
 - **Dynamic Prompting**: Customizable system prompts per channel/server.
 - **Model Cloning**: Ability to clone existing models with custom prompts and settings.
-- **Router Mode**: Ability to make the Router respond to all messages in a channel.
+- **Intelligent Router Mode**: Advanced message routing system that automatically directs messages to the most appropriate model based on:
+  - Vision content detection and complexity analysis
+  - Technical support requirements and code analysis
+  - Creative writing and content generation needs
+  - Conversation type (analytical, personal, multilingual)
+  - Message complexity and length
+  - Activate with `!activate` in any channel to enable automatic routing
 
 ## 🌐 Web Dashboard
 
