@@ -9,6 +9,8 @@ from functools import wraps
 from contextlib import contextmanager
 import secrets
 from pathlib import Path
+import asyncio
+from bot import SplinterTreeBot, setup_cogs
 
 # Create required directories before configuring logging
 Path('databases').mkdir(exist_ok=True)
@@ -40,6 +42,11 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'change_me_in_production')
 DB_PATH = 'databases/interaction_logs.db'
 CONFIG_PATH = 'bot_config.json'
 STATUS_PATH = 'bot_status.txt'
+
+# Initialize bot
+bot = SplinterTreeBot(command_prefix='!', help_command=None)
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
 
 # Login page template with improved styling and security
 LOGIN_TEMPLATE = """
@@ -598,7 +605,7 @@ def chat_terminal():
                 padding: 20px;
             }
             .chat-container {
-                max-width: 600px;
+                max-width: 800px;
                 margin: 0 auto;
                 background: white;
                 padding: 20px;
@@ -606,26 +613,43 @@ def chat_terminal():
                 box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             }
             .messages {
-                max-height: 400px;
+                max-height: 500px;
                 overflow-y: auto;
                 border: 1px solid #ddd;
                 padding: 10px;
                 margin-bottom: 10px;
+                background: #f8f9fa;
             }
             .message {
-                margin: 5px 0;
+                margin: 10px 0;
+                padding: 10px;
+                border-radius: 5px;
             }
             .user {
-                color: blue;
+                background: #e3f2fd;
+                margin-left: 20%;
+                margin-right: 5px;
             }
             .assistant {
-                color: green;
+                background: #f5f5f5;
+                margin-right: 20%;
+                margin-left: 5px;
+            }
+            .model-name {
+                font-size: 0.8em;
+                color: #666;
+                margin-bottom: 5px;
+            }
+            .input-container {
+                display: flex;
+                gap: 10px;
             }
             input[type="text"] {
-                width: calc(100% - 22px);
+                flex-grow: 1;
                 padding: 10px;
                 border: 1px solid #ddd;
                 border-radius: 4px;
+                font-size: 1rem;
             }
             button {
                 padding: 10px 20px;
@@ -634,39 +658,149 @@ def chat_terminal():
                 border: none;
                 border-radius: 4px;
                 cursor: pointer;
+                min-width: 100px;
             }
             button:hover {
                 background: #2980b9;
+            }
+            button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+            .back-button {
+                display: inline-block;
+                margin-bottom: 20px;
+                padding: 10px 20px;
+                background: #6c757d;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+            }
+            .back-button:hover {
+                background: #5a6268;
             }
         </style>
     </head>
     <body>
         <div class="chat-container">
+            <a href="/" class="back-button">← Back to Dashboard</a>
             <h2>Chat Terminal</h2>
             <div class="messages" id="messages"></div>
-            <input type="text" id="user-input" placeholder="Type your message..." />
-            <button onclick="sendMessage()">Send</button>
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Type your message..." onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" id="send-button">Send</button>
+            </div>
         </div>
         <script>
-            function sendMessage() {
+            let isProcessing = false;
+
+            async function sendMessage() {
                 const input = document.getElementById('user-input');
-                const message = input.value;
-                if (message) {
-                    const messagesDiv = document.getElementById('messages');
-                    messagesDiv.innerHTML += '<div class="message user">User: ' + message + '</div>';
+                const sendButton = document.getElementById('send-button');
+                const message = input.value.trim();
+                
+                if (message && !isProcessing) {
+                    isProcessing = true;
+                    sendButton.disabled = true;
+                    input.disabled = true;
+                    
+                    // Add user message
+                    addMessage('user', message);
                     input.value = '';
                     
-                    // Simulate assistant response
-                    setTimeout(() => {
-                        messagesDiv.innerHTML += '<div class="message assistant">Assistant: ' + message + ' (simulated response)</div>';
-                        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
-                    }, 1000);
+                    try {
+                        const response = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ message })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.error) {
+                            addMessage('assistant', `Error: ${data.error}`, 'System');
+                        } else {
+                            addMessage('assistant', data.response, data.model);
+                        }
+                    } catch (error) {
+                        addMessage('assistant', `Error: ${error.message}`, 'System');
+                    } finally {
+                        isProcessing = false;
+                        sendButton.disabled = false;
+                        input.disabled = false;
+                        input.focus();
+                    }
                 }
             }
+
+            function addMessage(type, content, modelName = null) {
+                const messagesDiv = document.getElementById('messages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                
+                let html = '';
+                if (type === 'assistant' && modelName) {
+                    html += `<div class="model-name">${modelName}</div>`;
+                }
+                html += `<div class="content">${content}</div>`;
+                
+                messageDiv.innerHTML = html;
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            // Focus input on load
+            document.getElementById('user-input').focus();
         </script>
     </body>
     </html>
     """
+
+@app.route('/api/chat', methods=['POST'])
+@login_required
+async def chat():
+    """Handle chat messages"""
+    try:
+        message = request.json.get('message')
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+
+        # Get router cog
+        router_cog = bot.get_cog('Router')
+        if not router_cog:
+            return jsonify({'error': 'Router not available'}), 500
+
+        # Determine which model to use
+        model_name = await router_cog.determine_route(message)
+        
+        # Get the appropriate cog
+        cog_name = router_cog.model_mapping.get(model_name)
+        if not cog_name:
+            return jsonify({'error': f'No cog found for model {model_name}'}), 500
+            
+        cog = bot.get_cog(cog_name)
+        if not cog:
+            return jsonify({'error': f'Cog {cog_name} not found'}), 500
+
+        # Generate response using the cog
+        response_generator = await cog._generate_response(message)
+        if response_generator:
+            response = ''
+            async for chunk in response_generator:
+                response += chunk
+        else:
+            response = 'No response generated'
+
+        return jsonify({
+            'response': response,
+            'model': model_name
+        })
+
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/stats')
 @login_required
@@ -727,6 +861,15 @@ def toggle_uptime():
         logger.error(f"Error toggling uptime: {e}")
         return jsonify({'error': str(e)}), 500
 
+async def init_bot():
+    """Initialize the bot and load cogs"""
+    try:
+        await setup_cogs(bot)
+        logger.info("Bot initialized and cogs loaded")
+    except Exception as e:
+        logger.error(f"Failed to initialize bot: {e}")
+        raise
+
 def main():
     """Main entry point with initialization"""
     try:
@@ -759,6 +902,9 @@ def main():
         if not Path(CONFIG_PATH).exists():
             save_uptime_enabled(True)
             logger.info("Created default config")
+        
+        # Initialize bot and load cogs
+        loop.run_until_complete(init_bot())
         
         # Start the Flask app
         port = int(os.environ.get('PORT', 5000))
