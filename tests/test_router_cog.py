@@ -143,10 +143,6 @@ async def test_on_message(cog, mock_message):
     cog.determine_route = AsyncMock(return_value='Mixtral')
     cog.route_to_cog = AsyncMock()
     mock_message.content = "Test message"
-    mock_ctx = MagicMock()
-    mock_ctx.valid = True
-    cog.bot.get_context = AsyncMock(return_value=mock_ctx)
-    cog.activate = AsyncMock()
     
     # Test bot message (should be ignored)
     mock_message.author.bot = True
@@ -154,13 +150,8 @@ async def test_on_message(cog, mock_message):
     assert not cog.determine_route.called
     assert not cog.route_to_cog.called
     
-    # Test activation command
+    # Test regular message in activated channel
     mock_message.author.bot = False
-    mock_message.content = "!activate"
-    await cog.on_message(mock_message)
-    cog.activate.assert_called_once_with(mock_ctx)
-    
-    # Test message in activated channel
     mock_message.content = "Test message"
     mock_message.channel.id = 123
     cog.active_channels.add(123)
@@ -196,13 +187,18 @@ async def test_activate_deactivate(cog):
     ctx = MagicMock()
     ctx.channel.id = 123
     ctx.send = AsyncMock()
+    ctx.guild = MagicMock()  # Add guild for cog_check
+    
+    # Get the actual command objects
+    activate_command = cog.activate.callback
+    deactivate_command = cog.deactivate.callback
     
     # Test activation
-    await cog.activate(ctx)
+    await activate_command(cog, ctx)
     assert 123 in cog.active_channels
     ctx.send.assert_called_with("RouterCog has been activated in this channel. All messages will now be routed to appropriate models.")
     
     # Test deactivation
-    await cog.deactivate(ctx)
+    await deactivate_command(cog, ctx)
     assert 123 not in cog.active_channels
     ctx.send.assert_called_with("RouterCog has been deactivated in this channel.")
