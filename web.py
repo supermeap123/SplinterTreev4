@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import secrets
 from pathlib import Path
 import asyncio
+import discord
 from bot import SplinterTreeBot, setup_cogs
 
 # Create required directories before configuring logging
@@ -44,7 +45,15 @@ CONFIG_PATH = 'bot_config.json'
 STATUS_PATH = 'bot_status.txt'
 
 # Initialize bot
-bot = SplinterTreeBot(command_prefix='!', help_command=None)
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True
+intents.typing = True
+intents.dm_messages = True
+intents.guilds = True
+intents.members = True
+
+bot = SplinterTreeBot(command_prefix='!', help_command=None, intents=intents)
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
