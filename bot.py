@@ -413,4 +413,4 @@ def get_uptime():
 if __name__ == "__main__":
     logging.debug("Starting bot...")
     load_processed_messages()  # Load processed messages on startup
-    bot.run(TOKEN)
+    bot.run(config.DISCORD_TOKEN)
