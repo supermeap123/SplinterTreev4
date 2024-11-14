@@ -247,15 +247,44 @@ class API:
             if model_cog:
                 extra_headers['X-Model-Cog'] = model_cog
             
-            stream = await self.openpipe_client.chat.completions.create(
-                model=openpipe_model,
-                messages=validated_messages,
-                temperature=temperature if temperature is not None else 0.7,
-                max_tokens=max_tokens if max_tokens is not None else 1000,
-                stream=True,
-                store=True,
-                extra_headers=extra_headers
-            )
+            try:
+                stream = await self.openpipe_client.chat.completions.create(
+                    model=openpipe_model,
+                    messages=validated_messages,
+                    temperature=temperature if temperature is not None else 0.7,
+                    max_tokens=max_tokens if max_tokens is not None else 1000,
+                    stream=True,
+                    store=True,
+                    extra_headers=extra_headers
+                )
+            except Exception as e:
+                error_message = str(e)
+                error_data = {}
+                try:
+                    # Try to parse error message as JSON
+                    if isinstance(error_message, str) and "429 OpenAI API error" in error_message:
+                        # If it's a rate limit error, try without :free suffix
+                        if ":free" in model:
+                            logger.info(f"[API] Rate limit hit, retrying without :free suffix")
+                            model = model.replace(":free", "")
+                            openpipe_model = self._get_prefixed_model(model, provider)
+                            stream = await self.openpipe_client.chat.completions.create(
+                                model=openpipe_model,
+                                messages=validated_messages,
+                                temperature=temperature if temperature is not None else 0.7,
+                                max_tokens=max_tokens if max_tokens is not None else 1000,
+                                stream=True,
+                                store=True,
+                                extra_headers=extra_headers
+                            )
+                        else:
+                            raise
+                    else:
+                        raise
+                except Exception as retry_error:
+                    logger.error(f"[API] Error after retry: {str(retry_error)}")
+                    raise retry_error
+
             requested_at = int(time.time() * 1000)
             
             async for chunk in stream:
@@ -338,14 +367,33 @@ class API:
                     validated_messages = await self._validate_message_roles(messages)
                     
                     requested_at = int(time.time() * 1000)
-                    response = await self.openpipe_client.chat.completions.create(
-                        model=openpipe_model,
-                        messages=validated_messages,
-                        temperature=temperature if temperature is not None else 0.7,
-                        max_tokens=max_tokens if max_tokens is not None else 1000,
-                        store=True,
-                        extra_headers=extra_headers
-                    )
+                    try:
+                        response = await self.openpipe_client.chat.completions.create(
+                            model=openpipe_model,
+                            messages=validated_messages,
+                            temperature=temperature if temperature is not None else 0.7,
+                            max_tokens=max_tokens if max_tokens is not None else 1000,
+                            store=True,
+                            extra_headers=extra_headers
+                        )
+                    except Exception as e:
+                        error_message = str(e)
+                        if "429 OpenAI API error" in error_message and ":free" in model:
+                            # If it's a rate limit error, try without :free suffix
+                            logger.info(f"[API] Rate limit hit, retrying without :free suffix")
+                            model = model.replace(":free", "")
+                            openpipe_model = self._get_prefixed_model(model, provider)
+                            response = await self.openpipe_client.chat.completions.create(
+                                model=openpipe_model,
+                                messages=validated_messages,
+                                temperature=temperature if temperature is not None else 0.7,
+                                max_tokens=max_tokens if max_tokens is not None else 1000,
+                                store=True,
+                                extra_headers=extra_headers
+                            )
+                        else:
+                            raise
+
                     received_at = int(time.time() * 1000)
 
                     result = {
@@ -384,31 +432,8 @@ class API:
 
             except Exception as e:
                 error_message = str(e)
-                if "429 (Too Many Requests)" in error_message and ":free" in openpipe_model:
-                    # Remove :free suffix and retry
-                    logger.info(f"[API] Rate limit hit with free model, retrying without :free suffix")
-                    openpipe_model = openpipe_model.replace(":free", "")
-                    if stream:
-                        return self._stream_openpipe_request(messages, openpipe_model, temperature, max_tokens, provider, user_id, guild_id, prompt_file, model_cog)
-                    else:
-                        validated_messages = await self._validate_message_roles(messages)
-                        response = await self.openpipe_client.chat.completions.create(
-                            model=openpipe_model,
-                            messages=validated_messages,
-                            temperature=temperature if temperature is not None else 0.7,
-                            max_tokens=max_tokens if max_tokens is not None else 1000,
-                            store=True,
-                            extra_headers=extra_headers
-                        )
-                        return {
-                            'choices': [{
-                                'message': {
-                                    'content': response.choices[0].message.content
-                                }
-                            }]
-                        }
-                else:
-                    raise
+                logger.error(f"[API] OpenPipe error: {error_message}")
+                raise
 
         except Exception as e:
             error_message = str(e)
