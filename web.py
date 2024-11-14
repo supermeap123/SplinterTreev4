@@ -769,7 +769,7 @@ def chat_terminal():
 
 @app.route('/api/chat', methods=['POST'])
 @login_required
-async def chat():
+def chat():
     """Handle chat messages"""
     try:
         message = request.json.get('message')
@@ -781,31 +781,36 @@ async def chat():
         if not router_cog:
             return jsonify({'error': 'Router not available'}), 500
 
-        # Determine which model to use
-        model_name = await router_cog.determine_route(message)
-        
-        # Get the appropriate cog
-        cog_name = router_cog.model_mapping.get(model_name)
-        if not cog_name:
-            return jsonify({'error': f'No cog found for model {model_name}'}), 500
+        # Run async code in the event loop
+        async def process_message():
+            # Determine which model to use
+            model_name = await router_cog.determine_route(message)
             
-        cog = bot.get_cog(cog_name)
-        if not cog:
-            return jsonify({'error': f'Cog {cog_name} not found'}), 500
+            # Get the appropriate cog
+            cog_name = router_cog.model_mapping.get(model_name)
+            if not cog_name:
+                return {'error': f'No cog found for model {model_name}'}, 500
+                
+            cog = bot.get_cog(cog_name)
+            if not cog:
+                return {'error': f'Cog {cog_name} not found'}, 500
 
-        # Generate response using the cog
-        response_generator = await cog._generate_response(message)
-        if response_generator:
-            response = ''
-            async for chunk in response_generator:
-                response += chunk
-        else:
-            response = 'No response generated'
+            # Generate response using the cog
+            response_generator = await cog._generate_response(message)
+            if response_generator:
+                response = ''
+                async for chunk in response_generator:
+                    response += chunk
+            else:
+                response = 'No response generated'
 
-        return jsonify({
-            'response': response,
-            'model': model_name
-        })
+            return {
+                'response': response,
+                'model': model_name
+            }
+
+        result = loop.run_until_complete(process_message())
+        return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}")
