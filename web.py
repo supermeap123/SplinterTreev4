@@ -142,7 +142,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-# Dashboard template remains unchanged
+# Dashboard template with chat terminal button
 DASHBOARD_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -401,6 +401,11 @@ DASHBOARD_TEMPLATE = """
         </div>
 
         <p class="refresh-text">Stats auto-update every 5 seconds. Last updated: <span id="last-update">{{ current_time }}</span></p>
+        
+        <!-- Button to go to chat terminal -->
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/chat_terminal" class="button" style="padding: 10px 20px; background-color: #3498db; color: white; border-radius: 4px; text-decoration: none;">Go to Chat Terminal</a>
+        </div>
     </div>
 </body>
 </html>
@@ -441,23 +446,23 @@ def get_db_stats():
             messages_today = cursor.fetchone()[0]
             
             # Get most active model
-            cursor.execute("""
+            cursor.execute(""" 
                 SELECT persona_name, COUNT(*) as count 
                 FROM messages 
-                WHERE is_assistant = 1 AND persona_name IS NOT NULL
+                WHERE is_assistant = 1 AND persona_name IS NOT NULL 
                 GROUP BY persona_name 
                 ORDER BY count DESC 
-                LIMIT 1
+                LIMIT 1 
             """)
             result = cursor.fetchone()
             most_active_model = result[0] if result else "N/A"
             
             # Get recent activity
-            cursor.execute("""
-                SELECT timestamp, content, is_assistant, persona_name
-                FROM messages
-                ORDER BY timestamp DESC
-                LIMIT 10
+            cursor.execute(""" 
+                SELECT timestamp, content, is_assistant, persona_name 
+                FROM messages 
+                ORDER BY timestamp DESC 
+                LIMIT 10 
             """)
             recent = cursor.fetchall()
             recent_activity = []
@@ -573,6 +578,95 @@ def dashboard():
     except Exception as e:
         logger.error(f"Error rendering dashboard: {e}")
         return "Internal Server Error", 500
+
+@app.route('/chat_terminal')
+@login_required
+def chat_terminal():
+    """Render the chat terminal interface"""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Terminal</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: #f5f5f5;
+                margin: 0;
+                padding: 20px;
+            }
+            .chat-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+            .messages {
+                max-height: 400px;
+                overflow-y: auto;
+                border: 1px solid #ddd;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .message {
+                margin: 5px 0;
+            }
+            .user {
+                color: blue;
+            }
+            .assistant {
+                color: green;
+            }
+            input[type="text"] {
+                width: calc(100% - 22px);
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+            }
+            button {
+                padding: 10px 20px;
+                background: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #2980b9;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="chat-container">
+            <h2>Chat Terminal</h2>
+            <div class="messages" id="messages"></div>
+            <input type="text" id="user-input" placeholder="Type your message..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+        <script>
+            function sendMessage() {
+                const input = document.getElementById('user-input');
+                const message = input.value;
+                if (message) {
+                    const messagesDiv = document.getElementById('messages');
+                    messagesDiv.innerHTML += '<div class="message user">User: ' + message + '</div>';
+                    input.value = '';
+                    
+                    // Simulate assistant response
+                    setTimeout(() => {
+                        messagesDiv.innerHTML += '<div class="message assistant">Assistant: ' + message + ' (simulated response)</div>';
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
+                    }, 1000);
+                }
+            }
+        </script>
+    </body>
+    </html>
+    """
 
 @app.route('/api/stats')
 @login_required
