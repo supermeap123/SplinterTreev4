@@ -11,7 +11,7 @@ class RouterCog(BaseCog):
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=['!activate'],  # Only trigger on !activate command
+            trigger_words=[],  # Remove !activate from trigger_words
             model="mistralai/mistral-3b",
             provider="openrouter",
             prompt_file="router",
@@ -34,6 +34,9 @@ class RouterCog(BaseCog):
 
         # Track last model used per channel to prevent loops
         self.last_model_used = {}
+
+        # Track handled messages to prevent duplicates
+        self.handled_messages = set()
 
         # Model mapping for routing
         self.model_mapping = {
@@ -89,6 +92,11 @@ class RouterCog(BaseCog):
         # Never handle messages from self
         if message.author.id == self.bot.user.id:
             logging.debug("[Router] Ignoring own message")
+            return False
+
+        # Skip if message already handled
+        if message.id in self.handled_messages:
+            logging.debug(f"[Router] Skipping already handled message {message.id}")
             return False
 
         # Always handle DMs
@@ -348,11 +356,8 @@ Return model:"""
             logging.debug(f"[Router] Ignoring bot message from {message.author.name}")
             return
 
-        # Check if this is an activation command
-        if message.content.lower() == '!activate':
-            ctx = await self.bot.get_context(message)
-            if ctx.valid:
-                await self.activate(ctx)
+        # Skip if message is a command
+        if message.content.startswith('!'):
             return
 
         # Check if we should handle this message
@@ -360,6 +365,9 @@ Return model:"""
             return
 
         try:
+            # Mark message as handled
+            self.handled_messages.add(message.id)
+
             # Log message details for debugging
             channel_type = "DM" if isinstance(message.channel, discord.DMChannel) else "guild"
             logging.debug(f"[Router] Processing message: channel_type={channel_type}, "
