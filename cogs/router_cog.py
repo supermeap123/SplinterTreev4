@@ -58,51 +58,25 @@ class RouterCog(BaseCog):
         await ctx.send("RouterCog has been deactivated in this channel.")
         logging.info(f"[Router] Deactivated in channel {channel_id}")
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Listener for incoming messages to generate responses when activated."""
-        logging.debug(f"[Router] on_message called for message: '{message.content}' by {message.author}")
+    async def handle_message(self, message, full_content=None):
+        """Handle incoming messages when RouterCog is activated."""
+        logging.debug(f"[Router] handle_message called for message: '{message.content}' by {message.author}")
 
-        # Prevent the bot from responding to its own messages
-        if message.author == self.bot.user:
-            logging.debug("[Router] Message from bot itself, ignoring.")
-            return
-
-        response = None
-
-        # Check if the channel is active
-        if message.channel.id in self.active_channels:
-            logging.debug(f"[Router] Channel {message.channel.id} is active. Generating response.")
-            response = await self.generate_response(message)
-        else:
-            # Additionally, respond to DMs, mentions, and role mentions
-            if isinstance(message.channel, discord.DMChannel):
-                logging.debug("[Router] Message is a DM. Generating response.")
-                response = await self.generate_response(message)
-            elif self.bot.user in message.mentions:
-                logging.debug("[Router] Bot was mentioned. Generating response.")
-                response = await self.generate_response(message)
-            elif any(role.mention in message.content for role in message.role_mentions):
-                logging.debug("[Router] Role was mentioned. Generating response.")
-                response = await self.generate_response(message)
-
+        response = await self.generate_response(message)
         if response:
             logging.debug(f"[Router] Sending response: {response}")
             await message.channel.send(response)
         else:
             logging.debug("[Router] No response generated.")
 
-        # Ensure that other commands are still processed
-        await self.bot.process_commands(message)
-
-    async def generate_response(self, message):
+    async def generate_response(self, message) -> discord.AsyncGenerator[str, None]:
         """Generate a fixed response for testing purposes"""
         try:
-            # Return a fixed response to verify activation works
-            return "Test response"
+            # Yield a fixed response to verify activation works
+            yield "Test response"
         except Exception as e:
             logging.error(f"Error generating test response for Router: {e}")
-            return None
+            yield "❌ Error generating test response"
 
     async def cog_check(self, ctx):
         """Ensure that commands are only used in guilds."""

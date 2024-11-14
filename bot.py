@@ -221,15 +221,6 @@ def get_uptime():
         parts.append(f"{seconds}s")
     return " ".join(parts)
 
-async def load_context_settings():
-    """Load saved context window settings"""
-    # This function is already defined above
-    pass
-
-async def setup_cogs():
-    """Load all cogs"""
-    await setup_cogs(bot)
-
 @tasks.loop(seconds=30)
 async def update_status():
     """Update bot status"""
@@ -246,6 +237,10 @@ async def update_status():
     except Exception as e:
         logging.error(f"Error updating status: {str(e)}")
 
+async def setup_cogs_task():
+    """Load all cogs"""
+    await setup_cogs(bot)
+
 @bot.event
 async def on_ready():
     pst = pytz.timezone('US/Pacific')
@@ -255,7 +250,7 @@ async def on_ready():
     # Set initial "Booting..." status
     await bot.change_presence(activity=discord.Game(name="Booting..."))
     
-    await setup_cogs()
+    await setup_cogs_task()
     
     # Start the status update task
     if not update_status.is_running():
@@ -263,17 +258,25 @@ async def on_ready():
 
 async def resolve_user_id(user_id):
     """Resolve a user ID to a username"""
-    user = await bot.fetch_user(user_id)
-    return user.name if user else str(user_id)
+    try:
+        user = await bot.fetch_user(user_id)
+        return user.name if user else str(user_id)
+    except Exception as e:
+        logging.error(f"Error resolving user ID {user_id}: {e}")
+        return str(user_id)
 
 async def process_attachment(attachment):
     """Process a single attachment and return its content"""
-    if attachment.filename.endswith(('.txt', '.md')):
-        content = await attachment.read()
-        return content.decode('utf-8')
-    elif attachment.content_type and attachment.content_type.startswith('image/'):
-        return f"[Image: {attachment.filename}]"
-    else:
+    try:
+        if attachment.filename.endswith(('.txt', '.md')):
+            content = await attachment.read()
+            return content.decode('utf-8')
+        elif attachment.content_type and attachment.content_type.startswith('image/'):
+            return f"[Image: {attachment.filename}]"
+        else:
+            return f"[Attachment: {attachment.filename}]"
+    except Exception as e:
+        logging.error(f"Error processing attachment {attachment.filename}: {e}")
         return f"[Attachment: {attachment.filename}]"
 
 def get_cog_by_name(name):
@@ -355,6 +358,53 @@ async def on_command_error(ctx, error):
         logging.error(f"Command error: {str(error)}")
         logging.error(traceback.format_exc())
         await ctx.reply("❌ An error occurred while executing the command.")
+
+def load_processed_messages():
+    """Load processed messages from file"""
+    if os.path.exists(PROCESSED_MESSAGES_FILE):
+        try:
+            with open(PROCESSED_MESSAGES_FILE, 'r') as f:
+                bot.processed_messages = set(json.load(f))
+            logging.info(f"Loaded {len(bot.processed_messages)} processed messages from file")
+        except Exception as e:
+            logging.error(f"Error loading processed messages: {str(e)}")
+
+def save_processed_messages():
+    """Save processed messages to file"""
+    try:
+        with open(PROCESSED_MESSAGES_FILE, 'w') as f:
+            json.dump(list(bot.processed_messages), f)
+        logging.info(f"Saved {len(bot.processed_messages)} processed messages to file")
+    except Exception as e:
+        logging.error(f"Error saving processed messages: {str(e)}")
+
+def get_history_file(channel_id: str) -> str:
+    """Get the history file path for a channel"""
+    history_dir = os.path.join(BOT_DIR, 'history')
+    if not os.path.exists(history_dir):
+        os.makedirs(history_dir)
+    return os.path.join(history_dir, f'history_{channel_id}.json')
+
+def get_uptime():
+    """Get bot uptime as a formatted string"""
+    if bot.start_time is None:
+        return "Unknown"
+    pst = pytz.timezone('US/Pacific')
+    current_time = datetime.now(pst)
+    uptime = current_time - bot.start_time.astimezone(pst)
+    days = uptime.days
+    hours, remainder = divmod(uptime.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    parts = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0:
+        parts.append(f"{minutes}m")
+    if seconds > 0 or not parts:
+        parts.append(f"{seconds}s")
+    return " ".join(parts)
 
 # Run bot
 if __name__ == "__main__":
