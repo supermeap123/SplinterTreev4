@@ -7,6 +7,7 @@ import discord
 def mock_bot():
     bot = MagicMock()
     bot.api_client = MagicMock()
+    bot.get_cog = MagicMock(return_value=MagicMock(get_context_messages=AsyncMock(return_value=[])))
     return bot
 
 @pytest.fixture
@@ -27,8 +28,8 @@ def mock_message():
 def test_cog_initialization(cog):
     assert cog.name == "Router"
     assert cog.nickname == "Router"
-    assert cog.model == "openpipe:FreeRouter-v2-235"
-    assert cog.provider == "openpipe"
+    assert cog.model == "mistralai/mistral-3b"
+    assert cog.provider == "openrouter"
     assert cog.supports_vision == False
     assert isinstance(cog.model_mapping, dict)
     assert len(cog.model_mapping) > 0
@@ -47,97 +48,118 @@ def test_has_image_attachments(cog, mock_message):
     attachment.content_type = "text/plain"
     assert not cog.has_image_attachments(mock_message)
 
-def test_has_code_blocks(cog):
-    # Test with code block
-    assert cog.has_code_blocks("Here's some code: ```python\nprint('hello')\n```")
-    
-    # Test without code block
-    assert not cog.has_code_blocks("Regular text message")
-    
-    # Test with inline code
-    assert not cog.has_code_blocks("Here's `inline code`")
-
-def test_is_technical_query(cog):
-    # Test technical indicators
-    assert cog.is_technical_query("I'm getting an error in my code")
-    assert cog.is_technical_query("How do I implement this feature?")
-    assert cog.is_technical_query("npm install failing")
-    assert cog.is_technical_query("```python\nprint('hello')\n```")
-    
-    # Test non-technical messages
-    assert not cog.is_technical_query("How's the weather today?")
-    assert not cog.is_technical_query("Tell me a story")
-
-def test_is_creative_request(cog):
-    # Test creative indicators
-    assert cog.is_creative_request("Write me a story about dragons")
-    assert cog.is_creative_request("Can you generate a blog post?")
-    assert cog.is_creative_request("Create a poem about nature")
-    
-    # Test non-creative messages
-    assert not cog.is_creative_request("What's the time?")
-    assert not cog.is_creative_request("Fix this bug in my code")
-
-def test_is_analytical_query(cog):
-    # Test analytical indicators
-    assert cog.is_analytical_query("Analyze this data")
-    assert cog.is_analytical_query("What is the difference between X and Y?")
-    assert cog.is_analytical_query("Explain how this works")
-    
-    # Test non-analytical messages
-    assert not cog.is_analytical_query("Hello!")
-    assert not cog.is_analytical_query("Write a story")
-
-def test_is_personal_query(cog):
-    # Test personal indicators
-    assert cog.is_personal_query("I'm feeling sad today")
-    assert cog.is_personal_query("Should I take this job offer?")
-    assert cog.is_personal_query("Need advice about my relationship 😢")
-    
-    # Test non-personal messages
-    assert not cog.is_personal_query("What's the weather?")
-    assert not cog.is_personal_query("Fix this code")
-
 @pytest.mark.asyncio
 async def test_determine_route_vision(cog, mock_message):
-    # Test complex vision query
+    # Mock OpenRouter API response
+    cog.api_client.call_openrouter = AsyncMock()
+    
+    # Test with image attachment
     attachment = MagicMock()
     attachment.content_type = "image/jpeg"
     mock_message.attachments = [attachment]
-    mock_message.content = "Can you analyze this complex image and explain what's happening in detail?"
-    assert await cog.determine_route(mock_message) == 'Llama32_90b'
+    mock_message.content = "Analyze this complex image"
     
-    # Test simple vision query
+    # Mock API to return Llama32_90b for complex image analysis
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Llama32_90b'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Llama32_90b'
+    
+    # Test simple image query
     mock_message.content = "What's in this image?"
-    assert await cog.determine_route(mock_message) == 'Llama32_11b'
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Llama32_11b'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Llama32_11b'
 
 @pytest.mark.asyncio
 async def test_determine_route_technical(cog, mock_message):
+    cog.api_client.call_openrouter = AsyncMock()
+    
     # Test complex technical query
     mock_message.content = "```python\ndef complex_function():\n    pass\n```\nCan you help fix this?"
-    assert await cog.determine_route(mock_message) == 'Goliath'
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Goliath'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Goliath'
     
     # Test error query
     mock_message.content = "I'm getting this error in my code"
-    assert await cog.determine_route(mock_message) == 'Nemotron'
-    
-    # Test how-to query
-    mock_message.content = "How do I implement authentication?"
-    assert await cog.determine_route(mock_message) == 'Noromaid'
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Nemotron'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Nemotron'
 
 @pytest.mark.asyncio
 async def test_determine_route_creative(cog, mock_message):
+    cog.api_client.call_openrouter = AsyncMock()
+    
     # Test poem request
     mock_message.content = "Write a haiku about spring"
-    assert await cog.determine_route(mock_message) == 'Claude3Haiku'
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Claude3Haiku'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Claude3Haiku'
     
     # Test article request
     mock_message.content = "Generate a blog post about AI"
-    assert await cog.determine_route(mock_message) == 'Pixtral'
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Pixtral'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Pixtral'
+
+@pytest.mark.asyncio
+async def test_determine_route_conversation(cog, mock_message):
+    cog.api_client.call_openrouter = AsyncMock()
     
-    # Test long creative request
-    mock_message.content = "Write a detailed story about " + "very long content " * 20
-    assert await cog.determine_route(mock_message) == 'Magnum'
+    # Test analytical query
+    mock_message.content = "Can you analyze this data?"
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Sonar'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Sonar'
+    
+    # Test personal query
+    mock_message.content = "I need advice about my career"
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Hermes'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Hermes'
+
+@pytest.mark.asyncio
+async def test_determine_route_with_context(cog, mock_message):
+    cog.api_client.call_openrouter = AsyncMock()
+    cog.context_cog.get_context_messages = AsyncMock(return_value=[
+        {'content': 'Previous message 1'},
+        {'content': 'Previous message 2'}
+    ])
+    
+    mock_message.content = "Continue the conversation"
+    cog.api_client.call_openrouter.return_value = {
+        'choices': [{'message': {'content': 'Ministral'}}]
+    }
+    result = await cog.determine_route(mock_message)
+    assert result == 'Ministral'
+
+@pytest.mark.asyncio
+async def test_determine_route_error_handling(cog, mock_message):
+    # Test API error
+    cog.api_client.call_openrouter = AsyncMock(side_effect=Exception("API Error"))
+    result = await cog.determine_route(mock_message)
+    assert result == 'Liquid'  # Default fallback
+    
+    # Test invalid response format
+    cog.api_client.call_openrouter = AsyncMock(return_value={})
+    result = await cog.determine_route(mock_message)
+    assert result == 'Liquid'  # Default fallback
 
 @pytest.mark.asyncio
 async def test_route_to_cog(cog, mock_message):
