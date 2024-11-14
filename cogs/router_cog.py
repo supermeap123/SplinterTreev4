@@ -3,7 +3,7 @@ from discord.ext import commands
 import logging
 from .base_cog import BaseCog
 import json
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, AsyncGenerator
 import re
 
 class RouterCog(BaseCog):
@@ -75,6 +75,10 @@ class RouterCog(BaseCog):
         # Create case-insensitive lookup for model names
         self.model_lookup = {k.lower(): k for k in self.model_mapping.keys()}
         logging.debug(f"[Router] Model lookup table: {self.model_lookup}")
+
+    async def _generate_response(self, message) -> Optional[AsyncGenerator[str, None]]:
+        """Override base class method to prevent error message"""
+        return None
 
     def has_bypass_keywords(self, content: str) -> bool:
         """Check if message contains keywords that should bypass routing"""
