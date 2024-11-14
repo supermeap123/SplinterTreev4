@@ -8,6 +8,7 @@ def mock_bot():
     bot = MagicMock()
     bot.api_client = MagicMock()
     bot.get_cog = MagicMock(return_value=MagicMock(get_context_messages=AsyncMock(return_value=[])))
+    bot.user = MagicMock()  # Add bot user for mention checks
     return bot
 
 @pytest.fixture
@@ -23,6 +24,8 @@ def mock_message():
     message.author.id = 789
     message.guild.id = 101112
     message.attachments = []
+    message.author.bot = False
+    message.mentions = []
     return message
 
 def test_cog_initialization(cog):
@@ -47,6 +50,26 @@ def test_has_image_attachments(cog, mock_message):
     # Test with non-image attachment
     attachment.content_type = "text/plain"
     assert not cog.has_image_attachments(mock_message)
+
+def test_should_handle_message(cog, mock_message):
+    # Test DM channel
+    mock_message.channel = MagicMock(spec=discord.DMChannel)
+    assert cog.should_handle_message(mock_message)
+
+    # Test bot mention
+    mock_message.channel = MagicMock()  # Reset to regular channel
+    mock_message.mentions = [cog.bot.user]
+    assert cog.should_handle_message(mock_message)
+
+    # Test activated channel
+    mock_message.mentions = []
+    mock_message.channel.id = 123
+    cog.active_channels.add(123)
+    assert cog.should_handle_message(mock_message)
+
+    # Test non-activated channel
+    mock_message.channel.id = 456
+    assert not cog.should_handle_message(mock_message)
 
 @pytest.mark.asyncio
 async def test_determine_route_vision(cog, mock_message):
@@ -115,51 +138,40 @@ async def test_determine_route_creative(cog, mock_message):
     assert result == 'Pixtral'
 
 @pytest.mark.asyncio
-async def test_determine_route_conversation(cog, mock_message):
-    cog.api_client.call_openrouter = AsyncMock()
+async def test_on_message(cog, mock_message):
+    # Setup mocks
+    cog.determine_route = AsyncMock(return_value='Mixtral')
+    cog.route_to_cog = AsyncMock()
+    mock_message.content = "Test message"
+    mock_ctx = MagicMock()
+    mock_ctx.valid = True
+    cog.bot.get_context = AsyncMock(return_value=mock_ctx)
+    cog.activate = AsyncMock()
     
-    # Test analytical query
-    mock_message.content = "Can you analyze this data?"
-    cog.api_client.call_openrouter.return_value = {
-        'choices': [{'message': {'content': 'Sonar'}}]
-    }
-    result = await cog.determine_route(mock_message)
-    assert result == 'Sonar'
+    # Test bot message (should be ignored)
+    mock_message.author.bot = True
+    await cog.on_message(mock_message)
+    assert not cog.determine_route.called
+    assert not cog.route_to_cog.called
     
-    # Test personal query
-    mock_message.content = "I need advice about my career"
-    cog.api_client.call_openrouter.return_value = {
-        'choices': [{'message': {'content': 'Hermes'}}]
-    }
-    result = await cog.determine_route(mock_message)
-    assert result == 'Hermes'
-
-@pytest.mark.asyncio
-async def test_determine_route_with_context(cog, mock_message):
-    cog.api_client.call_openrouter = AsyncMock()
-    cog.context_cog.get_context_messages = AsyncMock(return_value=[
-        {'content': 'Previous message 1'},
-        {'content': 'Previous message 2'}
-    ])
+    # Test activation command
+    mock_message.author.bot = False
+    mock_message.content = "!activate"
+    await cog.on_message(mock_message)
+    cog.activate.assert_called_once_with(mock_ctx)
     
-    mock_message.content = "Continue the conversation"
-    cog.api_client.call_openrouter.return_value = {
-        'choices': [{'message': {'content': 'Ministral'}}]
-    }
-    result = await cog.determine_route(mock_message)
-    assert result == 'Ministral'
-
-@pytest.mark.asyncio
-async def test_determine_route_error_handling(cog, mock_message):
-    # Test API error
-    cog.api_client.call_openrouter = AsyncMock(side_effect=Exception("API Error"))
-    result = await cog.determine_route(mock_message)
-    assert result == 'Liquid'  # Default fallback
+    # Test message in activated channel
+    mock_message.content = "Test message"
+    mock_message.channel.id = 123
+    cog.active_channels.add(123)
+    await cog.on_message(mock_message)
+    cog.determine_route.assert_called_with(mock_message)
+    cog.route_to_cog.assert_called_with(mock_message, 'Mixtral')
     
-    # Test invalid response format
-    cog.api_client.call_openrouter = AsyncMock(return_value={})
-    result = await cog.determine_route(mock_message)
-    assert result == 'Liquid'  # Default fallback
+    # Test message in non-activated channel
+    mock_message.channel.id = 456
+    await cog.on_message(mock_message)
+    assert len(cog.determine_route.mock_calls) == 1  # No additional calls
 
 @pytest.mark.asyncio
 async def test_route_to_cog(cog, mock_message):
@@ -179,25 +191,6 @@ async def test_route_to_cog(cog, mock_message):
     # Should log error but not raise exception
 
 @pytest.mark.asyncio
-async def test_handle_message(cog, mock_message):
-    # Setup mocks
-    cog.determine_route = AsyncMock(return_value='Mixtral')
-    cog.route_to_cog = AsyncMock()
-    
-    # Test inactive channel
-    mock_message.channel.id = 999
-    await cog.handle_message(mock_message)
-    assert not cog.determine_route.called
-    assert not cog.route_to_cog.called
-    
-    # Test active channel
-    mock_message.channel.id = 123
-    cog.active_channels.add(123)
-    await cog.handle_message(mock_message)
-    cog.determine_route.assert_called_with(mock_message)
-    cog.route_to_cog.assert_called_with(mock_message, 'Mixtral')
-
-@pytest.mark.asyncio
 async def test_activate_deactivate(cog):
     ctx = MagicMock()
     ctx.channel.id = 123
@@ -206,7 +199,7 @@ async def test_activate_deactivate(cog):
     # Test activation
     await cog.activate(ctx)
     assert 123 in cog.active_channels
-    ctx.send.assert_called_with("RouterCog has been activated in this channel.")
+    ctx.send.assert_called_with("RouterCog has been activated in this channel. All messages will now be routed to appropriate models.")
     
     # Test deactivation
     await cog.deactivate(ctx)

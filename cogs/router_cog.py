@@ -11,7 +11,7 @@ class RouterCog(BaseCog):
             bot=bot,
             name="Router",
             nickname="Router",
-            trigger_words=[],
+            trigger_words=['!activate'],  # Only trigger on !activate command
             model="mistralai/mistral-3b",
             provider="openrouter",
             prompt_file="router",
@@ -70,6 +70,22 @@ class RouterCog(BaseCog):
         """Check if message contains image attachments"""
         if message.attachments:
             return any(att.content_type and att.content_type.startswith('image/') for att in message.attachments)
+        return False
+
+    def should_handle_message(self, message: discord.Message) -> bool:
+        """Determine if the message should be handled by the router"""
+        # Always handle DMs
+        if isinstance(message.channel, discord.DMChannel):
+            return True
+
+        # Handle if bot is mentioned
+        if self.bot.user in message.mentions:
+            return True
+
+        # Handle if channel is activated
+        if message.channel.id in self.active_channels:
+            return True
+
         return False
 
     async def determine_route(self, message: discord.Message) -> str:
@@ -239,7 +255,7 @@ Return model:"""
         """Activate RouterCog in the current channel."""
         channel_id = ctx.channel.id
         self.active_channels.add(channel_id)
-        await ctx.send("RouterCog has been activated in this channel.")
+        await ctx.send("RouterCog has been activated in this channel. All messages will now be routed to appropriate models.")
         logging.info(f"[Router] Activated in channel {channel_id}")
 
     @commands.command(name='deactivate')
@@ -251,12 +267,25 @@ Return model:"""
         await ctx.send("RouterCog has been deactivated in this channel.")
         logging.info(f"[Router] Deactivated in channel {channel_id}")
 
-    async def handle_message(self, message):
-        """Handle incoming messages when RouterCog is activated."""
-        try:
-            if message.channel.id not in self.active_channels:
-                return
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Handle all incoming messages"""
+        # Skip if message is from a bot
+        if message.author.bot:
+            return
 
+        # Check if this is an activation command
+        if message.content.lower() == '!activate':
+            ctx = await self.bot.get_context(message)
+            if ctx.valid:
+                await self.activate(ctx)
+            return
+
+        # Check if we should handle this message
+        if not self.should_handle_message(message):
+            return
+
+        try:
             # Determine which model to route to
             model_name = await self.determine_route(message)
             logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
