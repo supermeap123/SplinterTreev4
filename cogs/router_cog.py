@@ -67,10 +67,6 @@ class RouterCog(BaseCog):
         self.model_lookup = {k.lower(): k for k in self.model_mapping.keys()}
         logging.debug(f"[Router] Model lookup table: {self.model_lookup}")
 
-    async def _generate_response(self, message) -> Optional[AsyncGenerator[str, None]]:
-        """Override base class method to prevent error message"""
-        return None
-
     def has_bypass_keywords(self, content: str) -> bool:
         """Check if message contains keywords that should bypass routing"""
         content = content.lower()
@@ -189,29 +185,14 @@ class RouterCog(BaseCog):
     async def determine_route(self, message: discord.Message) -> str:
         """Use OpenRouter inference to determine which model to route to"""
         try:
-            # Get context from context_cog if available
-            context = ""
-            if self.context_cog:
-                try:
-                    history = await self.context_cog.get_context_messages(
-                        str(message.channel.id) if message.channel else None,
-                        limit=5,
-                        exclude_message_id=str(message.id)
-                    )
-                    context = "\n".join([msg['content'] for msg in history])
-                    logging.debug(f"[Router] Got context: {context[:200]}...")
-                except Exception as e:
-                    logging.error(f"[Router] Error getting context: {str(e)}")
-
             # Check for images first
             if self.has_image_attachments(message):
                 return 'Gemini'  # Default to Gemini for image processing
 
             # Format the routing prompt
-            routing_prompt = f"""Analyze this message and route it to the most appropriate model based on content and context. Return ONLY the model name, no explanation.
+            routing_prompt = f"""Analyze this message and route it to the most appropriate model based on content. Return ONLY the model name, no explanation.
 
 Message: "{message.content}"
-Context: "{context}"
 
 Available Models:
 1. Sonar - Current events, news, updates, time-sensitive info
