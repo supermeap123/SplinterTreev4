@@ -1,6 +1,5 @@
 """
-Unified cog that consolidates all model functionality while preserving exact model configurations.
-Implements enhanced routing, context handling, and multimodal support.
+Unified cog that consolidates all model functionality with two-step routing and rate limit handling.
 """
 import discord
 from discord.ext import commands
@@ -8,12 +7,47 @@ import logging
 import json
 import asyncio
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional, Dict, List, AsyncGenerator, Union
 import re
 from urllib.parse import urlparse
 from config.webhook_config import load_webhooks, MAX_RETRIES, WEBHOOK_TIMEOUT
+import backoff
+
+class RateLimitTracker:
+    def __init__(self):
+        self.rate_limits = {}  # {model: {'reset_at': timestamp, 'remaining': count}}
+        self.backoff_times = {}  # {model: seconds_to_wait}
+        self.MIN_BACKOFF = 1
+        self.MAX_BACKOFF = 60
+
+    def is_rate_limited(self, model: str) -> bool:
+        """Check if a model is currently rate limited"""
+        if model not in self.rate_limits:
+            return False
+        limit_info = self.rate_limits[model]
+        return limit_info['remaining'] <= 0 and datetime.now().timestamp() < limit_info['reset_at']
+
+    def update_rate_limit(self, model: str, remaining: int, reset_at: float):
+        """Update rate limit info for a model"""
+        self.rate_limits[model] = {
+            'remaining': remaining,
+            'reset_at': reset_at
+        }
+
+    def get_backoff_time(self, model: str) -> float:
+        """Get current backoff time for a model"""
+        return self.backoff_times.get(model, self.MIN_BACKOFF)
+
+    def increase_backoff(self, model: str):
+        """Increase backoff time for a model"""
+        current = self.backoff_times.get(model, self.MIN_BACKOFF)
+        self.backoff_times[model] = min(current * 2, self.MAX_BACKOFF)
+
+    def reset_backoff(self, model: str):
+        """Reset backoff time for a model"""
+        self.backoff_times[model] = self.MIN_BACKOFF
 
 class UnifiedCog(commands.Cog):
     def __init__(self, bot):
@@ -26,6 +60,7 @@ class UnifiedCog(commands.Cog):
         self.handled_messages = set()
         self._image_processing_lock = asyncio.Lock()
         self.last_model_used = {}  # Track last model per channel for loop prevention
+        self.rate_limiter = RateLimitTracker()
         
         # Get API client from bot instance
         self.api_client = getattr(bot, 'api_client', None)
@@ -49,16 +84,16 @@ class UnifiedCog(commands.Cog):
             logging.error(f"[UnifiedRouter] Failed to load prompts: {e}")
             self.prompts = {}
 
-        # Comprehensive model configuration preserving all existing models and their exact configurations
+        # Comprehensive model configuration
         self.model_config = {
-            'sonnet': {
-                'name': 'Sonnet',
-                'model': 'anthropic/claude-3-5-sonnet:beta',
-                'temperature': self.temperatures.get('Claude-3.5-Sonnet', 0.85),
-                'keywords': ['code', 'technical', 'programming', 'development'],
-                'prompt_key': 'sonnet',
+            'ministral': {
+                'name': 'Ministral',
+                'model': 'mistralai/ministral-3b',
+                'temperature': self.temperatures.get('Mixtral', 0.7),
+                'keywords': ['general', 'chat', 'conversation'],
+                'prompt_key': 'ministral',
                 'supports_vision': False,
-                'trigger_words': ['sonnet']
+                'trigger_words': ['ministral']
             },
             'gemini': {
                 'name': 'Gemini',
@@ -70,33 +105,23 @@ class UnifiedCog(commands.Cog):
                 'supports_vision': True,
                 'trigger_words': ['gemini']
             },
-            'ministral': {
-                'name': 'Ministral',
-                'model': 'mistralai/ministral-3b',
-                'temperature': self.temperatures.get('Mixtral', 0.7),
-                'keywords': ['general', 'chat', 'conversation'],
-                'prompt_key': 'ministral',
+            'sonnet': {
+                'name': 'Sonnet',
+                'model': 'anthropic/claude-3-5-sonnet:beta',
+                'temperature': self.temperatures.get('Claude-3.5-Sonnet', 0.85),
+                'keywords': ['code', 'technical', 'programming', 'development'],
+                'prompt_key': 'sonnet',
                 'supports_vision': False,
-                'trigger_words': ['ministral']
+                'trigger_words': ['sonnet']
             },
-            'llama32vision': {
-                'name': 'Llama-3.2-Vision',
-                'model': 'meta-llama/llama-3.2-90b-vision-instruct:free',
-                'fallback_model': 'meta-llama/llama-3.2-90b-vision-instruct',
-                'temperature': self.temperatures.get('Llama-3.2', 0.7),
-                'keywords': ['image', 'describe image', 'what is this image'],
-                'prompt_key': 'llama32vision',
-                'supports_vision': True,
-                'trigger_words': ['llamavision', 'describe image', 'what is this image']
-            },
-            'dolphin': {
-                'name': 'Dolphin',
-                'model': 'cognitivecomputations/dolphin-mixtral-8x22b',
-                'temperature': self.temperatures.get('Dolphin', 0.7),
-                'keywords': ['uncensored', 'mature', 'controversial'],
-                'prompt_key': 'dolphin',
+            'goliath': {
+                'name': 'Goliath',
+                'model': 'alpindale/goliath-120b',
+                'temperature': self.temperatures.get('Goliath', 0.8),
+                'keywords': ['complex', 'detailed', 'analysis', 'research'],
+                'prompt_key': 'goliath',
                 'supports_vision': False,
-                'trigger_words': ['dolphin']
+                'trigger_words': ['120b', 'goliath']
             },
             'sonar': {
                 'name': 'Sonar',
@@ -108,15 +133,6 @@ class UnifiedCog(commands.Cog):
                 'supports_vision': False,
                 'trigger_words': ['sonar']
             },
-            'goliath': {
-                'name': 'Goliath',
-                'model': 'alpindale/goliath-120b',
-                'temperature': self.temperatures.get('Goliath', 0.8),
-                'keywords': ['complex', 'detailed', 'analysis', 'research'],
-                'prompt_key': 'goliath',
-                'supports_vision': False,
-                'trigger_words': ['120b', 'goliath']
-            },
             'hermes': {
                 'name': 'Hermes',
                 'model': 'nousresearch/hermes-3-llama-3.1-405b:free',
@@ -127,15 +143,14 @@ class UnifiedCog(commands.Cog):
                 'supports_vision': False,
                 'trigger_words': ['hermes']
             },
-            'llama405b': {
-                'name': 'Llama-405b',
-                'model': 'meta-llama/llama-3.1-405b-instruct:free',
-                'fallback_model': 'meta-llama/llama-3.1-405b-instruct',
-                'temperature': self.temperatures.get('Llama-405b', 0.7),
-                'keywords': ['general', 'chat', 'conversation'],
-                'prompt_key': 'llama405b',
+            'sorcerer': {
+                'name': 'Sorcerer',
+                'model': 'raifle/sorcererlm-8x22b',
+                'temperature': self.temperatures.get('Sorcerer', 0.7),
+                'keywords': ['creative', 'story', 'roleplay', 'fantasy'],
+                'prompt_key': 'sorcerer',
                 'supports_vision': False,
-                'trigger_words': ['llama', 'llama3']
+                'trigger_words': ['sorcerer', 'sorcererlm']
             },
             'sydney': {
                 'name': 'Sydney',
@@ -147,14 +162,14 @@ class UnifiedCog(commands.Cog):
                 'supports_vision': False,
                 'trigger_words': ['syd', 'sydney']
             },
-            'sorcerer': {
-                'name': 'Sorcerer',
-                'model': 'raifle/sorcererlm-8x22b',
-                'temperature': self.temperatures.get('Sorcerer', 0.7),
-                'keywords': ['creative', 'story', 'roleplay', 'fantasy'],
-                'prompt_key': 'sorcerer',
+            'dolphin': {
+                'name': 'Dolphin',
+                'model': 'cognitivecomputations/dolphin-mixtral-8x22b',
+                'temperature': self.temperatures.get('Dolphin', 0.7),
+                'keywords': ['uncensored', 'mature', 'controversial'],
+                'prompt_key': 'dolphin',
                 'supports_vision': False,
-                'trigger_words': ['sorcerer', 'sorcererlm']
+                'trigger_words': ['dolphin']
             }
         }
 
@@ -175,139 +190,111 @@ class UnifiedCog(commands.Cog):
         self.max_context_window = 500
         self.context_windows = {}  # Track custom context windows per channel
 
-    async def start_typing(self, channel):
-        """Start typing indicator in channel"""
-        try:
-            await channel.typing()
-        except Exception as e:
-            logging.warning(f"[UnifiedRouter] Failed to start typing: {e}")
+    async def handle_rate_limit(self, model: str, retry_after: float):
+        """Handle rate limit response"""
+        self.rate_limiter.update_rate_limit(
+            model=model,
+            remaining=0,
+            reset_at=datetime.now().timestamp() + retry_after
+        )
+        self.rate_limiter.increase_backoff(model)
+        await asyncio.sleep(retry_after)
 
-    def format_system_prompt(self, message: discord.Message, model_config: Dict) -> str:
-        """Format system prompt with context"""
-        try:
-            tz = ZoneInfo("America/Los_Angeles")
-            current_time = datetime.now(tz).strftime("%I:%M %p")
-            
-            # Get custom prompt if exists
-            prompt_template = self.prompts.get(model_config['prompt_key'], self.prompts.get('ministral'))
-            
-            return prompt_template.format(
-                MODEL_ID=model_config['name'],
-                USERNAME=message.author.display_name,
-                DISCORD_USER_ID=message.author.id,
-                TIME=current_time,
-                TZ="Pacific Time",
-                SERVER_NAME=message.guild.name if message.guild else "Direct Message",
-                CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
-            )
-        except Exception as e:
-            logging.error(f"[UnifiedRouter] Error formatting prompt: {e}")
-            return self.prompts.get('ministral', '')
+    async def make_api_request(self, messages: List[Dict], model_config: Dict, stream: bool = True) -> AsyncGenerator[str, None]:
+        """Make API request with rate limit handling"""
+        model = model_config['model']
+        fallback_model = model_config.get('fallback_model')
 
-    def get_image_urls(self, message: discord.Message) -> List[str]:
-        """Extract valid image URLs from message attachments and embeds"""
-        urls = []
-        
-        # Check attachments
-        for attachment in message.attachments:
-            if attachment.content_type and attachment.content_type.startswith('image/'):
-                urls.append(attachment.url)
-                
-        # Check embeds
-        for embed in message.embeds:
-            if embed.image and embed.image.url and self.is_valid_image_url(embed.image.url):
-                urls.append(embed.image.url)
-                
-        return urls
+        while True:
+            if self.rate_limiter.is_rate_limited(model):
+                if fallback_model:
+                    logging.warning(f"[UnifiedRouter] Model {model} is rate limited, trying fallback {fallback_model}")
+                    model = fallback_model
+                    if self.rate_limiter.is_rate_limited(model):
+                        await asyncio.sleep(self.rate_limiter.get_backoff_time(model))
+                        continue
+                else:
+                    await asyncio.sleep(self.rate_limiter.get_backoff_time(model))
+                    continue
 
-    def is_valid_image_url(self, url: str) -> bool:
-        """Validate image URL format and extension"""
-        try:
-            parsed = urlparse(url)
-            if not all([parsed.scheme, parsed.netloc]):
-                return False
-            return parsed.path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))
-        except Exception:
-            return False
+            try:
+                async for chunk in self.api_client.call_openrouter(
+                    messages=messages,
+                    model=model,
+                    temperature=model_config['temperature'],
+                    stream=stream
+                ):
+                    if chunk and 'content' in chunk:
+                        yield chunk['content']
+                        
+                # Success, reset backoff
+                self.rate_limiter.reset_backoff(model)
+                break
 
-    def has_bypass_keywords(self, content: str) -> bool:
-        """Check if message contains keywords that should bypass routing"""
-        content = content.lower()
-        for pattern in self.bypass_keywords:
-            if re.search(pattern, content, re.IGNORECASE):
-                logging.debug(f"[UnifiedRouter] Found bypass keyword pattern: {pattern}")
-                return True
-        return False
-
-    def check_routing_loop(self, channel_id: int, model_name: str) -> bool:
-        """Check if we're in a routing loop"""
-        if channel_id in self.last_model_used:
-            last_model = self.last_model_used[channel_id]
-            consecutive_count = self.last_model_used.get(f"{channel_id}_count", 0)
-            
-            if last_model == model_name:
-                consecutive_count += 1
-                if consecutive_count >= 3:
-                    logging.warning(f"[UnifiedRouter] Detected routing loop to {model_name}")
-                    return True
-            else:
-                consecutive_count = 1
-            
-            self.last_model_used[f"{channel_id}_count"] = consecutive_count
-        
-        self.last_model_used[channel_id] = model_name
-        return False
+            except Exception as e:
+                if hasattr(e, 'status') and e.status == 429:
+                    retry_after = float(getattr(e, 'retry_after', 5))
+                    await self.handle_rate_limit(model, retry_after)
+                    continue
+                else:
+                    logging.error(f"[UnifiedRouter] API error: {str(e)}")
+                    if fallback_model and model != fallback_model:
+                        logging.warning(f"[UnifiedRouter] Trying fallback model {fallback_model}")
+                        model = fallback_model
+                        continue
+                    raise
 
     async def determine_route(self, message: discord.Message) -> Dict:
-        """Determine which model configuration to use"""
+        """Two-step routing process"""
         try:
-            content = message.content.lower()
-            
             # Check for direct model mentions first
+            content = message.content.lower()
             for model_id, config in self.model_config.items():
                 if any(word in content for word in config['trigger_words']):
                     return config
 
             # Check for images - route to vision-capable model
             if self.get_image_urls(message):
-                return self.model_config['gemini']  # Default to Gemini for images
+                return self.model_config['gemini']
 
-            # Use OpenRouter for smart routing
-            routing_prompt = f"""Analyze this message and route it to the most appropriate model. Return ONLY the model name, no explanation.
+            # Format the routing prompt exactly as in router_cog.py
+            routing_prompt = f"""Analyze this message and route it to the most appropriate model based on content. Return ONLY the model name, no explanation.
 
 Message: "{message.content}"
 
 Available Models:
-{chr(10).join(f"{config['name']}: {', '.join(config['keywords'])}" for config in self.model_config.values())}
+1. Sonar - Current events, news, updates, time-sensitive info
+2. Dolphin - Uncensored topics, mature content, controversial subjects
+3. Hermes - Mental health, crisis support, emotional guidance
+4. Sorcerer - Fantasy roleplay, character immersion, standard RP
+5. Goliath - Long-form stories, detailed plots, epic narratives
+6. Sydney - Emotional support, friendship, daily life chat
+7. Sonnet - Technical tasks, coding, software engineering
+8. Ministral - Default for general conversation
 
 Model name:"""
 
+            # Make routing request to Ministral with NO context
             messages = [
                 {"role": "system", "content": "You are a message routing assistant. Return only the model name."},
                 {"role": "user", "content": routing_prompt}
             ]
 
-            try:
-                response = await self.api_client.call_openrouter(
-                    messages=messages,
-                    model="meta-llama/llama-3.2-3b-instruct",
-                    temperature=0.3,
-                    stream=False,
-                    user_id=str(message.author.id),
-                    guild_id=str(message.guild.id) if message.guild else None
-                )
-            except Exception as e:
-                logging.error(f"[UnifiedRouter] Routing error: {e}")
-                return self.model_config['ministral']
+            # Get routing response
+            response = ""
+            async for chunk in self.make_api_request(
+                messages=messages,
+                model_config=self.model_config['ministral'],
+                stream=False
+            ):
+                response += chunk
 
-            if response and 'choices' in response:
-                model_name = response['choices'][0]['message']['content'].strip().lower()
-                
-                # Find matching model config
-                for config in self.model_config.values():
-                    if config['name'].lower() == model_name:
-                        if not self.check_routing_loop(message.channel.id, config['name']):
-                            return config
+            # Clean up response and get model config
+            model_name = response.strip().lower()
+            for config in self.model_config.values():
+                if config['name'].lower() == model_name:
+                    if not self.check_routing_loop(message.channel.id, config['name']):
+                        return config
 
             return self.model_config['ministral']
 
