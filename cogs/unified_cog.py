@@ -541,6 +541,72 @@ Model name:"""
         """Cleanup when cog is unloaded"""
         asyncio.create_task(self.session.close())
 
+    async def start_typing(self, channel):
+        """Start typing indicator in channel"""
+        try:
+            await channel.typing()
+        except Exception as e:
+            logging.error(f"[UnifiedRouter] Error starting typing: {e}")
+
+    def get_image_urls(self, message: discord.Message) -> List[str]:
+        """Get image URLs from message attachments and embeds"""
+        urls = []
+        
+        # Check attachments
+        for attachment in message.attachments:
+            if attachment.content_type and attachment.content_type.startswith('image/'):
+                urls.append(attachment.url)
+        
+        # Check embeds
+        for embed in message.embeds:
+            if embed.image:
+                urls.append(embed.image.url)
+            if embed.thumbnail:
+                urls.append(embed.thumbnail.url)
+        
+        return urls
+
+    def check_routing_loop(self, channel_id: int, model_name: str) -> bool:
+        """Check if we're in a routing loop"""
+        if channel_id in self.last_model_used:
+            last_model = self.last_model_used[channel_id]
+            consecutive_count = self.last_model_used.get(f"{channel_id}_count", 0)
+
+            if last_model == model_name:
+                consecutive_count += 1
+                if consecutive_count >= 3:  # Three consecutive same routes indicates a loop
+                    logging.warning(f"[UnifiedRouter] Detected routing loop to {model_name} in channel {channel_id}")
+                    return True
+            else:
+                consecutive_count = 1
+
+            self.last_model_used[f"{channel_id}_count"] = consecutive_count
+
+        self.last_model_used[channel_id] = model_name
+        return False
+
+    def format_system_prompt(self, message: discord.Message, model_config: Dict) -> str:
+        """Format system prompt with variables"""
+        try:
+            prompt_template = self.prompts.get(model_config['prompt_key'], "")
+            
+            # Get timezone-aware current time
+            current_time = datetime.now(ZoneInfo('America/Los_Angeles'))
+            
+            # Format variables
+            return prompt_template.format(
+                MODEL_ID=model_config['name'],
+                USERNAME=message.author.display_name,
+                DISCORD_USER_ID=message.author.id,
+                TIME=current_time.strftime("%I:%M %p"),
+                TZ="PST",
+                SERVER_NAME=message.guild.name if message.guild else "DM",
+                CHANNEL_NAME=message.channel.name if hasattr(message.channel, 'name') else "DM"
+            )
+        except Exception as e:
+            logging.error(f"[UnifiedRouter] Error formatting system prompt: {e}")
+            return f"You are {model_config['name']}, chatting with {message.author.display_name}."
+
 async def setup(bot):
     """Add UnifiedRouter cog to bot"""
     await bot.add_cog(UnifiedCog(bot))
