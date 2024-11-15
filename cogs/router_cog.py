@@ -203,174 +203,27 @@ class RouterCog(BaseCog):
                 except Exception as e:
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
+            # Check for images first
+            if self.has_image_attachments(message):
+                return 'Gemini'  # Default to Gemini for image processing
+
             # Format the routing prompt
-            routing_prompt = f"""### UNIFIED PRODUCTION ROUTER v9.0 ###
+            routing_prompt = f"""Analyze this message and route it to the most appropriate model based on content and context. Return ONLY the model name, no explanation.
+
 Message: "{message.content}"
 Context: "{context}"
 
-[MODEL PATHS & STRENGTHS]
-
-REAL-TIME INFORMATION PATH
-└─ Sonar
-   ├─ Strengths: Current events, trends, updates
-   ├─ Best for: Time-sensitive info, recent changes
-   ├─ Context: Modern queries, updates needed
-   └─ Priority override: Latest info needs
-
-DIVERSE CONVERSATION PATH
-└─ Dolphin
-   ├─ Strengths: Uncensored topics, open discussion
-   ├─ Best for: Controversial subjects, adult themes
-   ├─ Context: Mature conversations
-   └─ No content restrictions
-
-MENTAL HEALTH PATH
-└─ Hermes
-   ├─ Strengths: Crisis support, mental health
-   ├─ Best for: Emotional support, crisis intervention
-   ├─ Context: Support needs, emergencies
-   └─ Priority override: Crisis detection
-
-ROLEPLAY PATHS
-├─ Sorcerer
-│  ├─ Strengths: Fantasy RP, character immersion
-│  ├─ Best for: Standard RP scenes, character play
-│  ├─ Context: Fantasy settings, adventures
-│  └─ Token sweet spot: 200-800
-│
-└─ Goliath
-   ├─ Strengths: Long-form stories, detailed plots
-   ├─ Best for: Extended narratives, complex RP
-   ├─ Context: Epic sagas, detailed worlds
-   └─ Token sweet spot: >800
-
-EMOTIONAL SUPPORT PATH
-└─ Sydney
-   ├─ Strengths: Empathy, friendship, companionship
-   ├─ Best for: Personal connection, emotional support
-   ├─ Context: Friendly chat, daily life
-   └─ Priority: High for emotional needs
-
-TECHNICAL PATH
-└─ Sonnet
-   ├─ Strengths: Code, software engineering
-   ├─ Best for: Technical tasks, programming
-   ├─ Context: Development, system design
-   └─ Token sweet spot: >300
-
-MULTIMODAL PATHS
-├─ Gemini
-│  ├─ Strengths: Complex vision tasks, detailed analysis
-│  ├─ Best for: Advanced image understanding
-│  ├─ Context: Complex instructions with images
-│  └─ Vision support: Yes
-│
-└─ Llama32Vision
-   ├─ Strengths: Basic vision tasks, simple analysis
-   ├─ Best for: Moderate image understanding
-   ├─ Context: Simple instructions with images
-   └─ Vision support: Yes
-
-[PRIORITY OVERRIDE MATRIX]
-
-1. EMERGENCY OVERRIDES
-   ├─ Crisis terms detected → Hermes
-   ├─ Mental health flags → Hermes
-   ├─ Urgent help needed → Hermes
-   └─ Priority: Highest
-
-2. TIME SENSITIVITY
-   ├─ Current events → Sonar
-   ├─ Recent changes → Sonar
-   ├─ Updates needed → Sonar
-   └─ Priority: Very High
-
-3. CONTENT SENSITIVITY
-   ├─ Adult themes → Dolphin
-   ├─ Controversial topics → Dolphin
-   ├─ Uncensored discussion → Dolphin
-   └─ Priority: High
-
-4. EMOTIONAL SUPPORT
-   ├─ Personal issues → Sydney
-   ├─ Friendship needs → Sydney
-   ├─ Daily life chat → Sydney
-   └─ Priority: High
-
-5. ROLEPLAY COMPLEXITY
-   ├─ Epic narratives → Goliath
-   ├─ Standard RP → Sorcerer
-   └─ Priority: Medium
-
-6. TECHNICAL NEEDS
-   ├─ Code/Software → Sonnet
-   └─ Priority: Medium
-
-7. VISION TASKS
-   ├─ Complex → Gemini
-   ├─ Simple → Llama32Vision
-   └─ Priority: Based on complexity
-
-[SEMANTIC TRIGGERS]
-
-CRISIS KEYWORDS
-├─ Mental: [anxiety, depression, suicide, crisis, help]
-├─ Emergency: [urgent, emergency, immediate, serious]
-└─ Support: [therapy, counseling, support, guidance]
-
-TIME SENSITIVITY
-├─ Current: [now, latest, recent, update, news]
-├─ Changes: [happening, occurred, developed]
-└─ Status: [situation, state, condition]
-
-CONTENT MATURITY
-├─ Adult: [nsfw, mature, adult, explicit]
-├─ Topics: [controversial, sensitive, uncensored]
-└─ Discussion: [debate, argument, opinion]
-
-EMOTIONAL SUPPORT
-├─ Personal: [friend, talk, listen, understand]
-├─ Life: [daily, routine, experience, feeling]
-└─ Connection: [relationship, bond, trust]
-
-ROLEPLAY INDICATORS
-├─ Epic: [saga, campaign, adventure, quest]
-├─ Standard: [scene, character, action, story]
-└─ Setting: [fantasy, world, realm, kingdom]
-
-TECHNICAL MARKERS
-├─ Code: [programming, development, software]
-├─ Engineering: [system, design, architecture]
-└─ Technical: [problem, solution, implement]
-
-[IMPLEMENTATION RULES]
-
-1. Check for crisis/emergency first
-2. Evaluate time sensitivity
-3. Assess content maturity
-4. Consider emotional needs
-5. Analyze complexity
-6. Check for technical requirements
-7. Evaluate vision needs
-8. Apply appropriate model
-
-[FINAL OUTPUT RULES]
-
-1. Return ONLY the model name
-2. No explanation
-3. No context
-4. No reasoning
-5. Exactly one of:
-   Sonar, Dolphin, Hermes, Sorcerer, Goliath,
-   Sydney, Sonnet, Gemini, Llama32Vision
+Available Models:
+1. Sonar - Current events, news, updates, time-sensitive info
+2. Dolphin - Uncensored topics, mature content, controversial subjects
+3. Hermes - Mental health, crisis support, emotional guidance
+4. Sorcerer - Fantasy roleplay, character immersion, standard RP
+5. Goliath - Long-form stories, detailed plots, epic narratives
+6. Sydney - Emotional support, friendship, daily life chat
+7. Sonnet - Technical tasks, coding, software engineering
+8. Ministral - Default for general conversation
 
 Model name:"""
-
-            # Add image presence info
-            has_image = self.has_image_attachments(message)
-            if has_image:
-                routing_prompt = f"Note: Message contains image attachments.\n\n{routing_prompt}"
-                logging.debug("[Router] Message contains image attachments")
 
             # Call OpenRouter API for inference
             messages = [
