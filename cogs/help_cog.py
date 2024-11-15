@@ -20,8 +20,6 @@ class HelpCog(commands.Cog, name="Help"):
     
     def __init__(self, bot):
         self.bot = bot
-        # Remove default help command
-        self.bot.remove_command('help')
         self.context_cog = bot.get_cog('ContextCog')
         self.webhooks = load_webhooks()
         self.session = aiohttp.ClientSession()
@@ -368,7 +366,7 @@ When setting custom system prompts, you can use these variables:
 
 async def setup(bot):
     try:
-        # Remove default help command before adding our custom help command
+        # Remove default help command
         bot.remove_command('help')
         cog = HelpCog(bot)
         await bot.add_cog(cog)
