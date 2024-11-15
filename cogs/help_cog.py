@@ -154,8 +154,7 @@ class HelpCog(commands.Cog, name="Help"):
 3. Images are automatically analyzed by vision-capable models
 4. Use `!setcontext` to adjust conversation history length
 5. Use `!activate` to make the bot respond to all messages
-6. Use `!hook` to send responses through webhooks
-7. DMs with the bot are automatically handled
+6. DMs with the bot are automatically handled
 
 **Available Commands:**
 • `!help` - Show this help message
@@ -166,7 +165,6 @@ class HelpCog(commands.Cog, name="Help"):
 • `!setcontext <size>` - Set context window size (50-500 messages)
 • `!getcontext` - View current context window size
 • `!resetcontext` - Reset context window to default size
-• `!hook <message>` - Send an LLM response through webhooks
 • `!activate` - Make bot respond to all messages in current channel
 • `!deactivate` - Stop bot from responding to all messages
 • `!list_activated` - List all activated channels
@@ -223,36 +221,6 @@ When setting custom system prompts, you can use these variables:
         except Exception as e:
             logging.error(f"[Help] Error sending agent list: {str(e)}", exc_info=True)
             await ctx.send("An error occurred while fetching the agent list. Please try again later.")
-
-    @commands.command(name='hook')
-    async def hook_command(self, ctx, *, content: str = None):
-        """Send a message through configured webhooks"""
-        if not content:
-            await ctx.reply("❌ Please provide a message after !hook")
-            return
-
-        if DEBUG_LOGGING:
-            logging.info(f"[Help] Processing hook command: {content}")
-
-        # Create a copy of the message with the content
-        message = discord.Message.__new__(discord.Message)
-        message.__dict__.update(ctx.message.__dict__)
-        message.content = content
-
-        # Get unified cog
-        unified_cog = self.bot.get_cog('UnifiedCog')
-        if not unified_cog:
-            await ctx.reply("❌ UnifiedCog not found")
-            return
-
-        try:
-            # Let unified cog handle the message
-            await unified_cog.handle_message(message)
-            await ctx.message.add_reaction('✅')
-        except Exception as e:
-            logging.error(f"[Help] Error processing hook command: {e}")
-            await ctx.message.add_reaction('❌')
-            await ctx.reply("❌ Failed to process message")
 
     @commands.command(name="set_system_prompt", aliases=["st_set_system_prompt"])
     @commands.has_permissions(manage_messages=True)
@@ -333,32 +301,6 @@ When setting custom system prompts, you can use these variables:
         except Exception as e:
             logging.error(f"Error resetting system prompt: {str(e)}")
             await ctx.reply("❌ Failed to reset system prompt. Please try again.")
-
-    async def send_to_webhook(self, webhook_url: str, content: str, retries: int = 0) -> bool:
-        """Send content to a Discord webhook"""
-        if retries >= MAX_RETRIES:
-            logging.error(f"[Help] Max retries reached for webhook")
-            return False
-
-        try:
-            async with self.session.post(
-                webhook_url,
-                json={"content": content},
-                timeout=WEBHOOK_TIMEOUT
-            ) as response:
-                if response.status == 429:  # Rate limited
-                    retry_after = float(response.headers.get('Retry-After', 5))
-                    await asyncio.sleep(retry_after)
-                    return await self.send_to_webhook(webhook_url, content, retries + 1)
-                
-                return 200 <= response.status < 300
-
-        except asyncio.TimeoutError:
-            logging.warning(f"[Help] Webhook request timed out, retrying...")
-            return await self.send_to_webhook(webhook_url, content, retries + 1)
-        except Exception as e:
-            logging.error(f"[Help] Error sending to webhook: {str(e)}")
-            return False
 
     def cog_unload(self):
         """Cleanup when cog is unloaded"""
