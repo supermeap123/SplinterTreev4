@@ -1,15 +1,48 @@
+# Discord
 discord.py==2.3.2
-python-dotenv==1.0.1
-aiohttp==3.9.3
-backoff==2.2.1
-Pillow==10.2.0
-httpx>=0.27.0,<0.28.0
-aiosqlite==0.19.0
-pytz==2024.1
-requests==2.31.0
-openai>=1.7,<1.53
-openpipe==4.32.0
+PyNaCl==1.5.0
+
+# Web Framework
 Flask==3.0.2
 gunicorn==21.2.0
-pytest
-PyNaCl==1.5.0
+Werkzeug>=3.0.1
+
+# Database
+aiosqlite==0.19.0
+SQLAlchemy>=2.0.0
+
+# HTTP/API
+aiohttp==3.9.3
+httpx>=0.27.0,<0.28.0
+requests==2.31.0
+backoff==2.2.1
+
+# AI/ML
+openai>=1.7,<1.53
+openpipe==4.32.0
+
+# Image Processing
+Pillow==10.2.0
+
+# Date/Time
+pytz==2024.1
+
+# Environment & Config
+python-dotenv==1.0.1
+pyyaml>=6.0.1
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+
+# Security
+cryptography>=42.0.0
+
+# Monitoring & Logging
+structlog>=24.1.0
+
+# Development
+black>=24.1.0  # Code formatting
+isort>=5.13.0  # Import sorting
+flake8>=7.0.0  # Linting
