@@ -31,12 +31,13 @@ DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN must be set in environment variables")
 
-# OpenRouter Configuration
+# API Keys
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
-if not OPENROUTER_API_KEY:
-    raise ValueError("OPENROUTER_API_KEY must be set in environment variables")
-
 OPENROUTER_API_BASE = os.getenv('OPENROUTER_API_BASE', 'https://openrouter.ai/api/v1')
+OPENPIPE_API_KEY = os.getenv('OPENPIPE_API_KEY')
+OPENPIPE_API_URL = os.getenv('OPENPIPE_API_URL', 'https://api.openpipe.ai/api/v1')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+HELICONE_API_KEY = os.getenv('HELICONE_API_KEY')
 
 # Web Dashboard Configuration
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
@@ -54,6 +55,22 @@ DATABASE_PATH = str(DATABASE_DIR / 'interaction_logs.db')
 DEFAULT_CONTEXT_WINDOW = 50
 MAX_CONTEXT_WINDOW = 500
 CONTEXT_WINDOWS = {}  # Will be populated at runtime
+
+# Error Messages
+ERROR_MESSAGES = {
+    'rate_limit': "Rate limit exceeded. Please try again in a moment.",
+    'api_error': "API error occurred. Please try again later.",
+    'validation_error': "Invalid input. Please check your request.",
+    'not_found': "Resource not found.",
+    'unauthorized': "Unauthorized access.",
+    'server_error': "Internal server error occurred."
+}
+
+# Content Filtering
+BLOCKED_KEYWORDS = [
+    'blocked_word_1',
+    'blocked_word_2'
+]  # Add actual blocked words as needed
 
 # Webhook Configuration
 def load_webhooks() -> list:
