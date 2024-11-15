@@ -13,7 +13,7 @@ class MinistralCog(BaseCog):
             trigger_words=['ministral'],
             model="mistralai/ministral-3b",
             provider="openrouter",
-            prompt_file="ministral_prompts",
+            prompt_file="consolidated_prompts",
             supports_vision=False
         )
         logging.debug(f"[Ministral] Initialized with raw_prompt: {self.raw_prompt}")
@@ -93,7 +93,7 @@ class MinistralCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="ministral_prompts"
+                    prompt_file="consolidated_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -113,7 +113,7 @@ class MinistralCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="ministral_prompts"
+                        prompt_file="consolidated_prompts"
                     )
                     return response_stream
                 except Exception as e:

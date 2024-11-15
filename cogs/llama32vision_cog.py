@@ -13,7 +13,7 @@ class Llama32VisionCog(BaseCog):
             trigger_words=['llamavision', 'describe image', 'what is this image'],
             model="meta-llama/llama-3.2-90b-vision-instruct:free",
             provider="openrouter",
-            prompt_file="llama32_vision_prompts",
+            prompt_file="consolidated_prompts",
             supports_vision=True
         )
         logging.debug(f"[Llama-3.2-Vision] Initialized with raw_prompt: {self.raw_prompt}")
@@ -93,7 +93,7 @@ class Llama32VisionCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="llama32_vision_prompts"
+                    prompt_file="consolidated_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -113,7 +113,7 @@ class Llama32VisionCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="llama32_vision_prompts"
+                        prompt_file="consolidated_prompts"
                     )
                     return response_stream
                 except Exception as e:

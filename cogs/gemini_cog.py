@@ -13,7 +13,7 @@ class GeminiCog(BaseCog):
             trigger_words=['gemini'],
             model="google/gemini-pro-1.5-exp",
             provider="openrouter",
-            prompt_file="gemini_prompts",
+            prompt_file="consolidated_prompts",
             supports_vision=False
         )
         logging.debug(f"[Gemini] Initialized with raw_prompt: {self.raw_prompt}")
@@ -93,7 +93,7 @@ class GeminiCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="gemini_prompts"
+                    prompt_file="consolidated_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -113,7 +113,7 @@ class GeminiCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="gemini_prompts"
+                        prompt_file="consolidated_prompts"
                     )
                     return response_stream
                 except Exception as e:

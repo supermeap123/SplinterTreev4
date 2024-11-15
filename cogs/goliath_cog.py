@@ -13,7 +13,7 @@ class GoliathCog(BaseCog):
             trigger_words=['120b', 'goliath'],
             model="alpindale/goliath-120b",
             provider="openrouter",
-            prompt_file="goliath_prompts",
+            prompt_file="consolidated_prompts",
             supports_vision=False
         )
         logging.debug(f"[Goliath] Initialized with raw_prompt: {self.raw_prompt}")
@@ -93,7 +93,7 @@ class GoliathCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="goliath_prompts"
+                    prompt_file="consolidated_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -113,7 +113,7 @@ class GoliathCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="goliath_prompts"
+                        prompt_file="consolidated_prompts"
                     )
                     return response_stream
                 except Exception as e:

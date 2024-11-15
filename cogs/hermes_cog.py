@@ -13,7 +13,7 @@ class HermesCog(BaseCog):
             trigger_words=['hermes'],
             model="nousresearch/hermes-3-llama-3.1-405b:free",
             provider="openrouter",
-            prompt_file="hermes_prompts",
+            prompt_file="consolidated_prompts",
             supports_vision=False
         )
         logging.debug(f"[Hermes] Initialized with raw_prompt: {self.raw_prompt}")
@@ -93,7 +93,7 @@ class HermesCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="hermes_prompts"
+                    prompt_file="consolidated_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -113,7 +113,7 @@ class HermesCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="hermes_prompts"
+                        prompt_file="consolidated_prompts"
                     )
                     return response_stream
                 except Exception as e:
