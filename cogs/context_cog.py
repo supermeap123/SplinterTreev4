@@ -270,8 +270,12 @@ class ContextCog(commands.Cog):
     async def on_message(self, message):
         """Listen for messages and add them to context"""
         try:
-            # Skip command messages
-            if message.content.startswith('!'):
+            # Skip command messages and messages from the bot itself
+            if message.content.startswith('!') or message.author.id == self.bot.user.id:
+                return
+
+            # Skip messages that are model responses (starting with [ModelName])
+            if message.content.startswith('[') and ']' in message.content:
                 return
 
             # Add message to context with username prefix
