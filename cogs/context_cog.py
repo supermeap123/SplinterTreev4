@@ -26,7 +26,7 @@ class ContextCog(commands.Cog):
         # Track which channels have had their history loaded
         self.loaded_channels = set()
         # Track message parts for handling split messages
-        self.message_parts = {}  # Format: {channel_id: {'message_id': [parts]}}
+        self.message_parts = {}  # Format: {channel_id: {model_name: {'parts': [], 'last_update': datetime}}}
 
     def _setup_database(self):
         """Initialize the SQLite database for interaction logs"""
@@ -159,60 +159,74 @@ class ContextCog(commands.Cog):
             if not content or content.isspace():
                 return
 
-            # Handle split messages
+            # Initialize channel in message_parts if not exists
             if channel_id not in self.message_parts:
                 self.message_parts[channel_id] = {}
-            
-            # If this is a continuation of a split message
+
+            # Handle streamed assistant messages
             if is_assistant and content.startswith('[') and ']' in content:
                 model_name = content[1:content.index(']')]
                 actual_content = content[content.index(']')+1:].strip()
-                
-                # Check if we have previous parts for this message
-                for msg_id, parts in self.message_parts[channel_id].items():
-                    if parts['model'] == model_name and (datetime.now() - parts['last_update']).seconds < 5:
-                        # Append this part
-                        parts['content'] += actual_content
-                        parts['last_update'] = datetime.now()
-                        return  # Don't add to database yet
-                
-                # If no existing message found, start a new one
-                self.message_parts[channel_id][message_id] = {
-                    'model': model_name,
-                    'content': actual_content,
-                    'last_update': datetime.now()
-                }
-                return  # Don't add to database yet
 
-            # Get username for the message
+                # Initialize or update model's message parts
+                if model_name not in self.message_parts[channel_id]:
+                    self.message_parts[channel_id][model_name] = {
+                        'parts': [],
+                        'last_update': datetime.now(),
+                        'message_id': message_id
+                    }
+                
+                # Add this part to the message
+                self.message_parts[channel_id][model_name]['parts'].append(actual_content)
+                self.message_parts[channel_id][model_name]['last_update'] = datetime.now()
+                
+                # Clean up old message parts and save completed messages
+                await self._cleanup_message_parts(channel_id, guild_id, user_id, is_assistant, persona_name, emotion)
+                return
+
+            # For non-streamed messages, get username and create prefixed content
             if is_assistant:
-                # For bot messages, content already has [ModelName] prefix
                 prefixed_content = content
             else:
-                # For user messages, get the username
                 try:
                     user = await self.bot.fetch_user(int(user_id))
                     username = user.display_name
                     prefixed_content = f"{username}: {content}"
                 except:
-                    # If we can't get the username, just use the content as-is
                     prefixed_content = content
-
-            # Clean up old message parts
-            current_time = datetime.now()
-            for channel in list(self.message_parts.keys()):
-                for msg_id in list(self.message_parts[channel].keys()):
-                    if (current_time - self.message_parts[channel][msg_id]['last_update']).seconds >= 5:
-                        # Add completed message to database
-                        completed_content = f"[{self.message_parts[channel][msg_id]['model']}] {self.message_parts[channel][msg_id]['content']}"
-                        await self._add_to_database(msg_id, channel, guild_id, user_id, completed_content, is_assistant, persona_name, emotion)
-                        del self.message_parts[channel][msg_id]
 
             # Add regular message to database
             await self._add_to_database(message_id, channel_id, guild_id, user_id, prefixed_content, is_assistant, persona_name, emotion)
 
         except Exception as e:
             logging.error(f"Failed to add message to context: {str(e)}")
+
+    async def _cleanup_message_parts(self, channel_id, guild_id, user_id, is_assistant, persona_name, emotion):
+        """Clean up old message parts and save completed messages"""
+        current_time = datetime.now()
+        for model_name in list(self.message_parts[channel_id].keys()):
+            message_data = self.message_parts[channel_id][model_name]
+            
+            # If it's been more than 2 seconds since the last update, consider the message complete
+            if (current_time - message_data['last_update']).seconds >= 2:
+                # Combine all parts into the complete message
+                complete_content = ''.join(message_data['parts'])
+                complete_message = f"[{model_name}] {complete_content}"
+                
+                # Save the complete message
+                await self._add_to_database(
+                    message_data['message_id'],
+                    channel_id,
+                    guild_id,
+                    user_id,
+                    complete_message,
+                    is_assistant,
+                    persona_name,
+                    emotion
+                )
+                
+                # Remove the completed message from tracking
+                del self.message_parts[channel_id][model_name]
 
     async def _add_to_database(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion):
         """Helper method to add a message to the database"""
@@ -274,10 +288,6 @@ class ContextCog(commands.Cog):
             if message.content.startswith('!') or message.author.id == self.bot.user.id:
                 return
 
-            # Skip messages that are model responses (starting with [ModelName])
-            if message.content.startswith('[') and ']' in message.content:
-                return
-
             # Add message to context with username prefix
             guild_id = str(message.guild.id) if message.guild else None
             await self.add_message_to_context(
@@ -285,7 +295,7 @@ class ContextCog(commands.Cog):
                 str(message.channel.id),
                 guild_id,
                 str(message.author.id),
-                message.content,  # Original content - username prefix added in add_message_to_context
+                message.content,
                 message.author.bot,  # is_assistant
                 None,   # persona_name
                 None    # emotion
