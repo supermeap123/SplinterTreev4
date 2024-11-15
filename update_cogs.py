@@ -158,7 +158,7 @@ COGS_CONFIG = {
         'model': 'google/gemini-pro-1.5-exp',
         'fallback_model': 'google/gemini-pro-1.5',
         'provider': 'openrouter',
-        'prompt_file': 'gemini_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Gemini',
         'qualified_name': 'Gemini'
@@ -171,7 +171,7 @@ COGS_CONFIG = {
         'model': 'nousresearch/hermes-3-llama-3.1-405b:free',
         'fallback_model': 'nousresearch/hermes-3-llama-3.1-405b',
         'provider': 'openrouter',
-        'prompt_file': 'hermes_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Hermes',
         'qualified_name': 'Hermes'
@@ -184,7 +184,7 @@ COGS_CONFIG = {
         'model': 'meta-llama/llama-3.2-90b-vision-instruct:free',
         'fallback_model': 'meta-llama/llama-3.2-90b-vision-instruct',
         'provider': 'openrouter',
-        'prompt_file': 'llama32_vision_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'True',
         'log_name': 'Llama-3.2-Vision',
         'qualified_name': 'Llama-3.2-Vision'
@@ -197,7 +197,7 @@ COGS_CONFIG = {
         'model': 'meta-llama/llama-3.1-405b-instruct:free',
         'fallback_model': 'meta-llama/llama-3.1-405b-instruct',
         'provider': 'openrouter',
-        'prompt_file': 'llama405b_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Llama-405b',
         'qualified_name': 'Llama-405b'
@@ -210,7 +210,7 @@ COGS_CONFIG = {
         'model': 'mistralai/ministral-3b',
         'fallback_model': '',
         'provider': 'openrouter',
-        'prompt_file': 'ministral_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Ministral',
         'qualified_name': 'Ministral'
@@ -223,7 +223,7 @@ COGS_CONFIG = {
         'model': 'raifle/sorcererlm-8x22b',
         'fallback_model': '',
         'provider': 'openrouter',
-        'prompt_file': 'sorcerer_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Sorcerer',
         'qualified_name': 'Sorcerer'
@@ -236,7 +236,7 @@ COGS_CONFIG = {
         'model': 'alpindale/goliath-120b',
         'fallback_model': '',
         'provider': 'openrouter',
-        'prompt_file': 'goliath_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Goliath',
         'qualified_name': 'Goliath'
@@ -249,7 +249,7 @@ COGS_CONFIG = {
         'model': 'cognitivecomputations/dolphin-mixtral-8x22b',
         'fallback_model': '',
         'provider': 'openrouter',
-        'prompt_file': 'dolphin_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Dolphin',
         'qualified_name': 'Dolphin'
@@ -262,7 +262,7 @@ COGS_CONFIG = {
         'model': 'perplexity/llama-3.1-sonar-small-128k-online',
         'fallback_model': 'perplexity/llama-3.1-sonar-large-128k-online',
         'provider': 'openrouter',
-        'prompt_file': 'sonar_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Sonar',
         'qualified_name': 'Sonar'
@@ -275,7 +275,7 @@ COGS_CONFIG = {
         'model': 'anthropic/claude-3-5-sonnet:beta',
         'fallback_model': '',
         'provider': 'openrouter',
-        'prompt_file': 'sonnet_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Sonnet',
         'qualified_name': 'Sonnet'
@@ -288,7 +288,7 @@ COGS_CONFIG = {
         'model': 'meta-llama/llama-3.1-405b-instruct:free',
         'fallback_model': 'meta-llama/llama-3.1-405b-instruct',
         'provider': 'openrouter',
-        'prompt_file': 'sydney_prompts',
+        'prompt_file': 'consolidated_prompts',
         'supports_vision': 'False',
         'log_name': 'Sydney',
         'qualified_name': 'Sydney'
