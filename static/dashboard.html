@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SplinterTree Dashboard</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* Status Control Section */
+        .status-control {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .status-form {
+            margin-top: 15px;
+        }
+        .status-form input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .button-group button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        .button-group button[type="submit"] {
+            background: #3498db;
+            color: white;
+        }
+        .button-group button[type="button"] {
+            background: #e74c3c;
+            color: white;
+        }
+        .button-group button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #34495e;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        /* Recent Activity */
+        .recent-activity {
+            margin-top: 30px;
+        }
+        .activity-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌳 SplinterTree Dashboard</h1>
+        
+        <!-- Status Control Section -->
+        <div class="status-control">
+            <h3>Bot Status</h3>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="uptime-toggle" onchange="toggleUptime()" {{ 'checked' if show_uptime else '' }}>
+                    <span class="toggle-slider"></span>
+                </label>
+                <span>Show Uptime in Status</span>
+            </div>
+            
+            <form action="/set_status" method="POST" class="status-form">
+                <input type="text" name="status" placeholder="Enter custom status..." value="{{ manual_status or '' }}">
+                <div class="button-group">
+                    <button type="submit">Set Status</button>
+                    <button type="button" onclick="clearStatus()" {{ 'disabled' if not manual_status }}>Clear Status</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Messages</h3>
+                <div class="stat-value" id="total-messages">{{ stats.total_messages }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Channels</h3>
+                <div class="stat-value" id="active-channels">{{ stats.active_channels }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Messages Today</h3>
+                <div class="stat-value" id="messages-today">{{ stats.messages_today }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Most Active Model</h3>
+                <div class="stat-value" id="most-active-model">{{ stats.most_active_model }}</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h2>Recent Activity</h2>
+            <div id="recent-activity-container">
+                {% for activity in recent_activity %}
+                <div class="activity-item">
+                    <span class="timestamp">{{ activity.timestamp }}</span>
+                    <br>
+                    {{ activity.content }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-update stats every 5 seconds
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('total-messages').textContent = data.total_messages;
+                document.getElementById('active-channels').textContent = data.active_channels;
+                document.getElementById('messages-today').textContent = data.messages_today;
+                document.getElementById('most-active-model').textContent = data.most_active_model;
+
+                const activityContainer = document.getElementById('recent-activity-container');
+                activityContainer.innerHTML = '';
+                data.recent_activity.forEach(activity => {
+                    const div = document.createElement('div');
+                    div.className = 'activity-item';
+                    div.innerHTML = `
+                        <span class="timestamp">${activity.timestamp}</span>
+                        <br>
+                        ${activity.content}
+                    `;
+                    activityContainer.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }, 5000);
+
+        // Toggle uptime display
+        async function toggleUptime() {
+            const checked = document.getElementById('uptime-toggle').checked;
+            try {
+                const response = await fetch('/api/toggle_uptime', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        enabled: checked
+                    })
+                });
+                if (!response.ok) throw new Error('Failed to toggle uptime');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to update setting');
+            }
+        }
+
+        // Clear manual status
+        async function clearStatus() {
+            try {
+                const response = await fetch('/api/clear_status', {
+                    method: 'POST'
+                });
+                if (!response.ok) throw new Error('Failed to clear status');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to clear status');
+            }
+        }
+    </script>
+</body>
+</html>

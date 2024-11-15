@@ -1,3 +1,7 @@
+"""
+Help cog providing command documentation and channel management.
+Integrates with unified cog for model information and webhook functionality.
+"""
 import discord
 from discord.ext import commands
 import logging
@@ -50,26 +54,30 @@ class HelpCog(commands.Cog, name="Help"):
             logging.error(f"[Help] Error saving activated channels: {e}")
 
     def get_all_models(self):
-        """Get all models and their details from registered cogs"""
+        """Get all models and their details from the unified cog"""
         models = []
         vision_models = []
 
-        for cog in self.bot.cogs.values():
-            if hasattr(cog, 'name') and hasattr(cog, 'model') and cog.name not in ["Help", "Context"]:
-                model_info = {
-                    'name': cog.name,
-                    'nickname': getattr(cog, 'nickname', cog.name),
-                    'trigger_words': getattr(cog, 'trigger_words', []),
-                    'supports_vision': getattr(cog, 'supports_vision', False),
-                    'model': getattr(cog, 'model', 'Unknown'),
-                    'provider': getattr(cog, 'provider', 'Unknown'),
-                    'description': getattr(cog, 'description', '')
-                }
+        unified_cog = self.bot.get_cog('UnifiedCog')
+        if not unified_cog:
+            logging.error("[Help] UnifiedCog not found")
+            return [], []
 
-                if model_info['supports_vision']:
-                    vision_models.append(model_info)
-                else:
-                    models.append(model_info)
+        for model_id, config in unified_cog.model_config.items():
+            model_info = {
+                'name': config['name'],
+                'nickname': config.get('nickname', config['name']),
+                'trigger_words': config['trigger_words'],
+                'supports_vision': config.get('supports_vision', False),
+                'model': config['model'],
+                'provider': 'openrouter',
+                'description': ', '.join(config['keywords']) if 'keywords' in config else ''
+            }
+
+            if model_info['supports_vision']:
+                vision_models.append(model_info)
+            else:
+                models.append(model_info)
 
         return vision_models, models
 
@@ -86,7 +94,7 @@ class HelpCog(commands.Cog, name="Help"):
                 help_text += f"  *Triggers:* {triggers}\n"
                 help_text += f"  *Special:* Can analyze images and provide descriptions\n"
                 if model['description']:
-                    help_text += f"  *Description:* {model['description']}\n\n"
+                    help_text += f"  *Keywords:* {model['description']}\n\n"
                 else:
                     help_text += "\n"
 
@@ -98,7 +106,7 @@ class HelpCog(commands.Cog, name="Help"):
                 help_text += f"• **{model['name']}** [{model['model']} via {model['provider']}]\n"
                 help_text += f"  *Triggers:* {triggers}\n"
                 if model['description']:
-                    help_text += f"  *Description:* {model['description']}\n\n"
+                    help_text += f"  *Keywords:* {model['description']}\n\n"
                 else:
                     help_text += "\n"
 
@@ -128,59 +136,42 @@ class HelpCog(commands.Cog, name="Help"):
 
             help_message = f"""{model_list}
 **📝 Special Features:**
-• **Multi-Model Support** - Access to various AI models through OpenRouter and OpenPipe
+• **Multi-Model Support** - Access to various AI models through OpenRouter
 • **Streaming Responses** - Real-time response streaming for natural conversation flow
 • **Shared Context Database** - Models share conversation history for better context
-• **Universal Image Processing** - Automatic image description and analysis for all models
+• **Universal Image Processing** - Automatic image description and analysis
 • **File Handling** - Support for text files and images
-• **Response Reroll** - Click the 🎲 button to get a different response
 • **Emotion Analysis** - Reactions based on message sentiment
-• **Status Updates** - Rotating status showing uptime, last interaction, and current model
+• **Status Updates** - Rotating status showing uptime and current model
 • **Dynamic System Prompts** - Customizable per-channel system prompts with variable support
-• **Agent Cloning** - Create custom variants of existing agents with unique system prompts
-• **PST Timezone Preference** - All time-related operations use Pacific Standard Time (PST) by default
-• **User ID Resolution** - Automatically resolves Discord user IDs to usernames in messages
-• **Attachment-Only Processing** - Handles messages containing only attachments (images, text files)
-• **Automatic Database Initialization** - Schema is automatically applied on bot startup
-• **Improved Error Handling and Logging** - Enhanced error reporting for better troubleshooting
-• **OpenPipe Request Reporting** - Automatic logging for analysis and model improvement
-• **Message ID Tracking** - Prevents duplicate messages by tracking processed message IDs
-• **Webhook Integration** - Send LLM responses to Discord webhooks using !hook command
+• **PST Timezone Preference** - All time-related operations use Pacific Standard Time (PST)
+• **User ID Resolution** - Automatically resolves Discord user IDs to usernames
+• **Attachment Processing** - Handles images and text files
+• **Webhook Integration** - Send responses through Discord webhooks
+• **Flexible Context Window** - Adjustable context size from 50 to 500 messages
 
 **💡 Tips:**
-1. Models will respond when you mention their trigger words
-2. Each model has unique strengths - try different ones for different tasks
-3. For private responses, format your message like: ||your message here||
-4. Images are automatically analyzed when sent with messages
-5. Use the reroll button to get alternative responses if needed
-6. Manage conversation context with `!setcontext`, `!getcontext`, and `!resetcontext`
-7. Clone agents to create custom AI assistants tailored to your needs
-8. Use system prompt variables for dynamic and personalized prompts
-9. Use `!router_activate` in a channel to make the Router respond to all messages
-10. DMs with the bot are automatically handled by the Router
-11. Use `!hook` to send responses through configured Discord webhooks
+1. Models respond to their trigger words or when mentioned
+2. Each model has unique strengths - check their keywords
+3. Images are automatically analyzed by vision-capable models
+4. Use `!setcontext` to adjust conversation history length
+5. Use `!activate` to make the bot respond to all messages
+6. Use `!hook` to send responses through webhooks
+7. DMs with the bot are automatically handled
 
 **Available Commands:**
 • `!help` - Show this help message
 • `!listmodels` - Show all available models (simple list)
 • `!list_agents` - Show all available agents with detailed info
-• `!uptime` - Show how long the bot has been running
 • `!set_system_prompt <agent> <prompt>` - Set a custom system prompt for an AI agent
 • `!reset_system_prompt <agent>` - Reset an AI agent's system prompt to default
-• `!clone_agent <agent> <new_name> <system_prompt>` - Create a new agent based on an existing one (Admin only)
-• `!setcontext <size>` - Set the number of previous messages to include in context (Admin only)
+• `!setcontext <size>` - Set context window size (50-500 messages)
 • `!getcontext` - View current context window size
-• `!resetcontext` - Reset context window to default size (Admin only)
-• `!clearcontext [hours]` - Clear conversation history, optionally specify hours
-• `!summarize` - Force create a summary for the current channel (Admin only)
-• `!getsummaries [hours]` - View chat summaries for specified hours (default: 24)
-• `!clearsummaries [hours]` - Clear chat summaries, optionally specify hours (Admin only)
-• `!router_activate` - Make Router respond to all messages in the current channel (Admin only)
-• `!router_deactivate` - Stop Router from responding to all messages in the current channel (Admin only)
-• `!hook <message>` - Send an LLM response through configured Discord webhooks
-• `!channel_activate` - Activate the bot to respond to every message in the current channel (Admin only)
-• `!channel_deactivate` - Deactivate the bot's response to every message in the current channel (Admin only)
-• `!list_activated` - List all activated channels in the current server (Admin only)
+• `!resetcontext` - Reset context window to default size
+• `!hook <message>` - Send an LLM response through webhooks
+• `!activate` - Make bot respond to all messages in current channel
+• `!deactivate` - Stop bot from responding to all messages
+• `!list_activated` - List all activated channels
 
 **System Prompt Variables:**
 When setting custom system prompts, you can use these variables:
@@ -227,7 +218,7 @@ When setting custom system prompts, you can use these variables:
                 if model['supports_vision']:
                     description += "*Supports vision and can analyze images.*\n"
                 if model['description']:
-                    description += f"**Description:** {model['description']}\n"
+                    description += f"**Keywords:** {model['description']}\n"
                 embed.add_field(name=model['name'], value=description, inline=False)
             await ctx.send(embed=embed)
             logging.info(f"[Help] Sent agent list to user {ctx.author.name}")
@@ -243,174 +234,27 @@ When setting custom system prompts, you can use these variables:
             return
 
         if DEBUG_LOGGING:
-            logging.info(f"[WebhookCog] Processing hook command: {content}")
+            logging.info(f"[Help] Processing hook command: {content}")
 
         # Create a copy of the message with the content
         message = discord.Message.__new__(discord.Message)
         message.__dict__.update(ctx.message.__dict__)
         message.content = content
 
-        # Find an appropriate LLM cog to handle the message
-        response = None
-        used_cog = None
-        
-        # Try router cog first if available
-        router_cog = self.bot.get_cog('RouterCog')
-        if router_cog:
-            try:
-                # Let router handle the message
-                await router_cog.handle_message(message)
-                # Get the last message sent by the bot in this channel
-                async for msg in ctx.channel.history(limit=10):
-                    if msg.author == self.bot.user and msg.content.startswith('['):
-                        response = msg.content
-                        used_cog = router_cog
-                        break
-            except Exception as e:
-                logging.error(f"[WebhookCog] Error using router: {str(e)}")
+        # Get unified cog
+        unified_cog = self.bot.get_cog('UnifiedCog')
+        if not unified_cog:
+            await ctx.reply("❌ UnifiedCog not found")
+            return
 
-        # If router didn't work, try direct cog matching
-        if not response:
-            for cog in self.bot.cogs.values():
-                if hasattr(cog, 'trigger_words') and hasattr(cog, 'handle_message'):
-                    msg_content = content.lower()
-                    if any(word in msg_content for word in cog.trigger_words):
-                        try:
-                            # Let the cog handle the message
-                            await cog.handle_message(message)
-                            # Get the last message sent by the bot in this channel
-                            async for msg in ctx.channel.history(limit=10):
-                                if msg.author == self.bot.user and msg.content.startswith('['):
-                                    response = msg.content
-                                    used_cog = cog
-                                    break
-                        except Exception as e:
-                            logging.error(f"[WebhookCog] Error with cog {cog.__class__.__name__}: {str(e)}")
-
-        if response:
-            # Send to webhooks
-            success = await self.broadcast_to_webhooks(response)
-            
-            if success:
-                await ctx.message.add_reaction('✅')
-            else:
-                await ctx.message.add_reaction('❌')
-                await ctx.reply("❌ Failed to send message to webhooks")
-        else:
-            await ctx.reply("❌ No LLM cog responded to the message")
-
-    @commands.command(name='router_activate')
-    @commands.has_permissions(manage_messages=True)
-    async def router_activate(self, ctx):
-        """Make Router respond to all messages in the current channel"""
         try:
-            router_cog = self.bot.get_cog('RouterCog')
-            if router_cog:
-                channel_id = str(ctx.channel.id)
-                router_cog.activate_channel(channel_id)
-                await ctx.reply("✅ Router activated for this channel")
-            else:
-                await ctx.reply("❌ Router cog not found")
+            # Let unified cog handle the message
+            await unified_cog.handle_message(message)
+            await ctx.message.add_reaction('✅')
         except Exception as e:
-            logging.error(f"[Help] Error activating router: {str(e)}")
-            await ctx.reply("❌ Failed to activate router")
-
-    @commands.command(name='router_deactivate')
-    @commands.has_permissions(manage_messages=True)
-    async def router_deactivate(self, ctx):
-        """Stop Router from responding to all messages in the current channel"""
-        try:
-            router_cog = self.bot.get_cog('RouterCog')
-            if router_cog:
-                channel_id = str(ctx.channel.id)
-                router_cog.deactivate_channel(channel_id)
-                await ctx.reply("✅ Router deactivated for this channel")
-            else:
-                await ctx.reply("❌ Router cog not found")
-        except Exception as e:
-            logging.error(f"[Help] Error deactivating router: {str(e)}")
-            await ctx.reply("❌ Failed to deactivate router")
-
-    @commands.command(name="channel_activate", aliases=["st_activate"])
-    @commands.has_permissions(manage_messages=True)
-    async def activate_channel(self, ctx):
-        """Activate the bot to respond to every message in the current channel"""
-        try:
-            guild_id = str(ctx.guild.id) if ctx.guild else "dm"
-            channel_id = str(ctx.channel.id)
-
-            logging.info(f"[Help] Activating channel {channel_id} in guild {guild_id}")
-
-            # Initialize guild dict if needed
-            if guild_id not in self.activated_channels:
-                self.activated_channels[guild_id] = {}
-
-            # Add the channel
-            self.activated_channels[guild_id][channel_id] = True
-            self.save_activated_channels()
-
-            # Reload activated channels in RouterCog
-            router_cog = self.bot.get_cog('RouterCog')
-            if router_cog:
-                router_cog.activated_channels = self.activated_channels
-                logging.info(f"[Help] Updated RouterCog activated channels: {router_cog.activated_channels}")
-
-            await ctx.reply("✅ Bot will now respond to every message in this channel.")
-        except Exception as e:
-            logging.error(f"[Help] Error activating channel: {e}")
-            await ctx.reply("❌ Failed to activate channel. Please try again.")
-
-    @commands.command(name="channel_deactivate", aliases=["st_deactivate"])
-    @commands.has_permissions(manage_messages=True)
-    async def channel_deactivate(self, ctx):
-        """Deactivate the bot's response to every message in the current channel"""
-        try:
-            guild_id = str(ctx.guild.id) if ctx.guild else "dm"
-            channel_id = str(ctx.channel.id)
-
-            logging.info(f"[Help] Deactivating channel {channel_id} in guild {guild_id}")
-
-            # Remove the channel if it exists
-            if (guild_id in self.activated_channels and 
-                channel_id in self.activated_channels[guild_id]):
-                del self.activated_channels[guild_id][channel_id]
-                
-                # Clean up empty guild dict
-                if not self.activated_channels[guild_id]:
-                    del self.activated_channels[guild_id]
-                
-                self.save_activated_channels()
-
-                # Reload activated channels in RouterCog
-                router_cog = self.bot.get_cog('RouterCog')
-                if router_cog:
-                    router_cog.activated_channels = self.activated_channels
-                    logging.info(f"[Help] Updated RouterCog activated channels: {router_cog.activated_channels}")
-
-                await ctx.reply("✅ Bot will no longer respond to every message in this channel.")
-            else:
-                await ctx.reply("❌ This channel was not previously activated.")
-        except Exception as e:
-            logging.error(f"[Help] Error deactivating channel: {e}")
-            await ctx.reply("❌ Failed to deactivate channel. Please try again.")
-
-    @commands.command(name="list_activated", aliases=["st_list_activated"])
-    @commands.has_permissions(manage_messages=True)
-    async def list_activated_channels(self, ctx):
-        """List all activated channels"""
-        try:
-            guild_id = str(ctx.guild.id) if ctx.guild else "dm"
-            
-            if guild_id in self.activated_channels and self.activated_channels[guild_id]:
-                activated_channels = list(self.activated_channels[guild_id].keys())
-                channel_mentions = [f"<#{channel_id}>" for channel_id in activated_channels]
-                
-                await ctx.reply("Activated channels:\n" + "\n".join(channel_mentions))
-            else:
-                await ctx.reply("No channels are currently activated in this server.")
-        except Exception as e:
-            logging.error(f"[Help] Error listing activated channels: {e}")
-            await ctx.reply("❌ Failed to list activated channels. Please try again.")
+            logging.error(f"[Help] Error processing hook command: {e}")
+            await ctx.message.add_reaction('❌')
+            await ctx.reply("❌ Failed to process message")
 
     @commands.command(name="set_system_prompt", aliases=["st_set_system_prompt"])
     @commands.has_permissions(manage_messages=True)
@@ -493,10 +337,7 @@ When setting custom system prompts, you can use these variables:
             await ctx.reply("❌ Failed to reset system prompt. Please try again.")
 
     async def send_to_webhook(self, webhook_url: str, content: str, retries: int = 0) -> bool:
-        """
-        Send content to a Discord webhook
-        Returns True if successful, False otherwise
-        """
+        """Send content to a Discord webhook"""
         if retries >= MAX_RETRIES:
             logging.error(f"[Help] Max retries reached for webhook")
             return False
@@ -521,22 +362,9 @@ When setting custom system prompts, you can use these variables:
             logging.error(f"[Help] Error sending to webhook: {str(e)}")
             return False
 
-    async def broadcast_to_webhooks(self, content: str) -> bool:
-        """
-        Broadcast content to all configured webhooks
-        Returns True if at least one webhook succeeded
-        """
-        if not self.webhooks:
-            if DEBUG_LOGGING:
-                logging.warning("[Help] No webhooks configured")
-            return False
-
-        success = False
-        for webhook_url in self.webhooks:
-            result = await self.send_to_webhook(webhook_url, content)
-            success = success or result
-
-        return success
+    def cog_unload(self):
+        """Cleanup when cog is unloaded"""
+        asyncio.create_task(self.session.close())
 
 async def setup(bot):
     try:

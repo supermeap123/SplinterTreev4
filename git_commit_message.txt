@@ -1,5 +1,0 @@
-Allow messages from other bots to be processed
-
-- Overrode `process_commands` to allow processing commands from bot messages
-- This enables the bot to interact with and process messages from other bots
-- Maintains existing message handling logic

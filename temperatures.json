@@ -1,15 +1,14 @@
 {
-    "Claude-1.1": 0.7,
-    "Claude-2": 0.8,
     "Claude-3-Opus": 0.9,
     "Claude-3.5-Sonnet": 0.85,
-    "Grok": 0.9,
-    "Gemini": 0.6,
     "Gemini-Pro": 0.7,
-    "Liquid": 0.7,
-    "MOA": 0.8,
-    "Inferor": 0.7,
-    "Goliath": 0.8,
     "Mixtral": 0.7,
-    "Sonar": 0.7
+    "Llama-3.2": 0.7,
+    "Dolphin": 0.7,
+    "Sonar": 0.7,
+    "Goliath": 0.8,
+    "Hermes": 0.7,
+    "Llama-405b": 0.7,
+    "Sydney": 0.7,
+    "Sorcerer": 0.7
 }
