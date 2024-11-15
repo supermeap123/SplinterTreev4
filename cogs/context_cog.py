@@ -25,6 +25,8 @@ class ContextCog(commands.Cog):
         self.last_messages = {}  # Format: {channel_id: {'user': msg, 'assistant': msg}}
         # Track which channels have had their history loaded
         self.loaded_channels = set()
+        # Track message parts for handling split messages
+        self.message_parts = {}  # Format: {channel_id: {'message_id': [parts]}}
 
     def _setup_database(self):
         """Initialize the SQLite database for interaction logs"""
@@ -43,7 +45,7 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to set up database: {str(e)}")
 
     async def _load_channel_history(self, channel_id: str):
-        """Load the last 50 messages from a Discord channel into the context database"""
+        """Load the last 100 messages from a Discord channel into the context database"""
         try:
             if channel_id in self.loaded_channels:
                 return
@@ -54,7 +56,7 @@ class ContextCog(commands.Cog):
                 return
 
             messages = []
-            async for message in channel.history(limit=50, oldest_first=True):
+            async for message in channel.history(limit=100, oldest_first=True):
                 if not message.content.startswith('!'):  # Skip commands
                     messages.append(message)
 
@@ -86,8 +88,8 @@ class ContextCog(commands.Cog):
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # Always get 50 messages for API context
-                window_size = 50
+                # Increased window size to 100 messages for better context
+                window_size = 100
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
@@ -127,17 +129,8 @@ class ContextCog(commands.Cog):
                     if not content or content.isspace():
                         continue
                         
-                    # Skip if we've seen this exact content before
+                    # Only skip exact duplicates, removed similarity check
                     if content in seen_contents:
-                        continue
-                    
-                    # Skip if content is too similar to recent messages
-                    skip = False
-                    for prev_content in list(seen_contents)[-3:]:
-                        if self._similarity_score(content, prev_content) > 0.9:
-                            skip = True
-                            break
-                    if skip:
                         continue
                     
                     seen_contents.add(content)
@@ -159,22 +152,6 @@ class ContextCog(commands.Cog):
             logging.error(f"Failed to get context messages: {str(e)}")
             return []
 
-    def _similarity_score(self, str1: str, str2: str) -> float:
-        """Calculate similarity between two strings"""
-        # Simple length-based comparison for performance
-        if abs(len(str1) - len(str2)) / max(len(str1), len(str2)) > 0.3:
-            return 0.0
-        
-        # Convert to sets of words for comparison
-        set1 = set(str1.lower().split())
-        set2 = set(str2.lower().split())
-        
-        # Calculate Jaccard similarity
-        intersection = len(set1.intersection(set2))
-        union = len(set1.union(set2))
-        
-        return intersection / union if union > 0 else 0.0
-
     async def add_message_to_context(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name=None, emotion=None):
         """Add a message to the interaction logs"""
         try:
@@ -182,11 +159,30 @@ class ContextCog(commands.Cog):
             if not content or content.isspace():
                 return
 
-            # Check for duplicate content
-            last_msg = self.last_messages.get(channel_id, {}).get('assistant' if is_assistant else 'user')
-            if last_msg and last_msg['content'] == content:
-                logging.debug(f"Skipping duplicate message content in channel {channel_id}")
-                return
+            # Handle split messages
+            if channel_id not in self.message_parts:
+                self.message_parts[channel_id] = {}
+            
+            # If this is a continuation of a split message
+            if is_assistant and content.startswith('[') and ']' in content:
+                model_name = content[1:content.index(']')]
+                actual_content = content[content.index(']')+1:].strip()
+                
+                # Check if we have previous parts for this message
+                for msg_id, parts in self.message_parts[channel_id].items():
+                    if parts['model'] == model_name and (datetime.now() - parts['last_update']).seconds < 5:
+                        # Append this part
+                        parts['content'] += actual_content
+                        parts['last_update'] = datetime.now()
+                        return  # Don't add to database yet
+                
+                # If no existing message found, start a new one
+                self.message_parts[channel_id][message_id] = {
+                    'model': model_name,
+                    'content': actual_content,
+                    'last_update': datetime.now()
+                }
+                return  # Don't add to database yet
 
             # Get username for the message
             if is_assistant:
@@ -202,6 +198,25 @@ class ContextCog(commands.Cog):
                     # If we can't get the username, just use the content as-is
                     prefixed_content = content
 
+            # Clean up old message parts
+            current_time = datetime.now()
+            for channel in list(self.message_parts.keys()):
+                for msg_id in list(self.message_parts[channel].keys()):
+                    if (current_time - self.message_parts[channel][msg_id]['last_update']).seconds >= 5:
+                        # Add completed message to database
+                        completed_content = f"[{self.message_parts[channel][msg_id]['model']}] {self.message_parts[channel][msg_id]['content']}"
+                        await self._add_to_database(msg_id, channel, guild_id, user_id, completed_content, is_assistant, persona_name, emotion)
+                        del self.message_parts[channel][msg_id]
+
+            # Add regular message to database
+            await self._add_to_database(message_id, channel_id, guild_id, user_id, prefixed_content, is_assistant, persona_name, emotion)
+
+        except Exception as e:
+            logging.error(f"Failed to add message to context: {str(e)}")
+
+    async def _add_to_database(self, message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion):
+        """Helper method to add a message to the database"""
+        try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
@@ -212,24 +227,30 @@ class ContextCog(commands.Cog):
                 
                 existing = cursor.fetchone()
                 if existing:
-                    logging.debug(f"Message {message_id} already exists in context")
-                    return
-                
-                cursor.execute('''
-                INSERT INTO messages 
-                (discord_message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    str(message_id), 
-                    str(channel_id), 
-                    str(guild_id) if guild_id else None, 
-                    str(user_id), 
-                    prefixed_content,  # Store the prefixed content
-                    is_assistant, 
-                    persona_name, 
-                    emotion, 
-                    datetime.now().isoformat()
-                ))
+                    # Update existing message if content is different
+                    if existing[0] != content:
+                        cursor.execute('''
+                        UPDATE messages 
+                        SET content = ?
+                        WHERE discord_message_id = ?
+                        ''', (content, str(message_id)))
+                else:
+                    # Insert new message
+                    cursor.execute('''
+                    INSERT INTO messages 
+                    (discord_message_id, channel_id, guild_id, user_id, content, is_assistant, persona_name, emotion, timestamp)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        str(message_id), 
+                        str(channel_id), 
+                        str(guild_id) if guild_id else None, 
+                        str(user_id), 
+                        content,
+                        is_assistant, 
+                        persona_name, 
+                        emotion, 
+                        datetime.now().isoformat()
+                    ))
                 
                 conn.commit()
 
@@ -237,13 +258,13 @@ class ContextCog(commands.Cog):
             if channel_id not in self.last_messages:
                 self.last_messages[channel_id] = {}
             self.last_messages[channel_id]['assistant' if is_assistant else 'user'] = {
-                'content': prefixed_content,
+                'content': content,
                 'timestamp': datetime.now()
             }
 
-            logging.debug(f"Added message to context: {message_id} in channel {channel_id}")
+            logging.debug(f"Added/updated message in context: {message_id} in channel {channel_id}")
         except Exception as e:
-            logging.error(f"Failed to add message to context: {str(e)}")
+            logging.error(f"Failed to add message to database: {str(e)}")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -261,7 +282,7 @@ class ContextCog(commands.Cog):
                 guild_id,
                 str(message.author.id),
                 message.content,  # Original content - username prefix added in add_message_to_context
-                message.author.bot,  # is_assistant - now properly detecting bot messages
+                message.author.bot,  # is_assistant
                 None,   # persona_name
                 None    # emotion
             )
