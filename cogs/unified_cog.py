@@ -218,12 +218,14 @@ class UnifiedCog(commands.Cog):
                     continue
 
             try:
-                async for chunk in self.api_client.call_openrouter(
+                response = await self.api_client.call_openrouter(
                     messages=messages,
                     model=model,
                     temperature=model_config['temperature'],
                     stream=stream
-                ):
+                )
+                
+                async for chunk in response:
                     if chunk and 'content' in chunk:
                         yield chunk['content']
                         
@@ -254,7 +256,7 @@ class UnifiedCog(commands.Cog):
                     return config
 
             # Check for images - route to vision-capable model
-            if self.get_image_urls(message):
+            if await self.get_image_urls(message):
                 return self.model_config['gemini']
 
             # Format the routing prompt exactly as in router_cog.py
@@ -282,7 +284,7 @@ Model name:"""
 
             # Get routing response
             response = ""
-            async for chunk in self.make_api_request(
+            async for chunk in await self.make_api_request(
                 messages=messages,
                 model_config=self.model_config['ministral'],
                 stream=False
@@ -340,7 +342,7 @@ Model name:"""
             
         # Add images if present and model supports vision
         if model_config.get('supports_vision', False):
-            image_urls = self.get_image_urls(message)
+            image_urls = await self.get_image_urls(message)
             for url in image_urls:
                 content.append({
                     "type": "image_url",
@@ -359,47 +361,18 @@ Model name:"""
         """Generate response using OpenRouter API"""
         try:
             # Start typing indicator
-            await self.start_typing(message.channel)
+            await message.channel.typing()
             
             # Format messages with context
             messages = await self.format_messages_for_context(message, model_config)
             
-            # Try primary model first
-            try:
-                async for chunk in self.api_client.call_openrouter(
-                    messages=messages,
-                    model=model_config['model'],
-                    temperature=model_config['temperature'],
-                    stream=True,
-                    user_id=str(message.author.id),
-                    guild_id=str(message.guild.id) if message.guild else None
-                ):
-                    if chunk and 'content' in chunk:
-                        yield chunk['content']
-                return
-            except Exception as e:
-                logging.warning(f"[UnifiedRouter] Primary model failed: {e}")
-
-            # Try fallback model if available
-            fallback_model = model_config.get('fallback_model')
-            if fallback_model:
-                try:
-                    logging.info(f"[UnifiedRouter] Trying fallback model: {fallback_model}")
-                    async for chunk in self.api_client.call_openrouter(
-                        messages=messages,
-                        model=fallback_model,
-                        temperature=model_config['temperature'],
-                        stream=True,
-                        user_id=str(message.author.id),
-                        guild_id=str(message.guild.id) if message.guild else None
-                    ):
-                        if chunk and 'content' in chunk:
-                            yield chunk['content']
-                    return
-                except Exception as e:
-                    logging.error(f"[UnifiedRouter] Fallback model failed: {e}")
-
-            yield f"❌ Error: Failed to generate response with {model_config['name']}"
+            # Generate response
+            async for chunk in await self.make_api_request(
+                messages=messages,
+                model_config=model_config,
+                stream=True
+            ):
+                yield chunk
 
         except Exception as e:
             logging.error(f"[UnifiedRouter] Error generating response: {e}")
@@ -443,20 +416,12 @@ Model name:"""
                 if chunk:
                     response += chunk
                     
-            # Send through webhook if available
-            if self.webhooks:
-                success = False
-                for webhook_url in self.webhooks:
-                    if await self.send_to_webhook(webhook_url, response, model_config['name']):
-                        success = True
-                        break
-                        
-                if not success:
-                    # Fallback to regular message
-                    await message.channel.send(f"[{model_config['name']}] {response}")
-            else:
-                # No webhooks configured
-                await message.channel.send(f"[{model_config['name']}] {response}")
+            # Create webhook URL for this response
+            webhook = await message.channel.create_webhook(name=model_config['name'])
+            try:
+                await webhook.send(content=response)
+            finally:
+                await webhook.delete()
                 
             # Add to context
             if self.context_cog:
@@ -541,14 +506,7 @@ Model name:"""
         """Cleanup when cog is unloaded"""
         asyncio.create_task(self.session.close())
 
-    async def start_typing(self, channel):
-        """Start typing indicator in channel"""
-        try:
-            await channel.typing()
-        except Exception as e:
-            logging.error(f"[UnifiedRouter] Error starting typing: {e}")
-
-    def get_image_urls(self, message: discord.Message) -> List[str]:
+    async def get_image_urls(self, message: discord.Message) -> List[str]:
         """Get image URLs from message attachments and embeds"""
         urls = []
         
