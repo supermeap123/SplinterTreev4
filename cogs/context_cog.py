@@ -91,7 +91,7 @@ class ContextCog(commands.Cog):
                 if limit is not None:
                     window_size = min(window_size, limit)
                 
-                # Query to get messages from all users and cogs in chronological order
+                # Query to get messages from all users and cogs, getting most recent first
                 query = '''
                 SELECT 
                     m.discord_message_id,
@@ -106,7 +106,7 @@ class ContextCog(commands.Cog):
                 AND (? IS NULL OR m.discord_message_id != ?)
                 AND m.content IS NOT NULL
                 AND m.content != ''
-                ORDER BY m.timestamp ASC
+                ORDER BY m.timestamp DESC
                 LIMIT ?
                 '''
                 
@@ -151,6 +151,8 @@ class ContextCog(commands.Cog):
                         'timestamp': row[6]
                     })
                 
+                # Reverse the list to maintain chronological order
+                messages.reverse()
                 return messages
                 
         except Exception as e:
