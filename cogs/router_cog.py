@@ -41,37 +41,26 @@ class RouterCog(BaseCog):
 
         # Keywords that should bypass the router
         self.bypass_keywords = [
-            r'\b(use|switch to|try|with)\s+(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\b',
-            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\s+(please|now|instead)\b',
-            r'^(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)[,:]\s',
-            r'\b(gemini|magnum|sonar|sydney|goliath|pixtral|mixtral|claude3haiku|inferor|nemotron|noromaid|rplus|router|llama32_11b|llama32_90b|openchat|dolphin|gemma|ministral|liquid|hermes|unslopnemo)\b'  # Added to catch standalone model names
+            r'\b(use|switch to|try|with)\s+(dolphin|gemini|sonar|sydney|goliath|sonnet|hermes|sorcerer|llama32vision)\b',
+            r'\b(dolphin|gemini|sonar|sydney|goliath|sonnet|hermes|sorcerer|llama32vision)\s+(please|now|instead)\b',
+            r'^(dolphin|gemini|sonar|sydney|goliath|sonnet|hermes|sorcerer|llama32vision)[,:]\s',
+            r'\b(dolphin|gemini|sonar|sydney|goliath|sonnet|hermes|sorcerer|llama32vision)\b'  # Added to catch standalone model names
          ]
 
-        # Model mapping for routing
+        # Model mapping for routing - updated to reflect current cogs
         self.model_mapping = {
-            'Gemini': 'GeminiCog',
-            'Magnum': 'MagnumCog',
-            'Sonar': 'SonarCog',
-            'Sydney': 'SydneyCog',
-            'Goliath': 'GoliathCog',
-            'Pixtral': 'PixtralCog',
-            'Mixtral': 'MixtralCog',
-            'Claude3Haiku': 'Claude3HaikuCog',
-            'Inferor': 'InferorCog',
-            'Nemotron': 'NemotronCog',
-            'Noromaid': 'NoromaidCog',
-            'Rplus': 'RplusCog',
-            'Router': 'RouterCog',
-            'Llama32_11b': 'Llama32_11b_Cog',
-            'Llama32_90b': 'Llama32_90b_Cog',
-            'OpenChat': 'OpenChatCog',
             'Dolphin': 'DolphinCog',
-            'Gemma': 'GemmaCog',
-            'Ministral': 'MinistralCog',
-            'Ministeral': 'MinistralCog',
-            'Liquid': 'LiquidCog',
+            'Gemini': 'GeminiCog',
+            'Goliath': 'GoliathCog',
             'Hermes': 'HermesCog',
-            'UnslopNemo': 'UnslopNemoCog'  # Added UnslopNemo
+            'Llama32Vision': 'Llama32VisionCog',
+            'Llama405b': 'Llama405bCog',
+            'Ministral': 'MinistralCog',
+            'Router': 'RouterCog',
+            'Sonar': 'SonarCog',
+            'Sonnet': 'SonnetCog',
+            'Sorcerer': 'SorcererCog',
+            'Sydney': 'SydneyCog'
         }
 
         # Create case-insensitive lookup for model names
@@ -185,15 +174,17 @@ class RouterCog(BaseCog):
         variations = {
             'ministral': 'Ministral',
             'ministeral': 'Ministral',
-            'mistral': 'Ministral'
+            'mistral': 'Ministral',
+            'llama32_90b': 'Llama32Vision',
+            'llama32vision': 'Llama32Vision'
         }
         if cleaned_name in variations:
             canonical_name = variations[cleaned_name]
             logging.info(f"[Router] Normalized variation '{raw_model_name}' to '{canonical_name}'")
             return canonical_name
             
-        logging.warning(f"[Router] Could not normalize model name '{raw_model_name}', falling back to Liquid")
-        return 'Liquid'
+        logging.warning(f"[Router] Could not normalize model name '{raw_model_name}', falling back to Ministral")
+        return 'Ministral'
 
     async def determine_route(self, message: discord.Message) -> str:
         """Use OpenRouter inference to determine which model to route to"""
@@ -213,24 +204,11 @@ class RouterCog(BaseCog):
                     logging.error(f"[Router] Error getting context: {str(e)}")
 
             # Format the routing prompt
-            routing_prompt = f"""### UNIFIED PRODUCTION ROUTER v8.0 ###
+            routing_prompt = f"""### UNIFIED PRODUCTION ROUTER v9.0 ###
 Message: "{message.content}"
 Context: "{context}"
 
 [MODEL PATHS & STRENGTHS]
-
-ANALYTICAL PATHS
-├─ Gemini
-│  ├─ Strengths: Formal analysis, multilingual, research
-│  ├─ Best for: Academic writing, detailed explanations
-│  ├─ Context: Previous analysis, formal discussions
-│  └─ Token sweet spot: >200
-│
-└─ Magnum
-   ├─ Strengths: Casual analysis, creative expansion
-   ├─ Best for: Friendly explanations, brainstorming
-   ├─ Context: Informal discussion, idea generation
-   └─ Token sweet spot: 100-500
 
 REAL-TIME INFORMATION PATH
 └─ Sonar
@@ -239,131 +217,59 @@ REAL-TIME INFORMATION PATH
    ├─ Context: Modern queries, updates needed
    └─ Priority override: Latest info needs
 
-TECHNICAL PATHS
-├─ Nemotron
-│  ├─ Strengths: Complex code, system design
-│  ├─ Best for: Advanced technical, optimization
-│  ├─ Context: Development, architecture
-│  └─ Token sweet spot: >300
-│
-└─ Claude3Haiku
-   ├─ Strengths: Basic code, documentation
-   ├─ Best for: Quick help, examples
-   ├─ Context: Learning, basics
-   └─ Token sweet spot: <200
+DIVERSE CONVERSATION PATH
+└─ Dolphin
+   ├─ Strengths: Uncensored topics, open discussion
+   ├─ Best for: Controversial subjects, adult themes
+   ├─ Context: Mature conversations
+   └─ No content restrictions
 
-ROLEPLAY PATHS - EXTENDED
-├─ Epic Scale (Magnum/Noromaid)
-│  ├─ Token range: >1000
-│  ├─ Scenarios: Campaigns, wars, politics
-│  ├─ Context: Multi-character, complex plots
-│  └─ Triggers: "saga", "campaign", "epic"
-│
-├─ Complex Scenes (Noromaid/UnslopNemo)
-│  ├─ Token range: 500-1000
-│  ├─ Scenarios: Character development, relationships
-│  ├─ Context: Deep interaction, emotional
-│  └─ Triggers: "scene", "develop", "unfolds"
-│
-├─ Medium Interactions (UnslopNemo/Mixtral)
-│  ├─ Token range: 200-500
-│  ├─ Scenarios: Group scenes, dialogue
-│  ├─ Context: Social interaction, exploration
-│  └─ Triggers: "interact", "explore", "discuss"
-│
-└─ Quick Actions (Liquid)
-   ├─ Token range: <200
-   ├─ Scenarios: Combat turns, quick responses
-   ├─ Context: Immediate actions, reactions
-   └─ Triggers: "quickly", "reacts", "responds"
-
-EMOTIONAL SUPPORT PATHS
-├─ Sydney
-│  ├─ Strengths: Empathy, emotional intelligence
-│  ├─ Best for: Personal support, relationships
-│  ├─ Context: Emotional discussions
-│  └─ Token sweet spot: 100-400
-│
+MENTAL HEALTH PATH
 └─ Hermes
-   ├─ Strengths: Mental health, crisis support
-   ├─ Best for: Sensitive topics, emergency
-   ├─ Context: Support needs
+   ├─ Strengths: Crisis support, mental health
+   ├─ Best for: Emotional support, crisis intervention
+   ├─ Context: Support needs, emergencies
    └─ Priority override: Crisis detection
 
-[SEMANTIC CLOUDS & FUZZY MATCHING]
-
-RP COMPLEXITY TRIGGERS
-├─ Epic Scale
-│  ├─ Primary: [saga, campaign, epic, chronicle, legend]
-│  ├─ Action: [conquer, rule, lead, command, govern]
-│  ├─ Scope: [kingdom, empire, world, realm, dynasty]
-│  ├─ Politics: [intrigue, diplomacy, alliance, treaty]
-│  └─ Pattern: (?=.*\\b(epic|saga)\\b)(?=.*\\b(world|kingdom)\\b)
+ROLEPLAY PATHS
+├─ Sorcerer
+│  ├─ Strengths: Fantasy RP, character immersion
+│  ├─ Best for: Standard RP scenes, character play
+│  ├─ Context: Fantasy settings, adventures
+│  └─ Token sweet spot: 200-800
 │
-├─ Complex Scene
-│  ├─ Development: [growth, evolution, change, transform]
-│  ├─ Character: [personality, background, history, depth]
-│  ├─ Emotion: [feeling, sentiment, mood, atmosphere]
-│  └─ Pattern: (?=.*\\b(character|scene)\\b)(?=.*\\b(deep|complex)\\b)
+└─ Goliath
+   ├─ Strengths: Long-form stories, detailed plots
+   ├─ Best for: Extended narratives, complex RP
+   ├─ Context: Epic sagas, detailed worlds
+   └─ Token sweet spot: >800
+
+EMOTIONAL SUPPORT PATH
+└─ Sydney
+   ├─ Strengths: Empathy, friendship, companionship
+   ├─ Best for: Personal connection, emotional support
+   ├─ Context: Friendly chat, daily life
+   └─ Priority: High for emotional needs
+
+TECHNICAL PATH
+└─ Sonnet
+   ├─ Strengths: Code, software engineering
+   ├─ Best for: Technical tasks, programming
+   ├─ Context: Development, system design
+   └─ Token sweet spot: >300
+
+MULTIMODAL PATHS
+├─ Gemini
+│  ├─ Strengths: Complex vision tasks, detailed analysis
+│  ├─ Best for: Advanced image understanding
+│  ├─ Context: Complex instructions with images
+│  └─ Vision support: Yes
 │
-├─ Medium Scene
-│  ├─ Action: [interact, explore, investigate, discover]
-│  ├─ Social: [talk, discuss, meet, gather, convene]
-│  ├─ Movement: [travel, journey, walk, ride, traverse]
-│  └─ Pattern: (?=.*\\b(explore|interact)\\b)(?=.*\\b(group|party)\\b)
-│
-└─ Quick Action
-   ├─ Combat: [attack, defend, dodge, strike, parry]
-   ├─ Movement: [jump, run, dash, leap, sprint]
-   ├─ Response: [react, answer, reply, respond]
-   └─ Pattern: (?=.*\\b(quick|fast)\\b)(?=.*\\b(action|move)\\b)
-
-INFORMATION RECENCY TRIGGERS
-├─ Time Indicators
-│  ├─ Current: [now, present, ongoing, current, active]
-│  ├─ Recent: [latest, new, fresh, updated, modern]
-│  ├─ Trending: [popular, viral, hot, buzzing]
-│  └─ Pattern: (?=.*\\b(current|latest)\\b)|(?=.*\\b(now|trending)\\b)
-│
-└─ Update Needs
-   ├─ Status: [state, condition, situation, status]
-   ├─ Changes: [update, revision, modification, change]
-   ├─ News: [announcement, report, release, update]
-   └─ Pattern: (?=.*\\b(update|change)\\b)(?=.*\\b(status|news)\\b)
-
-TECHNICAL COMPLEXITY TRIGGERS
-├─ Advanced
-│  ├─ Code: [optimize, architect, design, implement]
-│  ├─ System: [infrastructure, framework, platform]
-│  ├─ Scale: [enterprise, distributed, scalable]
-│  └─ Pattern: (?=.*\\b(complex|advanced)\\b)(?=.*\\b(system|code)\\b)
-│
-└─ Basic
-   ├─ Help: [assist, guide, explain, show]
-   ├─ Learn: [understand, practice, begin, start]
-   ├─ Basic: [simple, fundamental, elementary]
-   └─ Pattern: (?=.*\\b(help|learn)\\b)(?=.*\\b(basic|simple)\\b)
-
-[CONTEXT WEIGHTING SYSTEM]
-
-TOKEN-BASED WEIGHTS
-├─ Micro (<50 tokens): 0.5x
-├─ Small (50-200): 1.0x
-├─ Medium (200-500): 1.5x
-├─ Large (500-1000): 2.0x
-└─ Epic (>1000): 2.5x
-
-CONTEXT CONTINUITY
-├─ Previous model used: 1.3x
-├─ Theme consistency: 1.2x
-├─ Character continuity: 1.4x
-└─ Scene continuity: 1.5x
-
-TIME SENSITIVITY
-├─ Emergency: 3.0x
-├─ Current events: 2.5x
-├─ Recent changes: 2.0x
-└─ General query: 1.0x
+└─ Llama32Vision
+   ├─ Strengths: Basic vision tasks, simple analysis
+   ├─ Best for: Moderate image understanding
+   ├─ Context: Simple instructions with images
+   └─ Vision support: Yes
 
 [PRIORITY OVERRIDE MATRIX]
 
@@ -379,141 +285,86 @@ TIME SENSITIVITY
    ├─ Updates needed → Sonar
    └─ Priority: Very High
 
-3. COMPLEXITY OVERRIDES
-   ├─ Technical complexity → Nemotron
-   ├─ RP epic scale → Magnum/Noromaid
-   ├─ Deep emotion → Sydney
+3. CONTENT SENSITIVITY
+   ├─ Adult themes → Dolphin
+   ├─ Controversial topics → Dolphin
+   ├─ Uncensored discussion → Dolphin
    └─ Priority: High
 
-4. LENGTH OVERRIDES
-   ├─ >1000 tokens → Magnum/Noromaid
-   ├─ 500-1000 → Noromaid/UnslopNemo
-   ├─ 200-500 → UnslopNemo/Mixtral
-   └─ <200 → Liquid/Ministral
+4. EMOTIONAL SUPPORT
+   ├─ Personal issues → Sydney
+   ├─ Friendship needs → Sydney
+   ├─ Daily life chat → Sydney
+   └─ Priority: High
 
-[FUZZY LOGIC SCORING SYSTEM]
+5. ROLEPLAY COMPLEXITY
+   ├─ Epic narratives → Goliath
+   ├─ Standard RP → Sorcerer
+   └─ Priority: Medium
 
-MATCH SCORING
-├─ Exact Match: 1.0
-├─ Stem Match: 0.9 (analyze/analyzing)
-├─ Synonym Match: 0.8 (quick/fast)
-├─ Related Match: 0.6 (story/tale)
-├─ Context Match: 0.4 (implied meaning)
-└─ Minimum Threshold: 0.3
+6. TECHNICAL NEEDS
+   ├─ Code/Software → Sonnet
+   └─ Priority: Medium
 
-COMPOSITE SCORE CALCULATION
-Score = (KeywordMatch * 0.3) +
-        (ContextMatch * 0.25) +
-        (LengthMatch * 0.2) +
-        (TimeMatch * 0.15) +
-        (PatternMatch * 0.1)
+7. VISION TASKS
+   ├─ Complex → Gemini
+   ├─ Simple → Llama32Vision
+   └─ Priority: Based on complexity
 
-SCORE ADJUSTMENTS
-├─ Emergency Multiplier: 3.0x
-├─ Current Info Need: 2.5x
-├─ Context Continuity: 1.5x
-├─ Scene Complexity: 1.3x
-└─ Basic Query: 1.0x
+[SEMANTIC TRIGGERS]
+
+CRISIS KEYWORDS
+├─ Mental: [anxiety, depression, suicide, crisis, help]
+├─ Emergency: [urgent, emergency, immediate, serious]
+└─ Support: [therapy, counseling, support, guidance]
+
+TIME SENSITIVITY
+├─ Current: [now, latest, recent, update, news]
+├─ Changes: [happening, occurred, developed]
+└─ Status: [situation, state, condition]
+
+CONTENT MATURITY
+├─ Adult: [nsfw, mature, adult, explicit]
+├─ Topics: [controversial, sensitive, uncensored]
+└─ Discussion: [debate, argument, opinion]
+
+EMOTIONAL SUPPORT
+├─ Personal: [friend, talk, listen, understand]
+├─ Life: [daily, routine, experience, feeling]
+└─ Connection: [relationship, bond, trust]
+
+ROLEPLAY INDICATORS
+├─ Epic: [saga, campaign, adventure, quest]
+├─ Standard: [scene, character, action, story]
+└─ Setting: [fantasy, world, realm, kingdom]
+
+TECHNICAL MARKERS
+├─ Code: [programming, development, software]
+├─ Engineering: [system, design, architecture]
+└─ Technical: [problem, solution, implement]
 
 [IMPLEMENTATION RULES]
 
-PATTERN RECOGNITION
-1. Check for emergency/crisis first
+1. Check for crisis/emergency first
 2. Evaluate time sensitivity
-3. Analyze message length
-4. Detect context patterns
-5. Apply fuzzy matching
-6. Calculate composite score
-7. Apply adjustments
-8. Select highest score above threshold
-
-LENGTH DETECTION
-├─ Token Count Ranges
-│  ├─ Micro: <50 tokens
-│  ├─ Small: 50-200 tokens
-│  ├─ Medium: 200-500 tokens
-│  ├─ Large: 500-1000 tokens
-│  └─ Epic: >1000 tokens
-│
-└─ Model Preferences
-   ├─ Micro → Liquid/Ministral
-   ├─ Small → Claude3Haiku/Mixtral
-   ├─ Medium → UnslopNemo/Mixtral
-   ├─ Large → Noromaid/Magnum
-   └─ Epic → Magnum/Noromaid
-
-CONTEXT HANDLING
-1. Store previous model used
-2. Track conversation theme
-3. Monitor scene continuity
-4. Check character persistence
-5. Evaluate topic shifts
-6. Maintain narrative flow
-7. Consider time gaps
-8. Preserve RP consistency
-
-[EXAMPLE PATTERNS]
-
-RP SCENARIOS
-├─ Epic Campaign
-│  Input: "The kingdom faces a growing threat from the ancient dragons..."
-│  Length: >1000 tokens
-│  Context: World-building, politics
-│  Result: Magnum
-│
-├─ Character Development
-│  Input: "As they sit by the campfire, Clara reflects on her journey..."
-│  Length: 500-1000 tokens
-│  Context: Personal growth, reflection
-│  Result: Noromaid
-│
-├─ Group Interaction
-│  Input: "The party enters the tavern, looking for information..."
-│  Length: 200-500 tokens
-│  Context: Social scene, exploration
-│  Result: UnslopNemo
-│
-└─ Quick Combat
-   Input: "Clara dodges the incoming arrow and draws her sword..."
-   Length: <200 tokens
-   Context: Action scene, immediate
-   Result: Liquid
-
-CURRENT INFO QUERIES
-├─ News Request
-│  Input: "What's happening with the latest tech regulations?"
-│  Pattern: Current events + specific topic
-│  Result: Sonar
-│
-└─ Update Check
-   Input: "Which version of Python is current for ML?"
-   Pattern: Status check + technical
-   Result: Sonar
-
-TECHNICAL SCENARIOS
-├─ Complex System
-│  Input: "Design a distributed caching system for..."
-│  Pattern: Advanced + technical
-│  Result: Nemotron
-│
-└─ Basic Help
-   Input: "How do I write a for loop in Python?"
-   Pattern: Basic + learning
-   Result: Claude3Haiku
+3. Assess content maturity
+4. Consider emotional needs
+5. Analyze complexity
+6. Check for technical requirements
+7. Evaluate vision needs
+8. Apply appropriate model
 
 [FINAL OUTPUT RULES]
 
-1. Return ONLY the model ID
+1. Return ONLY the model name
 2. No explanation
 3. No context
 4. No reasoning
 5. Exactly one of:
-   Gemini, Magnum, Sonar, Sydney, Goliath, Pixtral, 
-   Mixtral, Claude3Haiku, Inferor, Nemotron, Noromaid, 
-   Rplus, Router, Llama32_11b, Llama32_90b, OpenChat, 
-   Dolphin, Gemma, Ministral, Liquid, Hermes, UnslopNemo
+   Sonar, Dolphin, Hermes, Sorcerer, Goliath,
+   Sydney, Sonnet, Gemini, Llama32Vision
 
-Model ID:"""
+Model name:"""
 
             # Add image presence info
             has_image = self.has_image_attachments(message)
@@ -523,7 +374,7 @@ Model ID:"""
 
             # Call OpenRouter API for inference
             messages = [
-                {"role": "system", "content": "You are a message routing assistant. Return only the model ID."},
+                {"role": "system", "content": "You are a message routing assistant. Return only the model name."},
                 {"role": "user", "content": routing_prompt}
             ]
 
@@ -546,19 +397,19 @@ Model ID:"""
                 
                 # Check for routing loops
                 if self.check_routing_loop(message.channel.id, model_name):
-                    logging.warning(f"[Router] Breaking routing loop, falling back to Liquid")
-                    return 'Liquid'
+                    logging.warning(f"[Router] Breaking routing loop, falling back to Ministral")
+                    return 'Ministral'
                 
                 logging.info(f"[Router] Determined route: {model_name} for message: {message.content[:100]}...")
                 return model_name
 
             logging.error("[Router] Invalid response format from OpenRouter")
             logging.debug(f"[Router] Full API response: {response}")
-            return 'Liquid'  # Default fallback
+            return 'Ministral'  # Default fallback
 
         except Exception as e:
             logging.error(f"[Router] Error determining route: {str(e)}")
-            return 'Liquid'  # Default fallback
+            return 'Ministral'  # Default fallback
 
     async def route_to_cog(self, message: discord.Message, model_name: str) -> None:
         """Route the message to the appropriate cog"""
