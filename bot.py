@@ -198,19 +198,17 @@ async def setup_cogs(bot: SplinterTreeBot):
             logging.error(traceback.format_exc())
             sys.exit(1)  # Exit if core cog fails to load
 
-    # Load help cog last
+    # Load help cog last (optional)
     try:
         await bot.load_extension('cogs.help_cog')
         logging.info("Loaded help cog")
         
         help_cog = bot.get_cog('HelpCog')
         if not help_cog:
-            logging.error("Failed to find HelpCog after loading")
-            sys.exit(1)
+            logging.warning("Failed to find HelpCog after loading, continuing without help commands")
     except Exception as e:
-        logging.error(f"Failed to load help cog: {str(e)}")
-        logging.error(traceback.format_exc())
-        sys.exit(1)
+        logging.warning(f"Failed to load help cog: {str(e)}")
+        logging.warning("Continuing without help commands")
 
     logging.info(f"Total loaded cogs with handle_message: {len(bot.loaded_cogs)}")
     bot.cogs_loaded = True
