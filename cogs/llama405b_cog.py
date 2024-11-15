@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class SydneyCog(BaseCog):
+class Llama405bCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Sydney",
-            nickname="Sydney",
-            trigger_words=['syd', 'sydney'],
+            name="Llama-405b",
+            nickname="Llama",
+            trigger_words=['llama', 'llama3'],
             model="meta-llama/llama-3.1-405b-instruct:free",
             provider="openrouter",
-            prompt_file="sydney_prompts",
+            prompt_file="llama405b_prompts",
             supports_vision=False
         )
-        logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Sydney] Using provider: {self.provider}")
-        logging.debug(f"[Sydney] Vision support: {self.supports_vision}")
+        logging.debug(f"[Llama-405b] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Llama-405b] Using provider: {self.provider}")
+        logging.debug(f"[Llama-405b] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Sydney] Failed to load temperatures.json: {e}")
+            logging.error(f"[Llama-405b] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Sydney"
+        return "Llama-405b"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -72,12 +72,12 @@ class SydneyCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
-            logging.debug(f"[Sydney] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Llama-405b] Sending {len(messages)} messages to API")
+            logging.debug(f"[Llama-405b] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Sydney] Using temperature: {temperature}")
+            logging.debug(f"[Llama-405b] Using temperature: {temperature}")
 
             # Get user_id and guild_id
             user_id = str(message.author.id)
@@ -93,7 +93,7 @@ class SydneyCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="sydney_prompts"
+                    prompt_file="llama405b_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -104,7 +104,7 @@ class SydneyCog(BaseCog):
             fallback_model = "meta-llama/llama-3.1-405b-instruct"
             if fallback_model and fallback_model != self.model:
                 try:
-                    logging.info(f"[Sydney] Trying fallback model: {fallback_model}")
+                    logging.info(f"[Llama-405b] Trying fallback model: {fallback_model}")
                     response_stream = await self.api_client.call_openpipe(
                         messages=messages,
                         model=fallback_model,
@@ -113,7 +113,7 @@ class SydneyCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="sydney_prompts"
+                        prompt_file="llama405b_prompts"
                     )
                     return response_stream
                 except Exception as e:
@@ -122,14 +122,14 @@ class SydneyCog(BaseCog):
             return None
 
         except Exception as e:
-            logging.error(f"Error processing message for Sydney: {e}")
+            logging.error(f"Error processing message for Llama-405b: {e}")
             return None
 async def setup(bot):
     try:
-        cog = SydneyCog(bot)
+        cog = Llama405bCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Sydney] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Llama-405b] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Sydney] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Llama-405b] Failed to register cog: {e}", exc_info=True)
         raise

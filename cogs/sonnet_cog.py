@@ -4,34 +4,34 @@ import logging
 from .base_cog import BaseCog
 import json
 
-class SydneyCog(BaseCog):
+class SonnetCog(BaseCog):
     def __init__(self, bot):
         super().__init__(
             bot=bot,
-            name="Sydney",
-            nickname="Sydney",
-            trigger_words=['syd', 'sydney'],
-            model="meta-llama/llama-3.1-405b-instruct:free",
+            name="Sonnet",
+            nickname="Sonnet",
+            trigger_words=['sonnet'],
+            model="anthropic/claude-3-5-sonnet:beta",
             provider="openrouter",
-            prompt_file="sydney_prompts",
+            prompt_file="sonnet_prompts",
             supports_vision=False
         )
-        logging.debug(f"[Sydney] Initialized with raw_prompt: {self.raw_prompt}")
-        logging.debug(f"[Sydney] Using provider: {self.provider}")
-        logging.debug(f"[Sydney] Vision support: {self.supports_vision}")
+        logging.debug(f"[Sonnet] Initialized with raw_prompt: {self.raw_prompt}")
+        logging.debug(f"[Sonnet] Using provider: {self.provider}")
+        logging.debug(f"[Sonnet] Vision support: {self.supports_vision}")
 
         # Load temperature settings
         try:
             with open('temperatures.json', 'r') as f:
                 self.temperatures = json.load(f)
         except Exception as e:
-            logging.error(f"[Sydney] Failed to load temperatures.json: {e}")
+            logging.error(f"[Sonnet] Failed to load temperatures.json: {e}")
             self.temperatures = {}
 
     @property
     def qualified_name(self):
         """Override qualified_name to match the expected cog name"""
-        return "Sydney"
+        return "Sonnet"
 
     def get_temperature(self):
         """Get temperature setting for this agent"""
@@ -72,12 +72,12 @@ class SydneyCog(BaseCog):
                 "content": message.content
             })
 
-            logging.debug(f"[Sydney] Sending {len(messages)} messages to API")
-            logging.debug(f"[Sydney] Formatted prompt: {formatted_prompt}")
+            logging.debug(f"[Sonnet] Sending {len(messages)} messages to API")
+            logging.debug(f"[Sonnet] Formatted prompt: {formatted_prompt}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
-            logging.debug(f"[Sydney] Using temperature: {temperature}")
+            logging.debug(f"[Sonnet] Using temperature: {temperature}")
 
             # Get user_id and guild_id
             user_id = str(message.author.id)
@@ -93,7 +93,7 @@ class SydneyCog(BaseCog):
                     provider="openrouter",
                     user_id=user_id,
                     guild_id=guild_id,
-                    prompt_file="sydney_prompts"
+                    prompt_file="sonnet_prompts"
                 )
                 if response_stream:
                     return response_stream
@@ -101,10 +101,10 @@ class SydneyCog(BaseCog):
                 logging.warning(f"Primary model failed: {e}")
 
             # Try fallback model if available
-            fallback_model = "meta-llama/llama-3.1-405b-instruct"
+            fallback_model = ""
             if fallback_model and fallback_model != self.model:
                 try:
-                    logging.info(f"[Sydney] Trying fallback model: {fallback_model}")
+                    logging.info(f"[Sonnet] Trying fallback model: {fallback_model}")
                     response_stream = await self.api_client.call_openpipe(
                         messages=messages,
                         model=fallback_model,
@@ -113,7 +113,7 @@ class SydneyCog(BaseCog):
                         provider="openrouter",
                         user_id=user_id,
                         guild_id=guild_id,
-                        prompt_file="sydney_prompts"
+                        prompt_file="sonnet_prompts"
                     )
                     return response_stream
                 except Exception as e:
@@ -122,14 +122,14 @@ class SydneyCog(BaseCog):
             return None
 
         except Exception as e:
-            logging.error(f"Error processing message for Sydney: {e}")
+            logging.error(f"Error processing message for Sonnet: {e}")
             return None
 async def setup(bot):
     try:
-        cog = SydneyCog(bot)
+        cog = SonnetCog(bot)
         await bot.add_cog(cog)
-        logging.info(f"[Sydney] Registered cog with qualified_name: {cog.qualified_name}")
+        logging.info(f"[Sonnet] Registered cog with qualified_name: {cog.qualified_name}")
         return cog
     except Exception as e:
-        logging.error(f"[Sydney] Failed to register cog: {e}", exc_info=True)
+        logging.error(f"[Sonnet] Failed to register cog: {e}", exc_info=True)
         raise

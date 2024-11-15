@@ -37,7 +37,7 @@ class SorcererCog(BaseCog):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a response using openrouter with fallback handling"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -83,19 +83,43 @@ class SorcererCog(BaseCog):
             user_id = str(message.author.id)
             guild_id = str(message.guild.id) if message.guild else None
 
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=True,
-                provider="openrouter",
-                user_id=user_id,
-                guild_id=guild_id,
-                prompt_file="sorcerer_prompts"
-            )
+            # Try primary model first
+            try:
+                response_stream = await self.api_client.call_openpipe(
+                    messages=messages,
+                    model=self.model,
+                    temperature=temperature,
+                    stream=True,
+                    provider="openrouter",
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    prompt_file="sorcerer_prompts"
+                )
+                if response_stream:
+                    return response_stream
+            except Exception as e:
+                logging.warning(f"Primary model failed: {e}")
 
-            return response_stream
+            # Try fallback model if available
+            fallback_model = ""
+            if fallback_model and fallback_model != self.model:
+                try:
+                    logging.info(f"[Sorcerer] Trying fallback model: {fallback_model}")
+                    response_stream = await self.api_client.call_openpipe(
+                        messages=messages,
+                        model=fallback_model,
+                        temperature=temperature,
+                        stream=True,
+                        provider="openrouter",
+                        user_id=user_id,
+                        guild_id=guild_id,
+                        prompt_file="sorcerer_prompts"
+                    )
+                    return response_stream
+                except Exception as e:
+                    logging.error(f"Fallback model failed: {e}")
+
+            return None
 
         except Exception as e:
             logging.error(f"Error processing message for Sorcerer: {e}")

@@ -11,10 +11,10 @@ class GeminiCog(BaseCog):
             name="Gemini",
             nickname="Gemini",
             trigger_words=['gemini'],
-            model="google/gemini-flash-1.5",
+            model="google/gemini-pro-1.5-exp",
             provider="openrouter",
             prompt_file="gemini_prompts",
-            supports_vision=True
+            supports_vision=False
         )
         logging.debug(f"[Gemini] Initialized with raw_prompt: {self.raw_prompt}")
         logging.debug(f"[Gemini] Using provider: {self.provider}")
@@ -36,9 +36,8 @@ class GeminiCog(BaseCog):
     def get_temperature(self):
         """Get temperature setting for this agent"""
         return self.temperatures.get(self.name.lower(), 0.7)
-
     async def generate_response(self, message):
-        """Generate a response using openrouter"""
+        """Generate a response using openrouter with fallback handling"""
         try:
             # Format system prompt
             formatted_prompt = self.format_prompt(message)
@@ -67,49 +66,14 @@ class GeminiCog(BaseCog):
                     "content": content
                 })
 
-            # Process current message and any images
-            content = []
-            has_images = False
-            
-            # Add any image attachments
-            for attachment in message.attachments:
-                if attachment.content_type and attachment.content_type.startswith("image/"):
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": attachment.url }
-                    })
-
-            # Check for image URLs in embeds
-            for embed in message.embeds:
-                if embed.image and embed.image.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.image.url }
-                    })
-                if embed.thumbnail and embed.thumbnail.url:
-                    has_images = True
-                    content.append({
-                        "type": "image_url",
-                        "image_url": { "url": embed.thumbnail.url }
-                    })
-
-            # Add the text content
-            content.append({
-                "type": "text",
-                "text": message.content
-            })
-
-            # Add the message with multimodal content
+            # Add the current message
             messages.append({
                 "role": "user",
-                "content": content
+                "content": message.content
             })
 
             logging.debug(f"[Gemini] Sending {len(messages)} messages to API")
             logging.debug(f"[Gemini] Formatted prompt: {formatted_prompt}")
-            logging.debug(f"[Gemini] Has images: {has_images}")
 
             # Get temperature for this agent
             temperature = self.get_temperature()
@@ -119,24 +83,47 @@ class GeminiCog(BaseCog):
             user_id = str(message.author.id)
             guild_id = str(message.guild.id) if message.guild else None
 
-            # Call API and return the stream directly
-            response_stream = await self.api_client.call_openpipe(
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                stream=True,
-                provider="openrouter",
-                user_id=user_id,
-                guild_id=guild_id,
-                prompt_file=self.prompt_file
-            )
+            # Try primary model first
+            try:
+                response_stream = await self.api_client.call_openpipe(
+                    messages=messages,
+                    model=self.model,
+                    temperature=temperature,
+                    stream=True,
+                    provider="openrouter",
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    prompt_file="gemini_prompts"
+                )
+                if response_stream:
+                    return response_stream
+            except Exception as e:
+                logging.warning(f"Primary model failed: {e}")
 
-            return response_stream
+            # Try fallback model if available
+            fallback_model = "google/gemini-pro-1.5"
+            if fallback_model and fallback_model != self.model:
+                try:
+                    logging.info(f"[Gemini] Trying fallback model: {fallback_model}")
+                    response_stream = await self.api_client.call_openpipe(
+                        messages=messages,
+                        model=fallback_model,
+                        temperature=temperature,
+                        stream=True,
+                        provider="openrouter",
+                        user_id=user_id,
+                        guild_id=guild_id,
+                        prompt_file="gemini_prompts"
+                    )
+                    return response_stream
+                except Exception as e:
+                    logging.error(f"Fallback model failed: {e}")
+
+            return None
 
         except Exception as e:
             logging.error(f"Error processing message for Gemini: {e}")
             return None
-
 async def setup(bot):
     try:
         cog = GeminiCog(bot)
