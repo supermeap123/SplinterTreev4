@@ -13,7 +13,7 @@ class RouterCog(BaseCog):
             name="Router",
             nickname="Router",
             trigger_words=[],
-            model="mistralai/ministral-3b",
+            model="meta-llama/llama-3.2-3b-instruct:free",
             provider="openrouter",
             prompt_file="router",
             supports_vision=False
@@ -213,14 +213,27 @@ Model name:"""
             ]
 
             logging.debug(f"[Router] Calling OpenRouter API for message: {message.content[:100]}...")
-            response = await self.api_client.call_openrouter(
-                messages=messages,
-                model=self.model,
-                temperature=0.3,  # Low temperature for more consistent routing
-                stream=False,
-                user_id=str(message.author.id),
-                guild_id=str(message.guild.id) if message.guild else None
-            )
+            try:
+                # Try with free model first
+                response = await self.api_client.call_openrouter(
+                    messages=messages,
+                    model="meta-llama/llama-3.2-3b-instruct:free",
+                    temperature=0.3,  # Low temperature for more consistent routing
+                    stream=False,
+                    user_id=str(message.author.id),
+                    guild_id=str(message.guild.id) if message.guild else None
+                )
+            except Exception as e:
+                logging.warning(f"[Router] Free model failed, falling back to paid model: {str(e)}")
+                # Fallback to paid model
+                response = await self.api_client.call_openrouter(
+                    messages=messages,
+                    model="meta-llama/llama-3.2-3b-instruct",
+                    temperature=0.3,
+                    stream=False,
+                    user_id=str(message.author.id),
+                    guild_id=str(message.guild.id) if message.guild else None
+                )
 
             if response and 'choices' in response:
                 raw_model_name = response['choices'][0]['message']['content'].strip()
